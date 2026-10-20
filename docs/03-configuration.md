@@ -31,7 +31,10 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
   "startOnLaunch": false,
   "minimizeToTray": true,
   "lastRoot": "C:/kiln",
-  "manifestUrl": ""
+  "manifestUrl": "",
+  "autoBackup": true,
+  "backupEveryHours": 2,
+  "backupKeep": 10
 }
 ```
 
@@ -44,6 +47,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | `startOnLaunch` | Start Apache, MariaDB and auto-start Node apps when the panel opens |
 | `minimizeToTray` | Closing the window hides Kiln to the tray instead of exiting |
 | `lastRoot` | Where the folder was last time; used to fix `php.ini` paths after a move. Don't edit. |
+| `autoBackup`, `backupEveryHours`, `backupKeep` | Automatic database backups ([11](11-databases.md#backups)). Set in **Database…** |
 | `manifestUrl` | Optional URL of a `versions.json` that pins component versions (below). Empty means the maintainer default. |
 
 ## node-apps.json
@@ -169,7 +173,12 @@ The same `php.ini` is used by Apache (through `PHPIniDir`) and by `php.exe` in t
 
 ## MariaDB: my.ini
 
-[`overlay/config/mariadb/my.ini`](../overlay/config/mariadb/my.ini) contains only path-free tuning: `utf8mb4` everywhere, a 64 MB `max_allowed_packet`, a 256 MB InnoDB buffer pool, and relaxed flushing (`innodb_flush_log_at_trx_commit = 2`), which is faster on laptops and only risks the last second of writes on a power cut. Paths, port and bind address are passed on the command line, and command-line options win over `my.ini`.
+[`overlay/config/mariadb/my.ini`](../overlay/config/mariadb/my.ini) contains only path-free settings:
+
+- `utf8mb4` everywhere, a 64 MB `max_allowed_packet`, and a 256 MB InnoDB buffer pool.
+- **Crash safety:** `innodb_flush_log_at_trx_commit = 1` (committed data is on disk before MariaDB answers), `innodb_doublewrite = 1`, `innodb_file_per_table = 1`, and `aria_recover_options = BACKUP,QUICK`. See [11 – Databases](11-databases.md).
+
+Paths, port and bind address are passed on the command line, and command-line options win over `my.ini`.
 
 ## phpMyAdmin: config.inc.php
 

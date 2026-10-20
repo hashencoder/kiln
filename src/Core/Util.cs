@@ -49,6 +49,7 @@ namespace Kiln
         public static string Downloads { get { return Path.Combine(Tmp, "downloads"); } }
         public static string Ssl { get { return Path.Combine(Root, "ssl"); } }
         public static string Tools { get { return Path.Combine(Root, "tools"); } }
+        public static string Backups { get { return Path.Combine(Data, "backups"); } }
         public static string ConfigFile { get { return Path.Combine(Root, "kiln.json"); } }
         public static string NodeAppsFile { get { return Path.Combine(Root, "node-apps.json"); } }
 
@@ -201,6 +202,15 @@ namespace Kiln
         [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
         static extern bool SetHandleInformation(IntPtr handle, uint mask, uint flags);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern bool ShutdownBlockReasonCreate(IntPtr hwnd, string reason);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern bool ShutdownBlockReasonDestroy(IntPtr hwnd);
+
+        /// <summary>Show "Kiln: stopping the database safely" on the Windows shutdown screen while we work.</summary>
+        public static void BlockShutdown(IntPtr hwnd, string reason) { try { ShutdownBlockReasonCreate(hwnd, reason); } catch { } }
+        public static void UnblockShutdown(IntPtr hwnd) { try { ShutdownBlockReasonDestroy(hwnd); } catch { } }
+
         /// <summary>Signal a named event, e.g. Apache's "ap1234_shutdown". False if it doesn't exist.</summary>
         public static bool Signal(string name)
         {
@@ -233,13 +243,25 @@ namespace Kiln
 
     public static class Sys
     {
+        /// <summary>
+        /// True if something accepts TCP connections on this port on the loopback address
+        /// (IPv4 or IPv6). A real connect, so it never mistakes closing/TIME_WAIT sockets for a server.
+        /// </summary>
         public static bool IsPortListening(int port)
         {
-            try
+            foreach (var addr in new[] { IPAddress.Loopback, IPAddress.IPv6Loopback })
             {
-                return IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(e => e.Port == port);
+                try
+                {
+                    using (var c = new System.Net.Sockets.TcpClient(addr.AddressFamily))
+                    {
+                        var ar = c.BeginConnect(addr, port, null, null);
+                        if (ar.AsyncWaitHandle.WaitOne(400) && c.Connected) { c.EndConnect(ar); return true; }
+                    }
+                }
+                catch { }
             }
-            catch { return false; }
+            return false;
         }
 
         /// <summary>Who is listening on a port, e.g. "httpd.exe (PID 1234)". Uses netstat.</summary>
@@ -272,6 +294,14 @@ namespace Kiln
             if (pid <= 0) return false;
             try
             {
+                // Mono/Linux only: a killed process can linger as a zombie; Windows never has one.
+                var stat = "/proc/" + pid + "/stat";
+                if (File.Exists(stat))
+                {
+                    var st = File.ReadAllText(stat);
+                    int close = st.LastIndexOf(')');
+                    if (close > 0 && close + 2 < st.Length && st[close + 2] == 'Z') return false;
+                }
                 var p = Process.GetProcessById(pid);
                 if (p.HasExited) return false;
                 return names.Length == 0 || names.Any(n => p.ProcessName.Equals(n, StringComparison.OrdinalIgnoreCase));
@@ -342,10 +372,12 @@ namespace Kiln
             };
             if (env != null) foreach (var kv in env) psi.EnvironmentVariables[kv.Key] = kv.Value;
             var sb = new StringBuilder();
+            using (var outDone = new System.Threading.ManualResetEvent(false))
+            using (var errDone = new System.Threading.ManualResetEvent(false))
             using (var p = new Process { StartInfo = psi })
             {
-                p.OutputDataReceived += (s, e) => { if (e.Data != null) lock (sb) sb.AppendLine(e.Data); };
-                p.ErrorDataReceived += (s, e) => { if (e.Data != null) lock (sb) sb.AppendLine(e.Data); };
+                p.OutputDataReceived += (s, e) => { if (e.Data == null) outDone.Set(); else lock (sb) sb.AppendLine(e.Data); };
+                p.ErrorDataReceived += (s, e) => { if (e.Data == null) errDone.Set(); else lock (sb) sb.AppendLine(e.Data); };
                 p.Start();
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
@@ -354,8 +386,11 @@ namespace Kiln
                     try { p.Kill(); } catch { }
                     return new RunResult { ExitCode = -1, Output = sb + "\n(timed out)" };
                 }
-                p.WaitForExit(5000); // flush output; bounded in case a grandchild inherited the pipe
-                return new RunResult { ExitCode = p.ExitCode, Output = sb.ToString() };
+                // Wait for the output streams to close so no output is lost - but bounded, because a
+                // server started meanwhile could have inherited the pipe and keep it open.
+                outDone.WaitOne(5000);
+                errDone.WaitOne(5000);
+                lock (sb) return new RunResult { ExitCode = p.ExitCode, Output = sb.ToString() };
             }
         }
 

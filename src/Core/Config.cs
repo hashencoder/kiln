@@ -18,6 +18,9 @@ namespace Kiln
         public bool MinimizeToTray = true;
         public string LastRoot = "";
         public string ManifestUrl = "";
+        public bool AutoBackup = true;       // back up databases on stop and every BackupEveryHours
+        public int BackupEveryHours = 2;
+        public int BackupKeep = 10;
 
         public static KilnConfig Load()
         {
@@ -36,6 +39,9 @@ namespace Kiln
                     c.MinimizeToTray = Json.Get(o, "minimizeToTray") as bool? ?? true;
                     c.LastRoot = Json.Str(o, "lastRoot") ?? "";
                     c.ManifestUrl = Json.Str(o, "manifestUrl") ?? "";
+                    c.AutoBackup = Json.Get(o, "autoBackup") as bool? ?? true;
+                    c.BackupEveryHours = Math.Max(0, ToInt(Json.Get(o, "backupEveryHours"), 2));
+                    c.BackupKeep = Math.Max(1, ToInt(Json.Get(o, "backupKeep"), 10));
                 }
             }
             catch (Exception e) { Log.Error("Couldn't read kiln.json, using defaults: " + e.Message); }
@@ -54,7 +60,8 @@ namespace Kiln
             {
                 {"php", Php}, {"node", Node}, {"httpPort", HttpPort}, {"mysqlPort", MysqlPort},
                 {"mysqlRootPassword", MysqlRootPassword}, {"startOnLaunch", StartOnLaunch},
-                {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl}
+                {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl},
+                {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep}
             };
             File.WriteAllText(K.ConfigFile, Json.Pretty(d));
         }

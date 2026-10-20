@@ -191,6 +191,8 @@ namespace Kiln
             Services.ApplyEnv(psi);
             var p = Process.Start(psi);
             bool up = WaitFor(() => p.HasExited || Sys.IsPortListening(Cfg.HttpPort), 15000);
+            // A server can open its port and then abort during startup; make sure it stays up.
+            if (up && !p.HasExited) WaitFor(() => p.HasExited, 1500);
             if (p.HasExited || !up)
                 throw new Exception("Apache didn't start. Last lines of apache-error.log:\n" + Sys.Tail(LogFile, 15));
             Log.Info("Apache is running: " + Url);
@@ -290,6 +292,8 @@ namespace Kiln
             Services.ApplyEnv(psi);
             var p = Process.Start(psi);
             bool up = WaitFor(() => p.HasExited || Sys.IsPortListening(Cfg.MysqlPort), 30000);
+            // MariaDB opens its port before finishing startup and can still abort; make sure it stays up.
+            if (up && !p.HasExited) WaitFor(() => p.HasExited, 2000);
             if (p.HasExited || !up)
                 throw new Exception("MariaDB didn't start. Last lines of mariadb.err:\n" + Sys.Tail(LogFile, 15));
             if (!File.Exists(PidFile)) File.WriteAllText(PidFile, p.Id.ToString());
@@ -297,10 +301,22 @@ namespace Kiln
             Log.Info("MariaDB is running on 127.0.0.1:" + Cfg.MysqlPort);
         }
 
-        public override void Stop()
+        public override void Stop() { Stop(true); }
+
+        /// <summary>Clean stop. With backupFirst, takes an automatic backup first (if due and enabled).</summary>
+        public void Stop(bool backupFirst) { Stop(backupFirst, 20000); }
+
+        /// <summary>
+        /// Fast clean stop for Windows shutdown/logoff: no backup, shorter waits. A clean stop flushes
+        /// everything to disk, so the next start needs no crash recovery at all.
+        /// </summary>
+        public void StopForShutdown() { Stop(false, 12000); }
+
+        void Stop(bool backupFirst, int waitMs)
         {
             int pid = Pid();
             if (pid == 0) { Log.Info("MariaDB is not running."); return; }
+            if (backupFirst) Backup.CreateIfDue(Cfg, TimeSpan.FromMinutes(15), "before stopping");
             Log.Info("Stopping MariaDB...");
             var admin = Installer.MariaExe("mariadb-admin.exe", "mysqladmin.exe");
             if (admin != null)
@@ -310,7 +326,7 @@ namespace Kiln
                 var r = Sys.Run(admin, "--protocol=TCP -h 127.0.0.1 -P " + RunningPort + " -u root shutdown", env, 30000, K.MariaDbBin);
                 if (r.ExitCode != 0) Log.Warn("mariadb-admin shutdown: " + r.Output.Trim());
             }
-            if (!WaitFor(() => Pid() == 0, 20000))
+            if (!WaitFor(() => Pid() == 0, waitMs))
             {
                 Log.Warn("MariaDB didn't stop cleanly; ending its process (InnoDB will recover on next start).");
                 Sys.KillTree(pid);
