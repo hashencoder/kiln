@@ -15,6 +15,9 @@ Your projects:   put them in www\<name>  ->  http://<name>.localhost
                  (click "Refresh sites" after adding a folder)
 Node apps:       Kiln -> Node apps... -> Add
 Database:        127.0.0.1:3306, user root, empty password by default
+Backups:         automatic every 2 hours and before stopping (data\backups);
+                 Kiln -> Database... to restore or rebuild after a crash
+From XAMPP:      stop MySQL in XAMPP, then Kiln -> Database... -> Import from XAMPP
 phpMyAdmin:      http://localhost/phpmyadmin
 Terminal:        Kiln -> Shell (php, node, npm, composer, mariadb on PATH)
 Command line:    kilnctl status | start | stop | restart | sites | php 8.4

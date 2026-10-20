@@ -16,6 +16,7 @@ Thanks for helping. Kiln aims to stay small, dependable and easy to understand, 
 # Linux/macOS with Mono
 ./build/build.sh
 ./tests/run.sh
+./tests/integration.sh   # needs: apt install mariadb-server mariadb-client
 ```
 
 ```powershell

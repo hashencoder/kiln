@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
@@ -17,6 +18,14 @@ Usage:
   kilnctl sites                       Regenerate vhosts for folders in www\ and Node apps
   kilnctl php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
   kilnctl setup                       Download and install everything (first run)
+  kilnctl backup                      Back up all databases now (data\backups)
+  kilnctl backups                     List backups
+  kilnctl restore [<file>|latest]     Load a backup into the running MariaDB
+  kilnctl rebuild-db [<file>|latest]  MariaDB won't start after a crash: set the damaged
+                                      data folder aside and rebuild it from a backup
+  kilnctl import-xampp [<folder>] [--recover] [--projects]
+                                      Copy databases (and with --projects, htdocs folders)
+                                      from XAMPP. Stop XAMPP's MySQL first.
   kilnctl shell                       Open a console with php, node, npm and composer on PATH
   kilnctl version
 
@@ -48,6 +57,24 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
                     case "php": return Php(args.Length > 1 ? args[1] : null);
                     case "setup": return RunSetup();
                     case "shell": Services.OpenShell(); return 0;
+                    case "backup":
+                        if (!Services.MariaDb.IsRunning) Services.MariaDb.Start();
+                        Console.WriteLine(Backup.Create(Services.Cfg, "manual") ?? "Nothing to back up yet.");
+                        return 0;
+                    case "backups":
+                        foreach (var b in Backup.List()) Console.WriteLine(b.Label + "   " + b.Path);
+                        return 0;
+                    case "restore":
+                        if (!Services.MariaDb.IsRunning) Services.MariaDb.Start();
+                        Backup.Restore(Services.Cfg, PickBackup(args));
+                        return 0;
+                    case "rebuild-db":
+                        {
+                            var aside = Backup.Rebuild(Services.Cfg, PickBackup(args));
+                            if (aside != null) Console.WriteLine("Damaged data kept in " + aside);
+                            return 0;
+                        }
+                    case "import-xampp": return ImportXampp(args);
                     case "version": Console.WriteLine("Kiln " + K.AppVersion); return 0;
                     default: Console.WriteLine(Help); return cmd == "help" || cmd == "-h" || cmd == "--help" ? 0 : 1;
                 }
@@ -84,6 +111,39 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
                 catch (Exception e) { failures++; Log.Error(s.Title + ": " + e.Message); }
             }
             return failures == 0 ? 0 : 1;
+        }
+
+        static string PickBackup(string[] args)
+        {
+            string arg = args.Length > 1 ? args[1] : "latest";
+            if (!arg.Equals("latest", StringComparison.OrdinalIgnoreCase)) return System.IO.Path.GetFullPath(arg);
+            var latest = Backup.List().FirstOrDefault();
+            if (latest == null) throw new Exception("No backups in " + K.Backups);
+            Console.WriteLine("Using " + latest.Path);
+            return latest.Path;
+        }
+
+        static int ImportXampp(string[] args)
+        {
+            var rest = args.Skip(1).ToList();
+            bool recover = rest.Remove("--recover");
+            bool projects = rest.Remove("--projects");
+            string root = rest.FirstOrDefault() ?? XamppImport.Find();
+            if (root == null || !XamppImport.IsXampp(root)) { Console.Error.WriteLine("XAMPP not found. Pass its folder: kilnctl import-xampp C:\\xampp"); return 1; }
+            using (var x = new XamppImport(root))
+            {
+                var level = x.StartServerWithRecovery(recover);
+                List<string> dbs;
+                try { dbs = x.Databases(); }
+                finally { x.StopServer(); }
+                if (level > 0) Console.WriteLine("Note: XAMPP's MySQL only started in recovery mode " + level + ".");
+                Console.WriteLine("Databases: " + (dbs.Count == 0 ? "(none)" : string.Join(", ", dbs)));
+                var proj = projects ? x.HtdocsProjects() : new List<string>();
+                if (projects) Console.WriteLine("Projects:  " + (proj.Count == 0 ? "(none)" : string.Join(", ", proj)));
+                x.Run(Services.Cfg, dbs, recover, proj);
+            }
+            Console.WriteLine("Import complete.");
+            return 0;
         }
 
         static int Php(string branch)

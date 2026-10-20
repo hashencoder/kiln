@@ -71,6 +71,7 @@ Apache picks the site from the `Host` header. Each generated vhost also answers 
 | `config\apache\generated\` | Kiln | Rewritten on every Apache start and on **Refresh sites** |
 | `config\apache\custom\` | You | Never |
 | `data\mariadb\` | Your databases | Never |
+| `data\backups\` | Automatic database backups | Never (only the oldest beyond the "keep" count are pruned) |
 | `www\` | Your sites | Never |
 
 Apache is started with `-d` pointing at the pristine `apache\` folder (for `modules\` and `conf\mime.types`) and `-f` pointing at Kiln's own `httpd.conf`, so Apache's stock `conf\httpd.conf` is simply never used.

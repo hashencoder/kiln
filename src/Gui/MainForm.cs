@@ -21,6 +21,8 @@ namespace Kiln
         readonly RichTextBox _log = Ui.LogBox();
         readonly List<Row> _rows = new List<Row>();
         readonly Timer _timer = new Timer { Interval = 2000 };
+        readonly Timer _backupTimer = new Timer { Interval = 10 * 60 * 1000 };
+        volatile bool _backingUp;
         readonly NotifyIcon _tray = new NotifyIcon();
         Label _sub;
         bool _exiting, _refreshing, _trayHintShown;
@@ -58,6 +60,7 @@ namespace Kiln
             BuildTray();
             Log.Line += line => Ui.AppendLog(_log, line);
             _timer.Tick += (s, e) => RefreshStatus();
+            _backupTimer.Tick += (s, e) => ScheduledBackup();
             Load += OnLoad;
             FormClosing += OnClosing;
         }
@@ -113,8 +116,9 @@ namespace Kiln
             f.Controls.Add(Ui.Btn("Shell", (s, e) => Services.OpenShell()));
             f.Controls.Add(Ui.Btn("Refresh sites", (s, e) => RefreshSites()));
             f.Controls.Add(Ui.Btn("Node apps…", (s, e) => ShowNodeApps()));
+            f.Controls.Add(Ui.Btn("Database…", (s, e) => { using (var d = new DatabaseForm()) d.ShowDialog(this); }));
             f.Controls.Add(Ui.Btn("Settings…", (s, e) => ShowSettings()));
-            f.Controls.Add(Ui.Btn("Logs folder", (s, e) => Sys.OpenFolder(K.Logs)));
+            f.Controls.Add(Ui.Btn("Logs", (s, e) => Sys.OpenFolder(K.Logs)));
             return f;
         }
 
@@ -185,6 +189,7 @@ namespace Kiln
             UpdateSubtitle();
             BuildRows();
             _timer.Start();
+            _backupTimer.Start();
             if (K.RootWarning() != null) Log.Warn(K.RootWarning());
             if (!Installer.VcRedistOk())
                 Log.Warn("Visual C++ Redistributable 2017-2026 (x64) looks missing or old. If Apache won't start, install it from Settings.");
@@ -233,6 +238,32 @@ namespace Kiln
 
         static int SafePid(Service s) { try { return s.Pid(); } catch { return 0; } }
 
+        void ScheduledBackup()
+        {
+            var cfg = Cfg;
+            if (_backingUp || !cfg.AutoBackup || cfg.BackupEveryHours <= 0 || Services.MariaDb.Busy) return;
+            _backingUp = true;
+            Task.Run(() =>
+            {
+                try { if (Services.MariaDb.IsRunning) Backup.CreateIfDue(cfg, TimeSpan.FromHours(cfg.BackupEveryHours), "scheduled"); }
+                finally { _backingUp = false; }
+            });
+        }
+
+        /// <summary>After MariaDB fails to start, offer to rebuild it from the newest backup.</summary>
+        void OfferRebuild()
+        {
+            var latest = Backup.List().FirstOrDefault();
+            if (latest == null) return;
+            var answer = MessageBox.Show(this,
+                "MariaDB couldn't start. If this happened after a crash or power cut, its files may be damaged.\n\n" +
+                "Rebuild from your latest backup (" + latest.Time.ToString("g") + ")?\n\n" +
+                "The current data folder is kept as data\\mariadb-damaged-<date>, nothing is deleted. Changes made after the backup won't be in the rebuilt database.",
+                "Rebuild database?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+            if (answer == DialogResult.Yes)
+                Run(Services.MariaDb, () => Backup.Rebuild(Cfg, latest.Path), "Rebuilding…");
+        }
+
         void Toggle(Row r)
         {
             bool running = r.Svc.IsRunning;
@@ -253,6 +284,7 @@ namespace Kiln
                     var msg = t.Exception.GetBaseException().Message;
                     Log.Error(svc.Title + ": " + msg);
                     if (Visible) Ui.Error(this, svc.Title, msg);
+                    if (svc == Services.MariaDb && busyText.StartsWith("Start") && Visible) OfferRebuild();
                 }
                 RefreshStatus();
             }, TaskScheduler.FromCurrentSynchronizationContext());
@@ -261,28 +293,37 @@ namespace Kiln
         void StartAll()
         {
             var list = Services.All().Where(s => !(s is NodeService) || ((NodeService)s).App.AutoStart).ToList();
-            RunSequence(list, s => s.Start());
+            RunSequence(list, s => s.Start(), true);
         }
 
         void StopAll()
         {
             var list = Services.All();
             list.Reverse();
-            RunSequence(list, s => s.Stop());
+            RunSequence(list, s => s.Stop(), false);
         }
 
-        void RunSequence(List<Service> list, Action<Service> act)
+        void RunSequence(List<Service> list, Action<Service> act, bool starting)
         {
             foreach (var s in list) s.Busy = true;
+            bool dbFailed = false;
             Task.Run(() =>
             {
                 foreach (var s in list)
                 {
                     try { act(s); }
-                    catch (Exception e) { Log.Error(s.Title + ": " + e.Message); }
+                    catch (Exception e)
+                    {
+                        Log.Error(s.Title + ": " + e.Message);
+                        if (s == Services.MariaDb) dbFailed = true;
+                    }
                     finally { s.Busy = false; }
                 }
-            }).ContinueWith(t => RefreshStatus(), TaskScheduler.FromCurrentSynchronizationContext());
+            }).ContinueWith(t =>
+            {
+                RefreshStatus();
+                if (starting && dbFailed && Visible) OfferRebuild();
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         void RefreshSites()
@@ -353,10 +394,20 @@ namespace Kiln
             if (_exiting) return;
             if (e.CloseReason == CloseReason.WindowsShutDown || e.CloseReason == CloseReason.TaskManagerClosing)
             {
-                // Never hold up shutdown/logoff with a dialog. Servers are ended by Windows;
-                // MariaDB's InnoDB recovers on the next start.
+                // No dialogs during shutdown/logoff. Stop MariaDB cleanly so a shutdown never needs
+                // crash recovery; Windows shows our reason while we wait (normally 1-2 seconds).
                 _exiting = true;
                 _tray.Visible = false;
+                try
+                {
+                    if (Services.MariaDb.IsRunning)
+                    {
+                        Native.BlockShutdown(Handle, "Kiln is stopping the database safely...");
+                        Services.MariaDb.StopForShutdown();
+                    }
+                }
+                catch (Exception ex) { Log.Error("Shutdown: " + ex.Message); }
+                finally { Native.UnblockShutdown(Handle); }
                 return;
             }
             if (e.CloseReason == CloseReason.UserClosing && Cfg.MinimizeToTray)

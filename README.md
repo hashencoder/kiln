@@ -20,6 +20,8 @@ Kiln keeps the XAMPP experience (a portable folder, a panel with Start/Stop butt
 - **The latest stable PHP**, downloaded straight from windows.php.net at setup, with several versions side by side and a one-click switch.
 - **Node.js built in.** Register a Node app once; Kiln starts it with `PORT` set and Apache serves it at `http://<name>.localhost`, websockets included.
 - **Automatic sites.** Every folder in `www\` becomes `http://<folder>.localhost` with no hosts-file editing and no admin rights.
+- **Your databases survive crashes.** Crash-safe MariaDB settings, a clean database stop when Windows shuts down, automatic backups, and one-click "rebuild from backup". No more "MySQL shutdown unexpectedly" after the battery dies.
+- **Moving from XAMPP is one click.** Kiln copies your XAMPP databases and `htdocs` projects, even when XAMPP's MySQL has crashed, without changing XAMPP.
 - **Always current.** Kiln ships no third-party binaries. It downloads the official builds when you run it and verifies checksums where the publisher provides them, and its update checker keeps you current.
 
 ## What you get
@@ -48,6 +50,8 @@ Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistribut
 | Your Node apps | **Node apps… → Add**, choose the folder and command, then click **Start** and open `http://<name>.localhost` |
 | Database | `127.0.0.1:3306`, user `root`, no password by default (set one in **Settings**) |
 | phpMyAdmin | `http://localhost/phpmyadmin` |
+| Coming from XAMPP | Stop MySQL in XAMPP, then **Database… → Import from XAMPP…** ([docs/11](docs/11-databases.md#moving-from-xampp)) |
+| Backups | Automatic every 2 hours and before each stop; restore or rebuild in **Database…** |
 | Terminal | **Shell** opens a console with `php`, `node`, `npm`, `npx`, `composer` and `mariadb` on `PATH` |
 | Command line | `kilnctl status`, `kilnctl start`, `kilnctl php 8.4` and more ([docs/06](docs/06-control-panel.md#kilnctl)) |
 
@@ -68,7 +72,8 @@ C:\kiln\
 ├── config\
 │   ├── apache\             httpd.conf, generated\ vhosts, custom\ (yours)
 │   └── mariadb\my.ini
-├── data\mariadb\           Your databases - back this up
+├── data\mariadb\           Your databases
+├── data\backups\           Automatic database backups (.sql.gz) - copy these off the laptop too
 ├── www\                    Your sites: www\blog -> http://blog.localhost
 ├── logs\                   apache-error.log, mariadb.err, node-<app>.log, kiln.log
 ├── ssl\cacert.pem          CA bundle used by PHP's curl/openssl
@@ -92,6 +97,7 @@ Settings and data live **outside** the component folders, so upgrading Apache, M
 | [08 – Security](docs/08-security.md) | Keeping a dev stack safe |
 | [09 – Troubleshooting](docs/09-troubleshooting.md) | Port conflicts, missing DLLs, extensions, MariaDB, Node |
 | [10 – Licensing](docs/10-licensing.md) | Component licenses and what redistribution requires |
+| [11 – Databases](docs/11-databases.md) | Crash safety, backups, rebuild from backup, moving from XAMPP |
 
 ## Building from source
 
@@ -102,7 +108,7 @@ powershell -ExecutionPolicy Bypass -File build\build.ps1 -Package -Version 1.0.0
 
 ```bash
 # On Linux/macOS with Mono (also runs the test suite)
-./build/build.sh && ./tests/run.sh
+./build/build.sh && ./tests/run.sh   # + tests/integration.sh against a real MariaDB
 ```
 
 Pushing a tag such as `v1.0.0` builds and publishes a release through GitHub Actions. See [docs/07](docs/07-packaging-and-releases.md).

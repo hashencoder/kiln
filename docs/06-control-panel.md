@@ -54,8 +54,11 @@ When `apache\` or a PHP version is missing, Kiln opens the setup window instead 
 | **Shell** | A console in `www\` with `php`, `node`, `npm`, `npx`, `composer`, `mariadb` and `httpd` on `PATH` |
 | **Refresh sites** | Regenerates vhosts from the folders in `www\` and restarts Apache if it's running |
 | **Node apps…** | Add, edit and remove Node apps ([04](04-node-integration.md)) |
+| **Database…** | Backups (automatic and manual), restore, rebuild from backup, and **Import from XAMPP…** ([11](11-databases.md)) |
 | **Settings…** | See below |
 | Tray icon | Closing the window keeps Kiln in the tray (configurable). Right-click for Start all, Stop all, Open localhost and Exit. **Exit** asks whether to stop the servers or leave them running. |
+
+If MariaDB fails to start and backups exist, Kiln offers to rebuild it from the newest one (the damaged folder is kept). When Windows shuts down or you log off, Kiln stops MariaDB cleanly first, so a shutdown never needs crash recovery.
 
 Only one panel can run per Kiln folder. Separate Kiln folders can run side by side on different ports.
 
@@ -91,6 +94,12 @@ kilnctl restart [all|apache|mariadb|<node-app>]
 kilnctl sites                       Regenerate vhosts for folders in www\ and Node apps
 kilnctl php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
 kilnctl setup                       Download and install everything (first run)
+kilnctl backup                      Back up all databases now (data\backups)
+kilnctl backups                     List backups
+kilnctl restore [<file>|latest]     Load a backup into the running MariaDB
+kilnctl rebuild-db [<file>|latest]  Set a damaged data folder aside and rebuild it from a backup
+kilnctl import-xampp [<folder>] [--recover] [--projects]
+                                    Copy databases (and htdocs projects) from XAMPP
 kilnctl shell                       Open a console with php, node, npm and composer on PATH
 kilnctl version
 ```
@@ -122,6 +131,8 @@ src/
 │   ├── Installer.cs      Download + SHA-256, unzip, config templates, MariaDB init, VC++ runtime
 │   ├── Setup.cs          First-run orchestration
 │   ├── Services.cs       Apache, MariaDB and Node app start/stop/status
+│   ├── Backup.cs         Database backups, restore, rebuild-from-backup
+│   ├── XamppImport.cs    Copy databases and htdocs projects from XAMPP
 │   └── Vhosts.cs         Generates config/apache/generated/*.conf
 ├── Gui/                  Windows Forms UI (Kiln.exe)
 │   ├── Program.cs        Entry point, single-instance guard
@@ -129,11 +140,12 @@ src/
 │   ├── SetupForm.cs      First-run wizard
 │   ├── SettingsForm.cs   Settings + component updates
 │   ├── NodeAppsForm.cs   Node app list and editor
+│   ├── DatabaseForm.cs   Backups window and XAMPP import window
 │   └── Ui.cs             Colors, fonts, buttons, logo drawing
 └── Cli/
     └── CliProgram.cs     kilnctl.exe
 overlay/                  Config templates, embedded into both executables at build time
-tests/                    Logic tests (run under Mono on Linux/macOS, or on Windows)
+tests/                    Logic tests + a real-MariaDB integration test (Mono on Linux)
 ```
 
 Design notes for contributors:

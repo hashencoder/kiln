@@ -209,7 +209,54 @@ static class Tests
               "SHASUMS256.txt: picks the matching file's hash");
         Check(Resolver.ShaFromText(new string('F', 64) + "\n", null) == new string('f', 64), ".sha256 with a bare hash");
 
-        // ---------------------------------------------------------------- download + checksum (local HTTP server)
+        // ---------------------------------------------------------------- process output capture
+        var echo = Sys.Run("/bin/sh", "-c \"echo out-line; echo err-line 1>&2; exit 3\"", null, 10000);
+        Check(echo.ExitCode == 3 && echo.Output.Contains("out-line") && echo.Output.Contains("err-line"), "Sys.Run captures stdout, stderr and exit code", echo.Output);
+
+        // ---------------------------------------------------------------- backups
+        Console.WriteLine("Backups");
+        var dbsParsed = Backup.UserDatabases("information_schema\nmysql\nperformance_schema\nsys\nshop\nblog_db\r\n\n");
+        Check(dbsParsed.SequenceEqual(new[] { "shop", "blog_db" }), "SHOW DATABASES parsing drops system schemas", string.Join(",", dbsParsed));
+        Directory.CreateDirectory(K.Backups);
+        for (int i = 0; i < 5; i++)
+            File.WriteAllText(Path.Combine(K.Backups, "mariadb-2026010" + (i + 1) + "-120000.sql.gz"), "x");
+        Check(Backup.List().Count == 5 && Backup.List()[0].Time == new DateTime(2026, 1, 5, 12, 0, 0), "backups listed newest first, time read from file name");
+        Check(Backup.Prune(3) == 2 && Backup.List().Count == 3 && Backup.List().Last().Time.Day == 3, "pruning keeps the newest N");
+        string plain = Path.Combine(K.Tmp, "gz-test.sql"), packed = plain + ".gz", back = plain + ".out";
+        File.WriteAllText(plain, string.Join("\n", Enumerable.Range(0, 2000).Select(i => "INSERT INTO t VALUES (" + i + ");")));
+        Backup.Gzip(plain, packed); Backup.Gunzip(packed, back);
+        Check(File.ReadAllText(back) == File.ReadAllText(plain) && new FileInfo(packed).Length < new FileInfo(plain).Length / 3, "gzip round-trip and compression");
+        var cfgB = KilnConfig.Load();
+        Check(cfgB.AutoBackup && cfgB.BackupEveryHours == 2 && cfgB.BackupKeep == 10, "backup settings default on (2 h, keep 10)");
+        cfgB.AutoBackup = false; cfgB.BackupEveryHours = 6; cfgB.Save();
+        var cfgB2 = KilnConfig.Load();
+        Check(!cfgB2.AutoBackup && cfgB2.BackupEveryHours == 6, "backup settings round-trip");
+        cfgB2.AutoBackup = true; cfgB2.BackupEveryHours = 2; cfgB2.Save();
+        string myIni = File.ReadAllText(K.MyIni);
+        Check(myIni.Contains("innodb_flush_log_at_trx_commit = 1") && myIni.Contains("innodb_doublewrite       = 1"), "my.ini is crash-safe (durable commits, doublewrite)");
+
+        // ---------------------------------------------------------------- XAMPP import (file side)
+        Console.WriteLine("XAMPP import");
+        string xampp = Path.Combine(K.Root, "fake-xampp");
+        Check(!XamppImport.IsXampp(xampp), "non-XAMPP folder rejected");
+        Directory.CreateDirectory(Path.Combine(xampp, "mysql", "data"));
+        Directory.CreateDirectory(Path.Combine(xampp, "mysql", "bin"));
+        File.WriteAllText(Path.Combine(xampp, "mysql", "bin", "mysqld.exe"), "");
+        foreach (var d in new[] { "dashboard", "img", "webalizer", "xampp", "myshop", "blog", "legacy-app" })
+            Directory.CreateDirectory(Path.Combine(xampp, "htdocs", d));
+        File.WriteAllText(Path.Combine(xampp, "htdocs", "myshop", "index.php"), "<?php echo 1;");
+        Directory.CreateDirectory(Path.Combine(xampp, "htdocs", "myshop", "assets", "css"));
+        File.WriteAllText(Path.Combine(xampp, "htdocs", "myshop", "assets", "css", "a.css"), "body{}");
+        Check(XamppImport.IsXampp(xampp), "XAMPP folder detected");
+        var xi = new XamppImport(xampp);
+        Check(xi.HtdocsProjects().SequenceEqual(new[] { "blog", "legacy-app", "myshop" }), "htdocs projects exclude XAMPP's demo folders", string.Join(",", xi.HtdocsProjects()));
+        List<string> skippedP;
+        var copiedP = xi.CopyProjects(new[] { "myshop", "blog" }, out skippedP);   // www/blog already exists from the vhost tests
+        Check(copiedP.SequenceEqual(new[] { "myshop" }) && skippedP.SequenceEqual(new[] { "blog" }), "existing www folders are skipped, not overwritten");
+        Check(File.ReadAllText(Path.Combine(K.Www, "myshop", "assets", "css", "a.css")) == "body{}", "project copied recursively");
+        Check(File.Exists(Path.Combine(xampp, "htdocs", "myshop", "index.php")), "XAMPP originals untouched");
+
+
         if (port != null)
         {
             Console.WriteLine("Downloads");
