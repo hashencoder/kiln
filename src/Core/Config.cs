@@ -18,6 +18,7 @@ namespace Kiln
         public bool MinimizeToTray = true;
         public string LastRoot = "";
         public string ManifestUrl = "";
+        public bool LanAccess = false;       // let phones/PCs on the local network open the sites
         public bool AutoBackup = true;       // back up databases on stop and every BackupEveryHours
         public int BackupEveryHours = 2;
         public int BackupKeep = 10;
@@ -40,6 +41,7 @@ namespace Kiln
                     c.LastRoot = Json.Str(o, "lastRoot") ?? "";
                     c.ManifestUrl = Json.Str(o, "manifestUrl") ?? "";
                     c.AutoBackup = Json.Get(o, "autoBackup") as bool? ?? true;
+                    c.LanAccess = Json.Get(o, "lanAccess") as bool? ?? false;
                     c.BackupEveryHours = Math.Max(0, ToInt(Json.Get(o, "backupEveryHours"), 2));
                     c.BackupKeep = Math.Max(1, ToInt(Json.Get(o, "backupKeep"), 10));
                 }
@@ -61,7 +63,7 @@ namespace Kiln
                 {"php", Php}, {"node", Node}, {"httpPort", HttpPort}, {"mysqlPort", MysqlPort},
                 {"mysqlRootPassword", MysqlRootPassword}, {"startOnLaunch", StartOnLaunch},
                 {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl},
-                {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep}
+                {"lanAccess", LanAccess}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep}
             };
             File.WriteAllText(K.ConfigFile, Json.Pretty(d));
         }

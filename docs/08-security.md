@@ -6,7 +6,7 @@ Kiln is a **local development** stack. Its defaults trade hardening for convenie
 
 | Protection | How |
 |---|---|
-| Nothing listens on your network | Apache listens on `127.0.0.1:80` and MariaDB binds `127.0.0.1`. Other devices on your Wi-Fi can't connect, and Windows Firewall isn't involved. |
+| Nothing listens on your network (by default) | Apache listens on `127.0.0.1:80` and MariaDB binds `127.0.0.1`. Other devices on your Wi-Fi can't connect, and Windows Firewall isn't involved. Network access is an explicit opt-in (below). |
 | Belt and braces | Every site, phpMyAdmin and every Node proxy vhost also has `Require local`, so even if someone changes `Listen` to `0.0.0.0`, Apache still refuses non-local clients until `Require` is changed too. |
 | Verified downloads | SHA-256 is checked for PHP, MariaDB, Node.js, phpMyAdmin, Composer and the CA bundle, using the hashes each publisher publishes. (For PHP, the hash comes from windows.php.net's `releases.json`; if only the fallback page scrape works, there's no hash and Kiln logs a warning.) A mismatch aborts setup and deletes the file. All downloads use HTTPS. |
 | Official binaries only | Kiln never modifies or repackages Apache, PHP, MariaDB, phpMyAdmin or Node.js. |
@@ -33,14 +33,26 @@ Any website you visit can make your browser send requests to `127.0.0.1`. Apache
 
 ## Opening Kiln to your LAN (for testing on a phone)
 
-Only do this on a network you trust, and undo it afterwards.
+**Settings → Network → "Allow access from other devices on my network"** (off by default). When it's on:
 
-1. Set a MariaDB root password first.
-2. In `config\apache\httpd.conf`, change `Listen 127.0.0.1:${KILN_HTTP_PORT}` to `Listen 0.0.0.0:${KILN_HTTP_PORT}`.
-3. For the site you want to test, add a custom vhost in `config\apache\custom\` with `Require ip 192.168.1.0/24` (your subnet) instead of `Require local`, and a `ServerAlias` for your PC's IP address.
-4. Restart Apache. Windows Firewall will ask; allow it on **Private** networks only.
+- Apache listens on all addresses instead of only `127.0.0.1`.
+- Sites accept connections from this PC and from **private network addresses only**: `10.x`, `172.16–31.x`, `192.168.x`, link-local, and IPv6 ULA/link-local. A request from a public address gets `403`, even if your router forwards a port by mistake.
+- **phpMyAdmin stays local-only**, and **MariaDB stays on `127.0.0.1`**. Nothing on your network can reach the database directly.
+- The panel and the dashboard show your address, e.g. `http://192.168.1.5/`.
+- Windows Firewall asks once whether `httpd.exe` may accept connections. Allow **Private networks** only.
 
-Alternatively, use a tunnelling tool (for example `cloudflared tunnel --url http://localhost:80`) to share a single site temporarily, without opening any port.
+From a phone on the same Wi-Fi:
+
+| Address | Opens |
+|---|---|
+| `http://192.168.1.5/` | The Kiln dashboard |
+| `http://192.168.1.5/blog/` | `www\blog`, XAMPP-style |
+| `http://blog.192.168.1.5.nip.io/` | The `blog` vhost, including its `public\` folder. [nip.io](https://nip.io) is a free public DNS service that maps that name back to `192.168.1.5`, so it needs internet access; the traffic itself stays on your network. |
+| `http://api.192.168.1.5.nip.io/` | The Node app `api`, through Apache's proxy |
+
+Turn it off again on networks you don't trust (cafés, hotels, office Wi-Fi). Everyone on those networks also has a private address.
+
+Alternatively, use a tunnelling tool (for example `cloudflared tunnel --url http://localhost:80`) to share one site temporarily with someone outside your network, without opening anything.
 
 ## Production
 

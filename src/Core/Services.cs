@@ -142,6 +142,12 @@ namespace Kiln
             sb.Append(" -C \"Define PHP_DIR ").Append(K.Fwd(Cfg.PhpDir)).Append('"');
             sb.Append(" -C \"Define KILN_HTTP_PORT ").Append(Cfg.HttpPort).Append('"');
             sb.Append(" -C \"Define KILN_MYSQL_PORT ").Append(Cfg.MysqlPort).Append('"');
+            if (Cfg.LanAccess)
+            {
+                var ips = Sys.LanAddresses();
+                sb.Append(" -C \"Define KILN_LAN 1\"");
+                sb.Append(" -C \"Define KILN_LAN_IPS ").Append(ips.Count == 0 ? "none" : string.Join(",", ips)).Append('"');
+            }
             return sb.ToString();
         }
 
@@ -196,6 +202,12 @@ namespace Kiln
             if (p.HasExited || !up)
                 throw new Exception("Apache didn't start. Last lines of apache-error.log:\n" + Sys.Tail(LogFile, 15));
             Log.Info("Apache is running: " + Url);
+            if (Cfg.LanAccess)
+            {
+                var ips = Sys.LanAddresses();
+                Log.Info(ips.Count == 0 ? "Network access is on, but this PC has no private network address right now."
+                    : "Other devices on your network can open: " + string.Join("  ", ips.Select(ip => "http://" + ip + (Cfg.HttpPort == 80 ? "" : ":" + Cfg.HttpPort) + "/")));
+            }
         }
 
         public override void Stop()

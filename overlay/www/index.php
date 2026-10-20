@@ -32,6 +32,11 @@ foreach (scandir(__DIR__) ?: [] as $entry) {
     ];
 }
 
+// Network access (Settings -> "Allow access from other devices on my network")
+$lanOn = isset($_SERVER['KILN_LAN_IPS']);
+$lanIps = array_values(array_filter(explode(',', (string)($_SERVER['KILN_LAN_IPS'] ?? '')),
+    fn($ip) => (bool)filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)));
+
 $nodeApps = [];
 $appsFile = $root . '/node-apps.json';
 if (is_file($appsFile)) {
@@ -91,6 +96,19 @@ try {
     <div class="stat"><b>Database</b><?= h($db) ?></div>
     <div class="stat"><b>Tools</b><a href="/phpmyadmin/">phpMyAdmin</a></div>
   </div>
+
+  <?php if ($lanOn && !$lanIps): ?>
+  <h2>On your network</h2>
+  <p class="muted">Network access is on, but this PC isn't connected to a private network (Wi-Fi or LAN) right now.</p>
+  <?php endif; ?>
+  <?php if ($lanIps): $ip = $lanIps[0]; ?>
+  <h2>On your network</h2>
+  <ul>
+    <li><span>From a phone or another PC on the same Wi-Fi:</span>
+        <a href="http://<?= h($ip . $suffix) ?>/">http://<?= h($ip . $suffix) ?>/</a></li>
+    <li><span class="muted">Each site also works as <code>http://&lt;site&gt;.<?= h($ip) ?>.nip.io<?= h($suffix) ?></code> (needs internet for the name lookup), or <code>http://<?= h($ip . $suffix) ?>/&lt;site&gt;/</code>.</span></li>
+  </ul>
+  <?php endif; ?>
 
   <h2>Sites in www\</h2>
   <?php if (!$sites): ?>

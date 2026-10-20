@@ -17,6 +17,7 @@ Thanks for helping. Kiln aims to stay small, dependable and easy to understand, 
 ./build/build.sh
 ./tests/run.sh
 ./tests/integration.sh   # needs: apt install mariadb-server mariadb-client
+./tests/apache-smoke.sh  # needs: apt install apache2 libapache2-mod-php
 ```
 
 ```powershell

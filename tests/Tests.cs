@@ -115,6 +115,13 @@ static class Tests
         string a = Services.Apache.Args();
         Check(a.Contains("-C \"Define KILN_ROOT " + K.RootFwd + "\"") && a.Contains("Define PHP_DIR " + K.Fwd(phpDir)) && a.Contains("Define KILN_HTTP_PORT 8080"),
               "Apache command line defines root, PHP dir and port", a);
+        Check(!a.Contains("KILN_LAN"), "network access is off by default");
+        loaded.LanAccess = true;
+        string lanArgs = Services.Apache.Args();
+        Check(lanArgs.Contains("-C \"Define KILN_LAN 1\"") && lanArgs.Contains("Define KILN_LAN_IPS "), "network access passes KILN_LAN and the PC's addresses", lanArgs);
+        loaded.LanAccess = false;
+        Check(nodeConf.Contains("ServerAlias api.test api.*.nip.io") && nodeConf.Contains("<IfDefine KILN_LAN>") && nodeConf.Contains("Require local"),
+              "vhosts carry nip.io aliases and both access rules");
         var env = Services.Env();
         Check(env["KILN_ROOT"] == K.RootFwd && env["PATH"].StartsWith(phpDir), "child environment puts PHP first on PATH");
 

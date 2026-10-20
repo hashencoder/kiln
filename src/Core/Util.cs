@@ -264,6 +264,31 @@ namespace Kiln
             return false;
         }
 
+        /// <summary>This PC's IPv4 addresses on private networks (Wi-Fi/Ethernet), e.g. 192.168.1.5.</summary>
+        public static List<string> LanAddresses()
+        {
+            var list = new List<string>();
+            try
+            {
+                foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (ni.OperationalStatus != OperationalStatus.Up) continue;
+                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback || ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel) continue;
+                    var d = (ni.Description + " " + ni.Name).ToLowerInvariant();
+                    if (d.Contains("virtual") || d.Contains("vmware") || d.Contains("hyper-v") || d.Contains("vethernet") || d.Contains("wsl") || d.Contains("docker")) continue;
+                    foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                    {
+                        if (ua.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
+                        var b = ua.Address.GetAddressBytes();
+                        bool priv = b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] <= 31) || (b[0] == 192 && b[1] == 168);
+                        if (priv && !list.Contains(ua.Address.ToString())) list.Add(ua.Address.ToString());
+                    }
+                }
+            }
+            catch { }
+            return list;
+        }
+
         /// <summary>Who is listening on a port, e.g. "httpd.exe (PID 1234)". Uses netstat.</summary>
         public static string PortOwner(int port)
         {

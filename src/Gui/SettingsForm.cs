@@ -18,6 +18,7 @@ namespace Kiln
         readonly NumericUpDown _mysql = new NumericUpDown { Minimum = 1, Maximum = 65535, Width = 90 };
         readonly CheckBox _startOnLaunch = new CheckBox { Text = "Start Apache, MariaDB and auto-start Node apps when Kiln opens", AutoSize = true };
         readonly CheckBox _tray = new CheckBox { Text = "Closing the window keeps Kiln in the system tray", AutoSize = true };
+        readonly CheckBox _lan = new CheckBox { Text = "Allow access from other devices on my network (phones, other PCs)", AutoSize = true };
         readonly Label _status = Ui.Lbl("", Ui.Small, Ui.Muted);
         readonly Label _pwState = Ui.Lbl("", Ui.Small, Ui.Muted);
         Button _addPhp, _addNode, _updates, _vc, _pwBtn;
@@ -29,7 +30,7 @@ namespace Kiln
         {
             Ui.Style(this);
             Text = "Kiln settings";
-            ClientSize = new Size(640, 470);
+            ClientSize = new Size(660, 560);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
@@ -54,6 +55,11 @@ namespace Kiln
             AddRow(t, "Database root", _pwBtn, _pwState);
             AddRow(t, "", _startOnLaunch, null, 2);
             AddRow(t, "", _tray, null, 2);
+            AddRow(t, "Network", _lan, null, 2);
+            var lanHint = Ui.Lbl("Sites become reachable at http://<this PC's IP>/... from your Wi-Fi/LAN. phpMyAdmin and the database stay on this PC only. " +
+                                 "Only turn this on at home or on networks you trust. Windows may ask to allow Apache through the firewall - choose Private networks.", Ui.Small, Ui.Muted);
+            lanHint.MaximumSize = new Size(430, 0);
+            AddRow(t, "", lanHint, null, 2);
             AddRow(t, "Components", _updates, _vc);
             AddRow(t, "", _status, null, 2);
 
@@ -95,6 +101,7 @@ namespace Kiln
             _mysql.Value = Cfg.MysqlPort;
             _startOnLaunch.Checked = Cfg.StartOnLaunch;
             _tray.Checked = Cfg.MinimizeToTray;
+            _lan.Checked = Cfg.LanAccess;
             _pwState.Text = string.IsNullOrEmpty(Cfg.MysqlRootPassword) ? "No password (XAMPP-style)" : "Password set";
             _vc.Visible = true;
         }
@@ -109,7 +116,7 @@ namespace Kiln
 
             string php = _php.SelectedItem as string ?? Cfg.Php;
             string node = _node.SelectedItem as string ?? Cfg.Node;
-            RestartApache = php != Cfg.Php || http != Cfg.HttpPort || mysql != Cfg.MysqlPort;
+            RestartApache = php != Cfg.Php || http != Cfg.HttpPort || mysql != Cfg.MysqlPort || _lan.Checked != Cfg.LanAccess;
             bool mysqlChanged = mysql != Cfg.MysqlPort;
             // MainForm restarts it in the background; Stop() uses the port it was started on.
             RestartMariaDb = mysqlChanged;
@@ -121,6 +128,7 @@ namespace Kiln
             Cfg.MysqlPort = mysql;
             Cfg.StartOnLaunch = _startOnLaunch.Checked;
             Cfg.MinimizeToTray = _tray.Checked;
+            Cfg.LanAccess = _lan.Checked;
             Cfg.Save();
             if (mysqlChanged)
             {
