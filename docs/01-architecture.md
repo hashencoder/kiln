@@ -44,7 +44,7 @@ flowchart LR
 
 | Port | Used by | Bound to |
 |---|---|---|
-| 80 | Apache (HTTP) | `127.0.0.1` |
+| 80 | Apache (HTTP) | `127.0.0.1`, or all addresses with network access on (private-network clients only) |
 | 3306 | MariaDB | `127.0.0.1` |
 | 3000+ | Node apps (each app picks its own) | whatever the app binds; Apache proxies to `localhost:<port>` |
 

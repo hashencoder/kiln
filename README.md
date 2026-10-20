@@ -21,6 +21,7 @@ Kiln keeps the XAMPP experience (a portable folder, a panel with Start/Stop butt
 - **Node.js built in.** Register a Node app once; Kiln starts it with `PORT` set and Apache serves it at `http://<name>.localhost`, websockets included.
 - **Automatic sites.** Every folder in `www\` becomes `http://<folder>.localhost` with no hosts-file editing and no admin rights.
 - **Your databases survive crashes.** Crash-safe MariaDB settings, a clean database stop when Windows shuts down, automatic backups, and one-click "rebuild from backup". No more "MySQL shutdown unexpectedly" after the battery dies.
+- **Test on your phone.** One switch lets devices on your Wi-Fi open your sites (`http://192.168.x.x/...`), like XAMPP. phpMyAdmin and the database stay private.
 - **Moving from XAMPP is one click.** Kiln copies your XAMPP databases and `htdocs` projects, even when XAMPP's MySQL has crashed, without changing XAMPP.
 - **Always current.** Kiln ships no third-party binaries. It downloads the official builds when you run it and verifies checksums where the publisher provides them, and its update checker keeps you current.
 

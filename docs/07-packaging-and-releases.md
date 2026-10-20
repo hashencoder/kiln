@@ -47,6 +47,7 @@ The output is a normal Windows executable; Mono's compiler targets the same .NET
 Two suites:
 
 - **`tests/run.sh`** runs `tests/Tests.cs`, the platform-independent logic. Details below.
+- **`tests/apache-smoke.sh`** runs Kiln's real Apache config on a real Apache + PHP, started by `kilnctl`: the dashboard, `*.localhost` vhosts, `public\` detection, `localhost/<folder>/`, `.htaccess` protection, the Node reverse proxy, and the network-access rules (private addresses allowed, public addresses refused, phpMyAdmin local-only). Needs `apt install apache2 libapache2-mod-php`.
 - **`tests/integration.sh`** runs `kilnctl` against **real MariaDB servers** (Linux binaries standing in for the Windows ones): start and stop, a hard kill right after committed writes (no rows may be lost), backup, restore, rebuild after deliberately corrupting the data files, and a full XAMPP import. Needs `apt install mariadb-server mariadb-client`.
 
 `tests/Tests.cs` covers the platform-independent logic: config round-trips, config templates, `php.ini` generation, vhost generation rules, zip unpacking and upgrade backups, folder relocation, every download-page parser (against saved samples), and downloads with SHA-256 verification against a local HTTP server. Run it before every release. Then do the manual Windows check below.
@@ -78,7 +79,7 @@ Release checklist:
 
 - [ ] `K.AppVersion` in `src/Core/Util.cs` and the versions in `src/Core/AssemblyInfo.cs` match the tag
 - [ ] `CHANGELOG.md` updated
-- [ ] `./tests/run.sh` and `./tests/integration.sh` pass
+- [ ] `./tests/run.sh`, `./tests/apache-smoke.sh` and `./tests/integration.sh` pass
 - [ ] Manual Windows check done
 - [ ] `versions.json` reviewed (below)
 

@@ -32,6 +32,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
   "minimizeToTray": true,
   "lastRoot": "C:/kiln",
   "manifestUrl": "",
+  "lanAccess": false,
   "autoBackup": true,
   "backupEveryHours": 2,
   "backupKeep": 10
@@ -47,6 +48,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | `startOnLaunch` | Start Apache, MariaDB and auto-start Node apps when the panel opens |
 | `minimizeToTray` | Closing the window hides Kiln to the tray instead of exiting |
 | `lastRoot` | Where the folder was last time; used to fix `php.ini` paths after a move. Don't edit. |
+| `lanAccess` | Let devices on your local network open the sites ([08](08-security.md#opening-kiln-to-your-lan-for-testing-on-a-phone)). Set in **Settings → Network**. |
 | `autoBackup`, `backupEveryHours`, `backupKeep` | Automatic database backups ([11](11-databases.md#backups)). Set in **Database…** |
 | `manifestUrl` | Optional URL of a `versions.json` that pins component versions (below). Empty means the maintainer default. |
 
@@ -85,7 +87,7 @@ See [04 – Node.js integration](04-node-integration.md) for framework recipes.
 [`overlay/config/apache/httpd.conf`](../overlay/config/apache/httpd.conf) is commented line by line. The key points:
 
 - **No absolute paths.** `${KILN_ROOT}`, `${PHP_DIR}`, `${KILN_HTTP_PORT}` and `${KILN_MYSQL_PORT}` are defined on the command line by Kiln. If you start Apache any other way, Apache stops with `KILN_ROOT is not defined`.
-- `Listen 127.0.0.1:${KILN_HTTP_PORT}` and `Require local` keep everything on this machine.
+- `Listen 127.0.0.1:${KILN_HTTP_PORT}` and `Require local` keep everything on this machine. With network access on, Kiln adds `-C "Define KILN_LAN 1"`: Apache then listens on `0.0.0.0` and every `<IfDefine KILN_LAN>` block replaces `Require local` with `Require ip <private ranges>`. Use the same pattern in your custom vhosts.
 - `AllowOverride All` under `www\`, so `.htaccess` files from WordPress, Laravel and similar work.
 - Modules loaded: alias, auth_basic, authn_core, authn_file, authz_core, authz_host, authz_user, autoindex, deflate, dir, env, expires, filter, headers, log_config, mime, proxy, proxy_http, rewrite, setenvif. To add one, add a `LoadModule` line; every module that ships with Apache is in `apache\modules\`.
 - `SetEnv KILN_ROOT` and `SetEnv KILN_MYSQL_PORT` expose those values to PHP as `$_SERVER['KILN_ROOT']` and `$_SERVER['KILN_MYSQL_PORT']`.

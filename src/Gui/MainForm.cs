@@ -200,6 +200,11 @@ namespace Kiln
         {
             _sub.Text = K.Root + "   ·   PHP " + (string.IsNullOrEmpty(Cfg.Php) ? "-" : KilnConfig.FullVersion(Cfg.PhpDir)) +
                         "   ·   Node " + (Cfg.NodeDir == null ? "-" : KilnConfig.FullVersion(Cfg.NodeDir));
+            if (Cfg.LanAccess)
+            {
+                var ips = Sys.LanAddresses();
+                _sub.Text += "   ·   Network: " + (ips.Count == 0 ? "no network" : "http://" + ips[0] + (Cfg.HttpPort == 80 ? "" : ":" + Cfg.HttpPort));
+            }
         }
 
         void RefreshStatus()

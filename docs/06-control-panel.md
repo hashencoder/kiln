@@ -70,6 +70,7 @@ Only one panel can run per Kiln folder. Separate Kiln folders can run side by si
 | Node.js version | Choose an installed major. **Install latest LTS** adds the newest LTS line. |
 | HTTP port, MySQL port | Saving restarts the affected server and updates phpMyAdmin's config |
 | Database root → **Change…** | Runs `ALTER USER` for `root@localhost`, `root@127.0.0.1` and `root@::1` (starting MariaDB if needed), stores the new password, and updates phpMyAdmin's `AllowNoPassword` |
+| Network: allow access from other devices | Phones and other PCs on your Wi-Fi can open the sites; phpMyAdmin and MariaDB stay local ([08](08-security.md#opening-kiln-to-your-lan-for-testing-on-a-phone)). Saving restarts Apache. |
 | Start servers when Kiln opens | |
 | Closing the window keeps Kiln in the tray | |
 | **Check for updates…** | Compares installed Apache, the active PHP branch, MariaDB, phpMyAdmin and the active Node major with the latest versions, and updates the ones you tick (see below) |

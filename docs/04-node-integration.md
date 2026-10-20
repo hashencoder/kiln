@@ -121,6 +121,10 @@ Every generated vhost also answers to `<name>.test`. To use it, add a hosts entr
 
 For any other hostname, add a vhost in `config\apache\custom\` (see [03](03-configuration.md#custom-vhosts)) plus a hosts entry.
 
+## Testing on a phone
+
+Turn on **Settings → Network → Allow access from other devices on my network**. Then, from a phone on the same Wi-Fi, open `http://<name>.<your-ip>.nip.io/`, for example `http://web.192.168.1.5.nip.io/`. Apache proxies it to the app like any other request. For Vite, also add `.nip.io` to `server.allowedHosts`. Details and safety notes are in [08](08-security.md#opening-kiln-to-your-lan-for-testing-on-a-phone).
+
 ## Running Node outside Kiln
 
 Node apps don't have to be registered. Anything you start from the **Shell** uses Kiln's Node and works as usual. Registering an app just adds the panel controls, the log file, autostart and the `.localhost` hostname.

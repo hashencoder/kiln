@@ -19,5 +19,6 @@ All notable changes to Kiln are listed here. The format follows
 - Crash safety: durable InnoDB settings, a clean MariaDB stop on Windows shutdown and logoff, automatic backups (every 2 hours and before stopping, newest 10 kept), restore, and one-click "rebuild from backup" when MariaDB won't start.
 - Import from XAMPP: copies databases (a logical copy, safe across MariaDB versions) and `htdocs` projects, with recovery modes for a crashed XAMPP MySQL. XAMPP itself is never modified.
 - `kilnctl backup`, `backups`, `restore`, `rebuild-db`, `import-xampp`.
-- Integration test suite against real MariaDB servers.
+- Network access option: devices on the local network can open the sites (private addresses only; phpMyAdmin and MariaDB stay local), with `<site>.<ip>.nip.io` names for phone testing.
+- Integration test suites against real MariaDB and real Apache + PHP.
 - Portable: config uses no absolute paths except `php.ini`, which is rewritten automatically when the folder moves.

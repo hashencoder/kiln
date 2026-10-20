@@ -52,12 +52,12 @@ namespace Kiln
                 sb.AppendLine();
                 sb.AppendLine("<VirtualHost *:${KILN_HTTP_PORT}>");
                 sb.AppendLine("    ServerName " + s.Name + ".localhost");
-                sb.AppendLine("    ServerAlias " + s.Name + ".test");
+                sb.AppendLine("    ServerAlias " + s.Name + ".test " + s.Name + ".*.nip.io");
                 sb.AppendLine("    DocumentRoot \"" + s.DocRoot + "\"");
                 sb.AppendLine("    <Directory \"" + s.DocRoot + "\">");
                 sb.AppendLine("        Options Indexes FollowSymLinks ExecCGI");
                 sb.AppendLine("        AllowOverride All");
-                sb.AppendLine("        Require local");
+                AppendAccess(sb, "        ");
                 sb.AppendLine("    </Directory>");
                 sb.AppendLine("</VirtualHost>");
             }
@@ -71,7 +71,7 @@ namespace Kiln
                 sb.AppendLine();
                 sb.AppendLine("<VirtualHost *:${KILN_HTTP_PORT}>");
                 sb.AppendLine("    ServerName " + a.Name + ".localhost");
-                sb.AppendLine("    ServerAlias " + a.Name + ".test");
+                sb.AppendLine("    ServerAlias " + a.Name + ".test " + a.Name + ".*.nip.io");
                 sb.AppendLine("    ProxyRequests Off");
                 sb.AppendLine("    ProxyPreserveHost On");
                 sb.AppendLine("    ProxyTimeout 300");
@@ -80,11 +80,22 @@ namespace Kiln
                 sb.AppendLine("    ProxyPass / http://localhost:" + a.Port + "/ upgrade=websocket");
                 sb.AppendLine("    ProxyPassReverse / http://localhost:" + a.Port + "/");
                 sb.AppendLine("    <Location />");
-                sb.AppendLine("        Require local");
+                AppendAccess(sb, "        ");
                 sb.AppendLine("    </Location>");
                 sb.AppendLine("</VirtualHost>");
             }
             Save(Path.Combine(dir, "node-apps.conf"), sb.ToString());
+        }
+
+        /// <summary>This PC only, or private-network clients when Kiln runs with KILN_LAN.</summary>
+        static void AppendAccess(StringBuilder sb, string indent)
+        {
+            sb.AppendLine(indent + "<IfDefine KILN_LAN>");
+            sb.AppendLine(indent + "    Require ip 127.0.0.0/8 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 fc00::/7 fe80::/10");
+            sb.AppendLine(indent + "</IfDefine>");
+            sb.AppendLine(indent + "<IfDefine !KILN_LAN>");
+            sb.AppendLine(indent + "    Require local");
+            sb.AppendLine(indent + "</IfDefine>");
         }
 
         static void Save(string path, string text)
