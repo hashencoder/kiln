@@ -1,0 +1,51 @@
+# Builds Kiln on Windows and attaches the zip to a GitHub release.
+# Trigger: push a tag like v1.0.0  (git tag v1.0.0 && git push origin v1.0.0)
+name: Build and release
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF.Substring(11) } else { "0.0.0-dev" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        shell: pwsh
+        run: ./build/build.ps1 -Package -Version ${{ steps.ver.outputs.version }}
+
+      - name: Smoke test kilnctl
+        shell: pwsh
+        run: |
+          ./dist/kilnctl.exe version
+          ./dist/kilnctl.exe help
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kiln-${{ steps.ver.outputs.version }}-win64
+          path: |
+            dist/Kiln-*-win64.zip
+            dist/Kiln-*-win64.zip.sha256
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Kiln-*-win64.zip
+            dist/Kiln-*-win64.zip.sha256
+          generate_release_notes: true

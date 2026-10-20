@@ -1,0 +1,27 @@
+# Build output
+dist/
+build/obj/
+
+# A Kiln install created while testing inside the repo
+/apache/
+/php/
+/mariadb/
+/node/
+/data/
+/logs/
+/tmp/
+/ssl/
+/tools/
+/apps/
+/www/
+/config/
+/kiln.json
+/node-apps.json
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vs/
+.vscode/
+*.suo
+*.user
