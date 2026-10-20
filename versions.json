@@ -1,0 +1,11 @@
+{
+  "_comment": "Optional version pins. Kiln reads this file from the URL in K.DefaultManifestUrl (src/Core/Util.cs) or the manifestUrl setting in kiln.json. Any component listed here with a url is downloaded from that url (and checked against sha256 when given) instead of being looked up live. Remove an entry to go back to automatic lookup. Keys: apache, php-<branch>, mariadb, phpmyadmin, node, node-<major>.",
+  "updated": "2026-10-21",
+  "components": {
+    "mariadb": {
+      "version": "12.3.3",
+      "url": "https://downloads.mariadb.org/rest-api/mariadb/12.3.3/mariadb-12.3.3-winx64.zip",
+      "sha256": "4b5706b47148b47c8f36963c8352d1ddee37a1287b4690428f631a74b09b85a0"
+    }
+  }
+}
