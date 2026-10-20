@@ -1,10 +1,14 @@
 # Builds Kiln on Windows and attaches the zip to a GitHub release.
-# Trigger: push a tag like v1.0.0  (git tag v1.0.0 && git push origin v1.0.0)
+# Trigger either way:
+#   - push a tag like v1.0.0  (git tag v1.0.0 && git push origin v1.0.0), or
+#   - publish a release on GitHub (Releases > Draft a new release, tag v1.0.0)
 name: Build and release
 
 on:
   push:
     tags: ["v*"]
+  release:
+    types: [published]
   pull_request:
   workflow_dispatch:
 

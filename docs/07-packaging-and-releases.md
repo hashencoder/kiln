@@ -75,6 +75,8 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
+Or publish a release on GitHub (**Releases → Draft a new release**, tag `v1.0.0`). The workflow then builds Kiln and attaches the zip to that release.
+
 Release checklist:
 
 - [ ] `K.AppVersion` in `src/Core/Util.cs` and the versions in `src/Core/AssemblyInfo.cs` match the tag
