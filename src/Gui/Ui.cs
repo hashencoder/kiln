@@ -136,12 +136,26 @@ namespace WebHut
             {
                 if (_dpi <= 0)
                 {
-                    try { using (var g = Graphics.FromHwnd(IntPtr.Zero)) _dpi = g.DpiX; } catch { }
+                    // Ask GDI directly; GDI+ may have cached a pre-awareness 96.
+                    try
+                    {
+                        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                        {
+                            IntPtr dc = GetDC(IntPtr.Zero);
+                            if (dc != IntPtr.Zero) { _dpi = GetDeviceCaps(dc, 88 /* LOGPIXELSX */); ReleaseDC(IntPtr.Zero, dc); }
+                        }
+                    }
+                    catch { }
+                    if (_dpi <= 0) try { using (var g = Graphics.FromHwnd(IntPtr.Zero)) _dpi = g.DpiX; } catch { }
                     if (_dpi <= 0) _dpi = 96;
                 }
                 return _dpi;
             }
         }
+        [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr hwnd);
+        [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
+        [DllImport("gdi32.dll")] static extern int GetDeviceCaps(IntPtr dc, int index);
+
         /// <summary>A 96-dpi length in physical pixels.</summary>
         public static int Px(float v) { return (int)Math.Round(v * Dpi / 96f); }
 

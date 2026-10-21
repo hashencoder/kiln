@@ -16,7 +16,7 @@ namespace WebHut
     public static class K
     {
         public const string AppName = "WebHut";
-        public const string AppVersion = "1.3.0";
+        public const string AppVersion = "1.3.1";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
         // repo so every WebHut install can pick up pinned versions you publish,
@@ -89,14 +89,14 @@ namespace WebHut
 
         static void Write(string level, string msg)
         {
-            string line = DateTime.Now.ToString("HH:mm:ss") + "  " + (level == "INFO" ? "" : level + ": ") + msg;
+            string line = DateTime.Now.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + "  " + (level == "INFO" ? "" : level + ": ") + msg;
             lock (Gate)
             {
                 try
                 {
                     Directory.CreateDirectory(K.Logs);
                     File.AppendAllText(Path.Combine(K.Logs, "webhut.log"),
-                        DateTime.Now.ToString("yyyy-MM-dd ") + line + Environment.NewLine);
+                        DateTime.Now.ToString("yyyy-MM-dd ", System.Globalization.CultureInfo.InvariantCulture) + line + Environment.NewLine);
                 }
                 catch { }
             }

@@ -6,11 +6,21 @@ namespace WebHut
 {
     public static class Program
     {
+        [System.Runtime.InteropServices.DllImport("user32.dll")] static extern bool SetProcessDPIAware();
+
+        static void MakeDpiAware()
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
+            try { SetProcessDPIAware(); } catch { }
+        }
+
         [STAThread]
         public static int Main(string[] args)
         {
+            // Must run before anything touches Ui/Fonts: GDI+ caches the screen DPI when it starts,
+            // so declaring DPI awareness later makes WebHut lay out at 100% while Windows draws text at 125%+.
+            MakeDpiAware();
             Native.DontInheritStdHandles();
-            Ui.EnableDpi();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Sys.EnableModernTls();

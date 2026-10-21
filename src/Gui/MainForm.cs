@@ -43,8 +43,10 @@ namespace WebHut
             Ui.Style(this);
             AutoScaleMode = AutoScaleMode.None; // every size below is already in physical pixels (Ui.Px)
             Text = "WebHut";
-            ClientSize = new Size(Px(1340), Px(880));
-            MinimumSize = new Size(Px(1200), Px(760));
+            // Design size, capped to the screen's work area (e.g. 1920x1080 at 125% is only ~1536x830 "design" pixels).
+            var wa = Screen.PrimaryScreen.WorkingArea;
+            ClientSize = new Size(Math.Min(Px(1340), wa.Width - Px(24)), Math.Min(Px(880), wa.Height - Px(48)));
+            MinimumSize = new Size(Math.Min(Px(1100), wa.Width - Px(16)), Math.Min(Px(680), wa.Height - Px(16)));
             StartPosition = FormStartPosition.CenterScreen;
             DoubleBuffered = true;
 
@@ -65,7 +67,7 @@ namespace WebHut
             BackColor = Ui.Bg;
             ForeColor = Ui.Ink;
             var main = new Panel { Dock = DockStyle.Fill, BackColor = Ui.Bg, Padding = new Padding(Px(30), Px(24), Px(30), Px(24)), AutoScroll = true };
-            var stack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = Ui.Bg, MinimumSize = new Size(0, Px(700)) };
+            var stack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = Ui.Bg, MinimumSize = new Size(0, Px(640)) };
             stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
