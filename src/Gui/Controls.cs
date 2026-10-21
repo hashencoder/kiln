@@ -439,6 +439,7 @@ namespace WebHut
             set { _box.Text = value.ToString(); }
         }
         public bool IsValid { get { int v; return int.TryParse(_box.Text, out v) && v >= _min && v <= _max; } }
+        protected override void OnEnabledChanged(EventArgs e) { _box.Enabled = Enabled; Invalidate(); base.OnEnabledChanged(e); }
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -448,6 +449,49 @@ namespace WebHut
             using (var p = Ui.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Ui.Px(8)))
             {
                 using (var b = new SolidBrush(Ui.Card)) g.FillPath(b, p);
+                using (var pen = new Pen(!IsValid ? Ui.Red : _box.Focused ? Ui.AccentSoftLine : Ui.Line)) g.DrawPath(pen, p);
+            }
+        }
+    }
+
+    /// <summary>Rounded single-line text field; <see cref="Validate"/> marks it red when it returns false.</summary>
+    public class TextField : Panel
+    {
+        readonly TextBox _box;
+        public Func<string, bool> Validate;
+        public event EventHandler ValueChanged;
+        public TextField(int width, bool mono)
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
+            BackColor = Ui.Card;
+            Size = new Size(width, Ui.Px(38));
+            Padding = new Padding(Ui.Px(12), 0, Ui.Px(10), 0);
+            _box = new TextBox { BorderStyle = BorderStyle.None, Font = mono ? Ui.Mono : Ui.Base, BackColor = Ui.Card, ForeColor = Ui.Ink };
+            _box.TextChanged += (s, e) => { var h = ValueChanged; if (h != null) h(this, EventArgs.Empty); Invalidate(); };
+            _box.GotFocus += (s, e) => Invalidate();
+            _box.LostFocus += (s, e) => Invalidate();
+            Controls.Add(_box);
+        }
+        public string Value { get { return _box.Text.Trim(); } set { _box.Text = value ?? ""; } }
+        public bool IsValid { get { return Validate == null || Validate(Value); } }
+        public TextBox Box { get { return _box; } }
+        protected override void OnEnabledChanged(EventArgs e) { _box.Enabled = Enabled; Invalidate(); base.OnEnabledChanged(e); }
+        protected override void OnLayout(LayoutEventArgs e)
+        {
+            base.OnLayout(e);
+            if (_box == null) return;
+            _box.SetBounds(Padding.Left, Math.Max(0, (Height - _box.Height) / 2), Math.Max(10, Width - Padding.Horizontal), _box.Height);
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias;
+            Color fill = Enabled ? Ui.Card : Ui.Surface;
+            if (_box.BackColor != fill) _box.BackColor = fill;
+            if (_box.ForeColor != Ui.Ink) _box.ForeColor = Ui.Ink;
+            g.Clear(Ui.Card);
+            using (var p = Ui.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Ui.Px(8)))
+            {
+                using (var b = new SolidBrush(fill)) g.FillPath(b, p);
                 using (var pen = new Pen(!IsValid ? Ui.Red : _box.Focused ? Ui.AccentSoftLine : Ui.Line)) g.DrawPath(pen, p);
             }
         }

@@ -288,6 +288,9 @@ namespace WebHut
 
         // ------------------------------------------------------------------ config files
 
+        /// <summary>A WebHut template file as shipped (e.g. "config/apache/httpd.conf").</summary>
+        public static string Template(string name) { return Resource(name).Replace("\r\n", "\n").Replace("\n", "\r\n"); }
+
         static string Resource(string name)
         {
             var asm = Assembly.GetExecutingAssembly();

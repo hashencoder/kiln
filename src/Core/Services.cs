@@ -137,15 +137,19 @@ namespace WebHut
         public override string Url { get { return "http://localhost" + (Cfg.HttpPort == 80 ? "" : ":" + Cfg.HttpPort) + "/"; } }
         string PidFile { get { return Path.Combine(K.Pids, "httpd.pid"); } }
 
-        public string Args()
+        public string Args() { return Args(Cfg, K.HttpdConf); }
+
+        /// <summary>The exact command line Apache starts with, for <paramref name="c"/>'s settings and the given httpd.conf
+        /// (the configuration manager validates candidate files with it).</summary>
+        public string Args(WebHutConfig c, string conf)
         {
             var sb = new StringBuilder();
-            sb.Append("-d \"").Append(K.Fwd(K.Apache)).Append("\" -f \"").Append(K.Fwd(K.HttpdConf)).Append('"');
+            sb.Append("-d \"").Append(K.Fwd(K.Apache)).Append("\" -f \"").Append(K.Fwd(conf)).Append('"');
             sb.Append(" -C \"Define WEBHUT_ROOT ").Append(K.RootFwd).Append('"');
-            sb.Append(" -C \"Define PHP_DIR ").Append(K.Fwd(Cfg.PhpDir)).Append('"');
-            sb.Append(" -C \"Define WEBHUT_HTTP_PORT ").Append(Cfg.HttpPort).Append('"');
-            sb.Append(" -C \"Define WEBHUT_MYSQL_PORT ").Append(Cfg.MysqlPort).Append('"');
-            if (Cfg.LanAccess)
+            sb.Append(" -C \"Define PHP_DIR ").Append(K.Fwd(c.PhpDir)).Append('"');
+            sb.Append(" -C \"Define WEBHUT_HTTP_PORT ").Append(c.HttpPort).Append('"');
+            sb.Append(" -C \"Define WEBHUT_MYSQL_PORT ").Append(c.MysqlPort).Append('"');
+            if (c.LanAccess)
             {
                 var ips = Sys.LanAddresses();
                 sb.Append(" -C \"Define WEBHUT_LAN 1\"");
@@ -159,7 +163,15 @@ namespace WebHut
             int pid = Sys.LivePid(PidFile, "httpd");
             if (pid > 0) return pid;
             // The parent httpd is the oldest one running from our apache folder.
-            var orphan = Sys.ProcessesUnder("httpd", K.Apache).OrderBy(p => p.StartTime).FirstOrDefault();
+            var all = Sys.ProcessesUnder("httpd", K.Apache);
+            if (!Sys.IsWindows)
+            {
+                // Linux test stand-in: the parent is the httpd whose own parent isn't an httpd.
+                var ids = new HashSet<int>(all.Select(p => p.Id));
+                var root = all.FirstOrDefault(p => !ids.Contains(Sys.ParentPid(p.Id)));
+                return root == null ? 0 : root.Id;
+            }
+            var orphan = all.OrderBy(p => p.StartTime).FirstOrDefault();
             return orphan == null ? 0 : orphan.Id;
         }
 
@@ -220,7 +232,13 @@ namespace WebHut
             Log.Info("Stopping Apache...");
             // A console (non-service) Apache on Windows is stopped through the named event its parent
             // process waits on: "ap<parent pid>_shutdown". ("httpd -k shutdown" only talks to services.)
-            if (!Native.Signal("ap" + pid + "_shutdown"))
+            if (!Sys.IsWindows)
+            {
+                // Linux test stand-in: graceful stop by signalling the parent named in Apache's own pid file.
+                int parent = Sys.ReadPid(PidFile);
+                Sys.Run("kill", "-TERM " + (parent > 0 ? parent : pid), null, 5000);
+            }
+            else if (!Native.Signal("ap" + pid + "_shutdown"))
                 Log.Warn("Couldn't signal Apache to shut down gracefully; it will be ended.");
             if (!WaitFor(() => Pid() == 0, 15000))
             {
@@ -239,7 +257,10 @@ namespace WebHut
             Log.Info("Restarting Apache...");
             // The PHP version and ports are passed on the command line, so a full stop/start is needed
             // (the "ap<pid>_restart" event would reuse the old command line).
+            int oldPort = Sys.IsPortListening(Cfg.HttpPort) ? Cfg.HttpPort : 0;
             Stop();
+            // Worker threads can hold the listening socket for a moment after the parent has gone.
+            if (oldPort > 0) WaitFor(() => !Sys.IsPortListening(oldPort), 10000);
             Start();
         }
     }
@@ -357,9 +378,33 @@ namespace WebHut
             if (client == null) throw new FileNotFoundException("mariadb.exe not found.");
             var env = Services.Env();
             env["MYSQL_PWD"] = password ?? "";
-            return Sys.Run(client, "--protocol=TCP -h 127.0.0.1 -P " + Cfg.MysqlPort + " -u root -e \"" + sql.Replace("\"", "\\\"") + "\"",
-                env, 30000, K.MariaDbBin);
+            // SQL goes through standard input, so statements (and passwords in them) never appear on a command line.
+            return Sys.Run(client, "--protocol=TCP -h 127.0.0.1 -P " + RunningPort + " -u root --default-character-set=utf8mb4", env, 30000, K.MariaDbBin, sql);
         }
+
+        /// <summary>Run SQL and return tab-separated rows (no headers). Errors in one statement don't stop the rest.</summary>
+        public List<string[]> Query(string sql, string password, out string errors)
+        {
+            var client = Installer.MariaExe("mariadb.exe", "mysql.exe");
+            if (client == null) throw new FileNotFoundException("mariadb.exe not found.");
+            var env = Services.Env();
+            env["MYSQL_PWD"] = password ?? "";
+            var r = Sys.Run(client, "--protocol=TCP -h 127.0.0.1 -P " + RunningPort + " -u root -N -B --force --default-character-set=utf8mb4 --connect-timeout=5",
+                            env, 30000, K.MariaDbBin, sql);
+            var rows = new List<string[]>();
+            var err = new StringBuilder();
+            foreach (var line in r.Output.Replace("\r\n", "\n").Split('\n'))
+            {
+                if (line.Length == 0) continue;
+                if (line.StartsWith("ERROR ") || line.StartsWith("mariadb: ") || line.StartsWith("mysql: ")) { err.AppendLine(line); continue; }
+                rows.Add(line.Split('\t'));
+            }
+            errors = err.ToString().Trim();
+            if (rows.Count == 0 && r.ExitCode != 0 && errors.Length == 0) errors = r.Output.Trim();
+            return rows;
+        }
+
+        public int ActivePort { get { return RunningPort; } }
 
         /// <summary>Change root's password for every root account (localhost, 127.0.0.1, ::1).</summary>
         public void ChangeRootPassword(string oldPw, string newPw)

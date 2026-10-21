@@ -243,7 +243,7 @@ namespace WebHut
                 new PopupItem { Title = "Backup & restore", Description = "Back up, restore, or rebuild after a crash", Icon = "server", Act = () => { using (var d = new DatabaseForm()) d.ShowDialog(this); RefreshDbPage(); } },
                 new PopupItem { Title = "Import from XAMPP", Description = "Copy XAMPP databases and projects", Icon = "copy", Act = () => { using (var f = new XamppImportForm()) f.ShowDialog(this); RefreshDbPage(); } },
                 PopupItem.Line(),
-                new PopupItem { Title = "MariaDB configuration", Description = "Edit my.ini", Icon = "gear", Act = () => Sys.OpenInEditor(Services.MariaDb.ConfigFile) }
+                new PopupItem { Title = "MariaDB configuration", Description = "Performance, reliability, security, logs", Icon = "gear", Act = () => ShowServerConfig("mariadb") }
             });
         }
 
@@ -433,7 +433,7 @@ namespace WebHut
                 new PopupItem { Title = "Restore or rebuild…", Description = "Pick a backup, or rebuild after a crash", Icon = "refresh", Act = () => { using (var d = new DatabaseForm()) d.ShowDialog(this); RefreshDbPage(); } },
                 new PopupItem { Title = "Import from XAMPP", Description = "Copy XAMPP databases and projects", Icon = "copy", Act = () => { using (var f = new XamppImportForm()) f.ShowDialog(this); RefreshDbPage(); } },
                 PopupItem.Line(),
-                new PopupItem { Title = "MariaDB configuration", Description = "Edit my.ini", Icon = "gear", Act = () => Sys.OpenInEditor(Services.MariaDb.ConfigFile) },
+                new PopupItem { Title = "MariaDB configuration", Description = "Performance, reliability, security, logs", Icon = "gear", Act = () => ShowServerConfig("mariadb") },
                 new PopupItem { Title = "Backups folder", Description = "data\\backups", Icon = "folder", Act = () => Sys.OpenFolder(K.Backups) }
             }));
             _tips.SetToolTip(more, "More database tools");
@@ -878,8 +878,13 @@ namespace WebHut
                 logs.Click += (s, e) => Sys.OpenInEditor(row.Svc.LogFile);
                 _tips.SetToolTip(logs, "Open the " + svc.Title + " log");
                 var conf = new IconButton("", "gear", ButtonKind.Outline) { IconColor = Ui.NavInk, Margin = new Padding(0) };
-                conf.Click += (s, e) => Sys.OpenInEditor(row.Svc.ConfigFile);
-                _tips.SetToolTip(conf, "Edit the " + svc.Title + " config");
+                conf.Click += (s, e) =>
+                {
+                    if (row.Svc is ApacheService) ShowServerConfig("apache");
+                    else if (row.Svc is MariaDbService) ShowServerConfig("mariadb");
+                    else Sys.OpenInEditor(row.Svc.ConfigFile);
+                };
+                _tips.SetToolTip(conf, svc is NodeService ? "Edit node-apps.json" : svc.Title + " configuration");
 
                 var actions = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, Px(9), 0, Px(9)), Anchor = AnchorStyles.Left };
                 actions.Controls.AddRange(new Control[] { r.Toggle, r.Open, logs, conf });
@@ -1147,6 +1152,20 @@ namespace WebHut
                     try { Vhosts.Write(Cfg); } catch (Exception e) { Log.Error(e.Message); }
                     if (Services.Apache.IsRunning) Run(Services.Apache, Services.Apache.Restart, "Restarting…");
                 }
+            }
+        }
+
+        /// <summary>The Apache / MariaDB configuration manager, opened on that service's section.</summary>
+        void ShowServerConfig(string service)
+        {
+            using (var f = new ConfigForm(service, null))
+            {
+                f.ShowDialog(this);
+                if (!f.Changed) return;
+                UpdateSubtitle();
+                BuildRows();
+                RefreshStatus();
+                if (_page == 2) RefreshDbPage();
             }
         }
 

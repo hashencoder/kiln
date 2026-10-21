@@ -1,6 +1,6 @@
 # 03 – Configuration reference
 
-All settings are plain text files you can open from the panel (each service's **Config** button) or in any editor.
+All settings are plain text files you can edit in any editor. The common Apache and MariaDB settings can also be changed in the **server configuration manager** (the gear button on each service row), which validates, backs up and rolls back changes: see [12-server-configuration.md](12-server-configuration.md).
 
 | File | What it controls | Who writes it |
 |---|---|---|
@@ -27,7 +27,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
   "node": "24",
   "httpPort": 80,
   "mysqlPort": 3306,
-  "mysqlRootPassword": "",
+  "mysqlRootPasswordProtected": "dpapi:…",
   "startOnLaunch": false,
   "minimizeToTray": true,
   "lastRoot": "C:/webhut",
@@ -44,7 +44,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | `php` | Active PHP branch, the folder name under `php\` |
 | `node` | Active Node.js major, the folder name under `node\` |
 | `httpPort`, `mysqlPort` | Listening ports. Change these in **Settings** so dependent files (phpMyAdmin config) update too. |
-| `mysqlRootPassword` | Used by WebHut to stop MariaDB cleanly and by the dashboard. Stored in plain text, which is acceptable for a local dev stack and the same trade-off XAMPP makes. Change it with **Settings → Database root → Change…**, which also changes it inside MariaDB. |
+| `mysqlRootPasswordProtected` | The MariaDB root password, encrypted with Windows DPAPI for your Windows account (only present when a password is set). WebHut uses it to stop MariaDB cleanly and for backups. Change it in **Server configuration › MariaDB › Security** (or Settings › Services), which also changes it inside MariaDB. A plain `mysqlRootPassword` from older versions is read once and replaced by the encrypted form. |
 | `startOnLaunch` | Start Apache, MariaDB and auto-start Node apps when the panel opens |
 | `minimizeToTray` | Closing the window hides WebHut to the tray instead of exiting |
 | `lastRoot` | Where the folder was last time; used to fix `php.ini` paths after a move. Don't edit. |

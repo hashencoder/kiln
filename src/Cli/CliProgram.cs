@@ -34,6 +34,7 @@ Default target is 'all'. Node apps are managed in WebHut.exe or node-apps.json."
         public static int Main(string[] args)
         {
             Native.DontInheritStdHandles();
+            try { if (Services.Cfg.NeedsPasswordMigration) Services.Cfg.Save(); } catch { }
             // Double-clicked in Explorer (no arguments, console window created just for us):
             // people expect the app, so open the control panel instead of flashing the help text.
             if (args.Length == 0 && Native.OwnsConsoleAlone())

@@ -4,6 +4,41 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] - 2026-10-21
+
+### Added
+- **Server configuration manager for Apache and MariaDB.** The gear button on each service row opens it on that service's section. Every setting shows who owns it (WebHut settings, httpd.conf, my.ini, startup arguments) and its effective value.
+  - **Apache pages:**
+    - General: port, server name, document root, directory listing.
+    - PHP Integration: PHP version, mod_php / mod_fcgid, php.ini, phpinfo, runtime definitions.
+    - Performance: ThreadsPerChild, MaxConnectionsPerChild, keep-alive, gzip.
+    - Modules: searchable, with the real loaded state from `httpd -M`. Required modules are locked and dependencies are enforced.
+    - Security: network access with the effective listening address, `.htaccess`, `.ht*` rule, a new **Block .git/.env** option, and an access-rule check of generated and custom vhosts.
+    - Logging: log level, live log viewer with an error filter.
+    - Virtual Hosts: generated vs custom, plus a new custom vhost from a template.
+    - Advanced: syntax test with the real startup command, change preview, restore defaults, replace with the template.
+  - **MariaDB pages:**
+    - General: port, bind address, data folder, character set and collation, client character set, backup & restore.
+    - Performance: maximum connections, maximum packet.
+    - InnoDB: buffer pool presets with a RAM hint, redo log.
+    - Reliability & Recovery: flush at commit, doublewrite, file per table, Aria recovery.
+    - Security: root password, test connection, anonymous accounts, authentication plugins.
+    - Logging & Diagnostics: error log viewer, slow query log with its real destination, live server figures.
+    - Advanced: validation, effective variables, where settings come from, comment out lines overridden by startup arguments, restore defaults.
+  - **Safe apply:**
+    - The candidate files are validated with the real programs: `httpd -t` with WebHut's exact startup arguments; `mariadbd --help --verbose`; and a throw-away MariaDB started on an empty scratch folder and free port. The real data folder is never opened.
+    - The files that change are backed up to `config\backups\` first.
+    - Dynamic MariaDB variables apply immediately with `SET GLOBAL` (the server says which ones are dynamic). Otherwise only the affected service restarts.
+    - The service is verified afterwards (it answers, databases are still there, values took effect). On failure, everything rolls back with technical details.
+- `my.ini` is edited by a parser that keeps comments, unknown options, ordering, encoding and line endings. `httpd.conf` edits touch only the lines they own.
+- **Root password stored encrypted** with Windows DPAPI for your account. An existing plain-text password is converted automatically.
+- **Enter current password…** checks a password with MariaDB before saving it.
+- Integration tests for the manager against a real MariaDB and a real Apache + PHP (`tests/config-integration.sh`).
+
+### Changed
+- Generated site vhosts follow the www folder's directory-listing and `.htaccess` settings from httpd.conf.
+- SQL that WebHut runs (including password changes) is sent on the client's standard input, never on a command line.
+
 ## [1.5.1] - 2026-10-21
 
 ### Added
