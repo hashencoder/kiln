@@ -45,6 +45,7 @@ namespace WebHut
 
                 Log.Info("WebHut " + K.AppVersion + " started in " + K.Root);
                 RemoveOldPanel();
+                MigratePassword();
                 Application.ThreadException += (s, e) => Fatal(e.Exception);
                 AppDomain.CurrentDomain.UnhandledException += (s, e) => Fatal(e.ExceptionObject as Exception);
 
@@ -63,6 +64,18 @@ namespace WebHut
         /// Remove the stale copy left behind when a new zip is extracted over an old folder, and
         /// *.old.exe copies left when a running WebHut was renamed aside during an update.
         /// (Never touch webhut.exe: on Windows that is this very file, names ignore case.)</summary>
+        /// <summary>Older versions saved the MariaDB root password in plain text; re-save it encrypted.</summary>
+        internal static void MigratePassword()
+        {
+            try
+            {
+                if (!Services.Cfg.NeedsPasswordMigration) return;
+                Services.Cfg.Save();
+                Log.Info("The MariaDB root password is now stored encrypted for your Windows account (it was plain text in webhut.json).");
+            }
+            catch (Exception e) { Log.Error("Couldn't re-save webhut.json: " + e.Message); }
+        }
+
         static void RemoveOldPanel()
         {
             foreach (var name in new[] { "WebHutPanel.exe", "WebHutPanel.exe.config", "WebHut.old.exe", "whut.old.exe" })

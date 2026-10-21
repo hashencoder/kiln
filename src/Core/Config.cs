@@ -24,6 +24,7 @@ namespace WebHut
         public int BackupKeep = 10;
         public string Theme = "system";      // system | light | dark
         public string LastUpdateCheck = "";  // ISO time of the last component update check
+        [System.Web.Script.Serialization.ScriptIgnore] public bool NeedsPasswordMigration, PasswordUnreadable;
 
         public static WebHutConfig Load()
         {
@@ -37,7 +38,22 @@ namespace WebHut
                     c.Node = Json.Str(o, "node") ?? "";
                     c.HttpPort = ToInt(Json.Get(o, "httpPort"), 80);
                     c.MysqlPort = ToInt(Json.Get(o, "mysqlPort"), 3306);
-                    c.MysqlRootPassword = Json.Str(o, "mysqlRootPassword") ?? "";
+                    // The root password is stored encrypted for this Windows account (DPAPI). Older versions
+                    // kept it in plain text; it is read once here and encrypted on the next save.
+                    string prot = Json.Str(o, "mysqlRootPasswordProtected");
+                    string plain = Json.Str(o, "mysqlRootPassword");
+                    if (!string.IsNullOrEmpty(prot))
+                    {
+                        c.MysqlRootPassword = Secret.Unprotect(prot);
+                        if (c.MysqlRootPassword == null)
+                        {
+                            c.MysqlRootPassword = "";
+                            c.PasswordUnreadable = true;
+                            Log.Warn("The saved MariaDB root password can't be decrypted on this Windows account (was webhut.json copied from another PC?). Enter it again in Settings › Services.");
+                        }
+                    }
+                    else c.MysqlRootPassword = plain ?? "";
+                    c.NeedsPasswordMigration = !string.IsNullOrEmpty(plain);
                     c.StartOnLaunch = Json.Get(o, "startOnLaunch") as bool? ?? false;
                     c.MinimizeToTray = Json.Get(o, "minimizeToTray") as bool? ?? true;
                     c.LastRoot = Json.Str(o, "lastRoot") ?? "";
@@ -65,15 +81,24 @@ namespace WebHut
             var d = new Dictionary<string, object>
             {
                 {"php", Php}, {"node", Node}, {"httpPort", HttpPort}, {"mysqlPort", MysqlPort},
-                {"mysqlRootPassword", MysqlRootPassword}, {"startOnLaunch", StartOnLaunch},
+                {"startOnLaunch", StartOnLaunch},
                 {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl},
                 {"lanAccess", LanAccess}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep},
                 {"theme", Theme}, {"lastUpdateCheck", LastUpdateCheck}
             };
+            if (!string.IsNullOrEmpty(MysqlRootPassword))
+            {
+                string prot = Secret.Protect(MysqlRootPassword);
+                if (prot != null) d["mysqlRootPasswordProtected"] = prot;
+                else Log.Error("Couldn't encrypt the MariaDB root password, so it wasn't saved. WebHut will ask for it again.");
+            }
             File.WriteAllText(K.ConfigFile, Json.Pretty(d));
+            NeedsPasswordMigration = false;
         }
 
         public string PhpDir { get { return K.PhpDir(Php); } }
+
+        public WebHutConfig Clone() { return (WebHutConfig)MemberwiseClone(); }
         public string NodeDir { get { return string.IsNullOrEmpty(Node) ? null : K.NodeDir(Node); } }
 
         public static string NormTheme(string t)
@@ -186,6 +211,35 @@ namespace WebHut
                 {"autostart", a.AutoStart}, {"env", a.Env.ToDictionary(kv => kv.Key, kv => (object)kv.Value)}
             }).ToList();
             File.WriteAllText(K.NodeAppsFile, Json.Pretty(new Dictionary<string, object> { { "apps", arr } }));
+        }
+    }
+
+    /// <summary>Encrypts secrets for the current Windows user (DPAPI), so webhut.json never holds a plain-text password.</summary>
+    public static class Secret
+    {
+        static readonly byte[] Entropy = System.Text.Encoding.UTF8.GetBytes("WebHut/mariadb-root");
+
+        public static string Protect(string plain)
+        {
+            try
+            {
+                var bytes = System.Security.Cryptography.ProtectedData.Protect(System.Text.Encoding.UTF8.GetBytes(plain), Entropy,
+                    System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                return "dpapi:" + Convert.ToBase64String(bytes);
+            }
+            catch { return null; }
+        }
+
+        public static string Unprotect(string stored)
+        {
+            try
+            {
+                if (stored == null || !stored.StartsWith("dpapi:")) return null;
+                var bytes = System.Security.Cryptography.ProtectedData.Unprotect(Convert.FromBase64String(stored.Substring(6)), Entropy,
+                    System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                return System.Text.Encoding.UTF8.GetString(bytes);
+            }
+            catch { return null; }
         }
     }
 }

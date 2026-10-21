@@ -97,6 +97,7 @@ Settings and data live **outside** the component folders, so upgrading Apache, M
 | [09 – Troubleshooting](docs/09-troubleshooting.md) | Port conflicts, missing DLLs, extensions, MariaDB, Node |
 | [10 – Licensing](docs/10-licensing.md) | Component licenses and what redistribution requires |
 | [11 – Databases](docs/11-databases.md) | Crash safety, backups, rebuild from backup, moving from XAMPP |
+| [12 – Server configuration](docs/12-server-configuration.md) | Apache & MariaDB settings manager: ownership, validation, rollback |
 
 ## Building from source
 

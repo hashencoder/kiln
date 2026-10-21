@@ -100,7 +100,7 @@ namespace WebHut
         {
             foreach (Control c in root.Controls)
             {
-                if (c.Parent is NumberField) continue;
+                if (c.Parent is NumberField || c.Parent is TextField || c.Tag as string == "keep-colors") continue;
                 if (c is TextBoxBase || c is ListView || c is ListBox || c is ComboBox || c is NumericUpDown || c is DataGridView)
                 {
                     if (c is RichTextBox && c.BackColor == LogBg) { }

@@ -493,7 +493,7 @@ namespace WebHut
         }
 
         /// <summary>Apache answers over HTTP (any status below 500 counts; a PHP error page means PHP is broken).</summary>
-        static void HttpOk(WebHutConfig cfg, string path)
+        public static void HttpOk(WebHutConfig cfg, string path)
         {
             if (!Services.Apache.IsRunning) return;
             string url = "http://127.0.0.1:" + cfg.HttpPort + path;

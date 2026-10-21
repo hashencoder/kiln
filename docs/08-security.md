@@ -19,7 +19,7 @@ WebHut is a **local development** stack. Its defaults trade hardening for conven
 | Item | Risk | Mitigation |
 |---|---|---|
 | MariaDB `root` has no password by default | Any program on your PC can read and modify your databases | Set a password in **Settings → Database root → Change…** |
-| `webhut.json` stores the root password in plain text | Readable by anything running as your user | It's needed to stop MariaDB cleanly. Don't reuse a real password. |
+| `webhut.json` stores the root password (needed to stop MariaDB cleanly and for backups) | Encrypted with Windows DPAPI for your Windows account (`mysqlRootPasswordProtected`); programs running as your user could still decrypt it | Don't reuse a real password. It is never written to my.ini or logs, and SQL that sets it is sent on standard input, not a command line. |
 | `display_errors = On`, directory listings on | Leaks paths and stack traces | Fine locally; never copy this `php.ini` to a server |
 | Apache Lounge zips have no machine-readable checksum | A compromised download page or TLS interception could swap the zip | HTTPS plus Apache Lounge's reputation. Maintainers can pin Apache with a hand-verified `sha256` in `versions.json` ([07](07-packaging-and-releases.md#pinning-versions-with-versionsjson)). |
 | Dev servers (Vite, Next.js) run with dev settings | Some dev servers have had vulnerabilities that let a malicious website you visit read local files | Keep Node packages updated. WebHut keeps the proxy on loopback, but a page in your own browser can still reach loopback. |

@@ -47,7 +47,7 @@ When `apache\` or a PHP version is missing, WebHut opens the setup window instea
 | Item | What it does |
 |---|---|
 | **Sites** (page) | Every site with its address, folder and type (PHP, PHP with `public\`, Node app), each with **Open**. **www folder** and **Refresh sites** at the top. Right-click the sidebar item for quick actions. |
-| **Databases** (page) | MariaDB status, your databases with table counts and sizes (each opens in phpMyAdmin), recent backups with **Restore…**, **Back up now**, and ⋯ for restore/rebuild, XAMPP import, `my.ini` and the backups folder ([11](11-databases.md)). Right-click the sidebar item for quick actions. |
+| **Databases** (page) | MariaDB status, your databases with table counts and sizes (each opens in phpMyAdmin), recent backups with **Restore…**, **Back up now**, and ⋯ for restore/rebuild, XAMPP import, MariaDB configuration and the backups folder ([11](11-databases.md)). Right-click the sidebar item for quick actions. |
 | **Node apps** | A process manager for Node apps ([04](04-node-integration.md)): each app shows its address, port, command, status (**Running**, **No response** when the process runs but nothing answers on its port, **Failed**, **Stopped**), auto-start and PID, with **Start/Stop**, **Open** and a ⋯ menu (Restart, View logs, Open folder, Open terminal here, Edit, Remove). Ports are checked before starting, and an app that exits on its own is reported. |
 | **Logs** | Apache error log, MariaDB log, WebHut log, or the `logs\` folder |
 | **Settings** | See below |
@@ -71,6 +71,10 @@ When `apache\` or a PHP version is missing, WebHut opens the setup window instea
 If MariaDB fails to start and backups exist, WebHut offers to rebuild it from the newest one (the damaged folder is kept). When Windows shuts down or you log off, WebHut stops MariaDB cleanly first, so a shutdown never needs crash recovery.
 
 Only one panel can run per WebHut folder. Separate WebHut folders can run side by side on different ports.
+
+### Server configuration
+
+The gear button on the Apache and MariaDB rows opens the **server configuration manager** on that service's section (also **Databases › ⋯ › MariaDB configuration**). It covers ports, PHP integration, performance, modules, security, logging, virtual hosts and MariaDB's InnoDB, durability, security and diagnostics settings. Each setting shows its owner and effective value. Saving validates the change with the real `httpd`/`mariadbd`, backs up the files, restarts only the affected service, verifies it and rolls back on failure. Details: [12-server-configuration.md](12-server-configuration.md).
 
 ### Settings
 
@@ -155,19 +159,26 @@ src/
 │   ├── Services.cs       Apache, MariaDB and Node app start/stop/status
 │   ├── Backup.cs         Database backups, restore, rebuild-from-backup
 │   ├── XamppImport.cs    Copy databases and htdocs projects from XAMPP
-│   └── Vhosts.cs         Generates config/apache/generated/*.conf
+│   ├── Vhosts.cs         Generates config/apache/generated/*.conf
+│   ├── Updates.cs        Component update rules: eligibility, verification, health checks, rollback
+│   ├── OptionFile.cs     my.ini editor that keeps comments, order, encoding and line endings
+│   ├── ApacheConf.cs     Controlled httpd.conf edits, Apache probe (httpd -V/-M), vhost checks
+│   ├── MariaConfig.cs    MariaDB settings catalog, live/next-start values, mariadbd validation
+│   └── ConfigManager.cs  Plan → validate → back up → apply → restart → verify → roll back
 ├── Gui/                  Windows Forms UI (WebHut.exe)
 │   ├── Program.cs        Entry point, single-instance guard
 │   ├── MainForm.cs       The panel and tray icon
 │   ├── SetupForm.cs      First-run wizard
-│   ├── SettingsForm.cs   Settings + component updates
+│   ├── SettingsForm.cs   Settings
+│   ├── UpdatesForm.cs    Component update manager and its confirmation dialog
+│   ├── ConfigForm.cs     Apache & MariaDB server configuration manager
 │   ├── NodeAppsForm.cs   Node app list and editor
 │   ├── DatabaseForm.cs   Backups window and XAMPP import window
 │   └── Ui.cs             Colors, fonts, buttons, logo drawing
 └── Cli/
     └── CliProgram.cs     whut.exe
 overlay/                  Config templates, embedded into both executables at build time
-tests/                    Logic tests + a real-MariaDB integration test (Mono on Linux)
+tests/                    Logic tests + real MariaDB / Apache integration tests (Mono on Linux)
 ```
 
 Design notes for contributors:

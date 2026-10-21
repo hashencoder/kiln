@@ -16,7 +16,7 @@ namespace WebHut
     public static class K
     {
         public const string AppName = "WebHut";
-        public const string AppVersion = "1.5.1";
+        public const string AppVersion = "1.6.0";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
         // repo so every WebHut install can pick up pinned versions you publish,
@@ -258,6 +258,8 @@ namespace WebHut
         /// True if something accepts TCP connections on this port on the loopback address
         /// (IPv4 or IPv6). A real connect, so it never mistakes closing/TIME_WAIT sockets for a server.
         /// </summary>
+        public static bool IsWindows { get { return Path.DirectorySeparatorChar == '\\'; } }
+
         public static bool IsPortListening(int port)
         {
             foreach (var addr in new[] { IPAddress.Loopback, IPAddress.IPv6Loopback })
@@ -363,6 +365,18 @@ namespace WebHut
             return pid;
         }
 
+        /// <summary>Parent process id (Linux /proc only; 0 elsewhere).</summary>
+        public static int ParentPid(int pid)
+        {
+            try
+            {
+                var st = File.ReadAllText("/proc/" + pid + "/stat");
+                var parts = st.Substring(st.LastIndexOf(')') + 2).Split(' ');
+                return int.Parse(parts[1]);
+            }
+            catch { return 0; }
+        }
+
         public static int ReadPid(string file)
         {
             try
@@ -381,7 +395,7 @@ namespace WebHut
             {
                 try
                 {
-                    if (p.MainModule.FileName.StartsWith(folder, StringComparison.OrdinalIgnoreCase)) list.Add(p);
+                    if (p.MainModule.FileName.StartsWith(folder, StringComparison.OrdinalIgnoreCase) && IsAlive(p.Id)) list.Add(p);
                 }
                 catch { }
             }
@@ -391,12 +405,19 @@ namespace WebHut
         public static void KillTree(int pid)
         {
             if (pid <= 0) return;
-            Run("taskkill.exe", "/PID " + pid + " /T /F", null, 15000);
+            if (IsWindows) Run("taskkill.exe", "/PID " + pid + " /T /F", null, 15000);
+            else { try { Run("kill", "-9 " + pid, null, 5000); } catch { } }   // Linux test stand-in
         }
 
         public class RunResult { public int ExitCode; public string Output; }
 
         public static RunResult Run(string exe, string args, Dictionary<string, string> env, int timeoutMs, string workDir = null)
+        {
+            return Run(exe, args, env, timeoutMs, workDir, null);
+        }
+
+        /// <summary>Run a program; <paramref name="stdin"/> (UTF-8) is written to its input, e.g. SQL that must not appear on the command line.</summary>
+        public static RunResult Run(string exe, string args, Dictionary<string, string> env, int timeoutMs, string workDir, string stdin)
         {
             var psi = new ProcessStartInfo(exe, args)
             {
@@ -404,6 +425,7 @@ namespace WebHut
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                RedirectStandardInput = stdin != null,
                 WorkingDirectory = workDir ?? K.Root
             };
             if (env != null) foreach (var kv in env) psi.EnvironmentVariables[kv.Key] = kv.Value;
@@ -417,6 +439,16 @@ namespace WebHut
                 p.Start();
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
+                if (stdin != null)
+                {
+                    try
+                    {
+                        var bytes = new UTF8Encoding(false).GetBytes(stdin);
+                        p.StandardInput.BaseStream.Write(bytes, 0, bytes.Length);
+                        p.StandardInput.Close();
+                    }
+                    catch (IOException) { }   // the program exited early; its output says why
+                }
                 if (!p.WaitForExit(timeoutMs))
                 {
                     try { p.Kill(); } catch { }

@@ -264,6 +264,138 @@ static class Tests
         Check(File.Exists(Path.Combine(xampp, "htdocs", "myshop", "index.php")), "XAMPP originals untouched");
 
 
+        // ---------------------------------------------------------------- configuration manager: my.ini
+        Console.WriteLine("Configuration manager: my.ini");
+        inst.WriteConfigFiles(true);
+        string iniText = File.ReadAllText(K.MyIni);
+        var oini = OptionFile.Load(K.MyIni);
+        Check(oini.Text == iniText, "my.ini round-trips byte for byte when nothing changes");
+        Check(oini.Get("mysqld", "character_set_server") == "utf8mb4" && oini.Get("client", "default-character-set") == "utf8mb4", "hyphen/underscore names and sections");
+        oini.Set("mysqld", "max_connections", "150");
+        oini.Set("mysqld", "character_set_server", "utf8mb3");
+        oini.Set("mysqld", "slow_query_log", "1");
+        oini.Set("mysqld", "innodb_log_file_size", "128M");
+        string edited = oini.Text;
+        Check(edited.Contains("max_connections          = 150") && edited.Contains("character-set-server     = utf8mb3"), "values edited in place, spelling and alignment kept", edited);
+        Check(edited.Contains("# Every committed transaction is on disk") && edited.Contains("\r\n") && !edited.Replace("\r\n", "").Contains("\n"), "comments and CRLF line endings kept");
+        Check(OptionFile.Parse(edited).Get("client", "default_character_set") == "utf8mb4", "[client] untouched by [mysqld] edits");
+        Check(edited.Split(new[] { "\r\n" }, StringSplitOptions.None).Length == iniText.Split(new[] { "\r\n" }, StringSplitOptions.None).Length, "no lines added or lost for existing options");
+        oini.Set("mysqld", "innodb_doublewrite", "0");
+        oini.Set("mysqld", "table_open_cache", "400");
+        var lines = oini.Lines;
+        int tIdx = lines.FindIndex(l => l.StartsWith("table_open_cache")), clientIdx = lines.FindIndex(l => l.Trim() == "[client]");
+        Check(tIdx > 0 && tIdx < clientIdx && lines[tIdx].Contains("= 400"), "new option inserted at the end of [mysqld], before [client]", tIdx + " " + clientIdx);
+        oini.Set("client", "default_character_set", "latin1");
+        Check(oini.Get("client", "default_character_set") == "latin1" && oini.Get("mysqld", "character_set_server") == "utf8mb3", "client option edited without touching the server's");
+        oini.Set("mariadb-dump", "max_allowed_packet", "128M");
+        Check(oini.Get("mysqld", "max_allowed_packet") == "64M" && oini.Get("mariadb-dump", "max_allowed_packet") == "128M", "same option name in two sections stays separate");
+        Check(oini.Effective("max_allowed_packet").Section == "mysqld" && OptionFile.IsServerGroup("mariadb-11.4") && !OptionFile.IsServerGroup("mariadb-dump"), "[mariadb-dump] is not a server group; [mariadb-11.4] is");
+
+        var oc = OptionFile.Parse("# top\n[mysqld]\nport=3307\nmax_connections = 50   # tuned by hand\nskip-slow-query-log\nloose-innodb_file_per_table=1\n[mariadb]\nmax_connections=70\n[client-server]\nunknown_option=keep\n");
+        Check(oc.Newline == "\n", "LF files stay LF");
+        Check(oc.Effective("max_connections").Section == "mariadb", "a later [mariadb] group wins over [mysqld]");
+        Check(oc.Get("mysqld", "slow_query_log") == "0" && oc.Get("mysqld", "innodb_file_per_table") == "1", "skip- and loose- prefixes understood");
+        oc.Set("mysqld", "max_connections", "60");
+        Check(oc.Text.Contains("max_connections = 60   # tuned by hand"), "trailing comment kept", oc.Text);
+        oc.Set("mysqld", "slow_query_log", "1");
+        Check(oc.Text.Contains("\nslow_query_log = 1\n") && !oc.Text.Contains("skip-slow"), "skip- form rewritten as key = value");
+        Check(oc.Text.Contains("unknown_option=keep") && oc.Text.StartsWith("# top\n"), "unknown options and comments preserved");
+        var portEntry = oc.Entries().First(x => x.Key == "port");
+        oc.CommentOut(portEntry.Line, "overridden");
+        Check(oc.Get("mysqld", "port") == null && oc.Text.Contains("# port=3307"), "an overridden option can be commented out, not deleted");
+        File.WriteAllBytes(Path.Combine(K.Tmp, "bom.ini"), new byte[] { 0xEF, 0xBB, 0xBF }.Concat(System.Text.Encoding.UTF8.GetBytes("[mysqld]\r\nmax_connections=5\r\n")).ToArray());
+        var bom = OptionFile.Load(Path.Combine(K.Tmp, "bom.ini"));
+        bom.Set("mysqld", "max_connections", "9");
+        var bomBytes = bom.Bytes();
+        Check(bomBytes[0] == 0xEF && System.Text.Encoding.UTF8.GetString(bomBytes, 3, bomBytes.Length - 3) == "[mysqld]\r\nmax_connections=9\r\n", "UTF-8 BOM kept");
+        bool rejected = false;
+        try { oc.Set("mysqld", "max_connections", "1 # x"); } catch (ArgumentException) { rejected = true; }
+        Check(rejected, "values that would break the file are refused");
+        Check(MariaCatalog.Bytes("64M") == 67108864 && MariaCatalog.Bytes("1G") == 1073741824 && MariaCatalog.SizeText(268435456) == "256M" &&
+              MariaCatalog.Norm("bool", "ON") == "1" && MariaCatalog.Norm("set", "quick,backup") == "BACKUP,QUICK" && MariaCatalog.Norm("float", "0.50") == "0.5", "value normalisation");
+
+        // ---------------------------------------------------------------- configuration manager: httpd.conf
+        Console.WriteLine("Configuration manager: httpd.conf");
+        string hText = File.ReadAllText(K.HttpdConf);
+        var hc = ApacheConfFile.Load(K.HttpdConf);
+        Check(hc.Text == hText, "httpd.conf round-trips when nothing changes");
+        Check(hc.Mpm("ThreadsPerChild") == "150" && hc.Indexes == true && hc.HtaccessAllowed == true && !hc.Fcgid && hc.TopArgs("LogLevel") == "warn" && hc.ServerHost == "localhost", "reads managed values");
+        hc.SetMpm("ThreadsPerChild", "250");
+        hc.SetTop("KeepAlive", "Off");
+        hc.SetTop("KeepAliveTimeout", "3");
+        hc.SetTop("LogLevel", "info");
+        hc.SetIndexes(false);
+        hc.SetHtaccess(false);
+        hc.SetFcgid(true);
+        hc.SetServerHost("dev.local");
+        hc.SetModule("rewrite_module", false);
+        hc.SetModule("headers_module", false);
+        hc.SetModule("headers_module", true);
+        hc.SetModule("ssl_module", true);
+        hc.SetProtectDotfiles(true);
+        string ht = hc.Text;
+        Check(ht.Contains("    ThreadsPerChild 250") && hc.Mpm("ThreadsPerChild") == "250", "ThreadsPerChild edited inside the MPM block");
+        Check(hc.TopArgs("KeepAlive") == "Off" && hc.TopArgs("KeepAliveTimeout") == "3" && ht.IndexOf("KeepAlive Off") > ht.IndexOf("MaxConnectionsPerChild") && ht.IndexOf("KeepAlive Off") < ht.IndexOf("LoadModule"), "new directives go after the MPM block");
+        Check(ht.Contains("LogLevel  info"), "LogLevel keeps its alignment", ht.Substring(ht.IndexOf("LogLevel"), 20));
+        Check(ht.Contains("    Options FollowSymLinks") && hc.Indexes == false && hc.HtaccessAllowed == false, "directory listing and .htaccess edited in the www block only");
+        Check(ht.Contains("\nDefine WEBHUT_PHP_FCGID 1") && hc.Fcgid, "PHP mode switch uncomments the define");
+        Check(ht.Contains("ServerName dev.local:${WEBHUT_HTTP_PORT}"), "server name keeps the port variable");
+        var mods = hc.Modules();
+        Check(mods.First(md => md.Name == "rewrite_module").Active == false && ht.Contains("#LoadModule rewrite_module"), "module turned off by commenting its line");
+        Check(mods.Count(md => md.Name == "headers_module") == 1 && mods.First(md => md.Name == "headers_module").Active, "module turned back on without duplicating the line");
+        Check(mods.Any(md => md.Name == "ssl_module" && md.Active && md.Path == "modules/mod_ssl.so") && !mods.First(md => md.Name == "ssl_module").Conditional, "new module line added to the module list");
+        Check(hc.ProtectDotfiles && ht.Contains(ApacheConfFile.DotfilesEnd), "dotfile protection block added");
+        hc.SetProtectDotfiles(false);
+        hc.SetFcgid(false);
+        Check(!hc.ProtectDotfiles && !hc.Text.Contains("protect dotfiles") && hc.Text.Contains("#Define WEBHUT_PHP_FCGID 1"), "both reversible");
+        Check(ApacheConfFile.FileFor("proxy_http_module") == "mod_proxy_http.so" && ApacheConfFile.ModuleForFile("mod_log_config.so") == "log_config_module", "module file naming");
+        var tmpl = ApacheConfFile.Parse(Installer.Template("config/apache/httpd.conf"));
+        Check(tmpl.Mpm("ThreadsPerChild") == "150" && tmpl.Text.Contains("\r\n"), "template available for restore");
+
+        // Vhosts follow the www settings in httpd.conf
+        File.WriteAllText(K.HttpdConf, hc.Text);
+        Vhosts.Write(loaded);
+        string sitesNow = File.ReadAllText(Path.Combine(K.ApacheConf, "generated", "sites.conf"));
+        Check(sitesNow.Contains("Options FollowSymLinks ExecCGI") && sitesNow.Contains("AllowOverride None"), "generated sites follow httpd.conf's listing/.htaccess settings");
+        inst.WriteConfigFiles(true);
+        Vhosts.Write(loaded);
+        Check(File.ReadAllText(Path.Combine(K.ApacheConf, "generated", "sites.conf")).Contains("Options Indexes FollowSymLinks ExecCGI"), "and back");
+
+        // Vhost audit
+        Directory.CreateDirectory(Path.Combine(K.ApacheConf, "custom"));
+        File.WriteAllText(Path.Combine(K.ApacheConf, "custom", "open.conf"), "Listen 0.0.0.0:8081\n<VirtualHost *:8081>\n  ServerName open.localhost\n  <Directory x>\n    Require all granted\n  </Directory>\n</VirtualHost>\nKeepAlive Off\n");
+        var audit = VhostAudit.Scan(true).First(v => v.Name == "custom/open.conf");
+        Check(audit.Hosts.Contains("open.localhost") && audit.Findings.Count(f => f.Warning) == 2, "custom vhost audit flags Listen and Require all granted");
+        Check(VhostAudit.Overrides("KeepAlive").ContainsKey("KeepAlive"), "server-wide directive overridden in custom/ is detected");
+        File.Delete(Path.Combine(K.ApacheConf, "custom", "open.conf"));
+
+        // Plans: validation without touching files
+        var pcfg = WebHutConfig.Load();
+        var ce = new ConfigEdits();
+        ce.Maria["mysqld.max_connections"] = "5";
+        ce.Maria["mysqld.collation_server"] = "latin1_swedish_ci";
+        ce.Maria["mysqld.aria_recover_options"] = "BACKUP,BOGUS";
+        ce.Apache["LogLevel"] = "loud";
+        ce.Modules["mime_module"] = false;
+        List<string> problems = null;
+        try { ConfigManager.Plan(ce, pcfg, null, null); } catch (ConfigException ex) { problems = ex.Problems; }
+        Check(problems != null && problems.Count == 5, "invalid values are all reported before anything is written", problems == null ? "none" : string.Join(" | ", problems));
+        Check(File.ReadAllText(K.MyIni) == iniText, "my.ini untouched by a rejected plan");
+        var ce2 = new ConfigEdits();
+        ce2.Maria["mysqld.max_connections"] = "200";
+        ce2.Maria["mysqld.long_query_time"] = "0.25";
+        ce2.Modules["deflate_module"] = true;
+        ce2.Modules["filter_module"] = false;
+        problems = null;
+        try { ConfigManager.Plan(ce2, pcfg, null, null); } catch (ConfigException ex) { problems = ex.Problems; }
+        Check(problems != null && problems.Any(x => x.Contains("deflate_module needs filter_module")), "module dependency enforced", problems == null ? "none" : string.Join(" | ", problems));
+        ce2.Modules.Remove("filter_module");
+        ce2.Modules["proxy_wstunnel_module"] = true;
+        var plan = ConfigManager.Plan(ce2, pcfg, null, null);
+        Check(plan.MyIniText.Contains("max_connections          = 200") && plan.MyIniText.Contains("long_query_time          = 0.25"), "plan builds the candidate my.ini");
+        Check(plan.MariaAffected && !plan.ApacheAffected == false && !plan.MariaRestart, "server not running: no restart planned");
+        Check(plan.Expect["max_connections"] == "200" && plan.Expect["long_query_time"] == "0.25", "plan records values to verify after applying");
+
         // ---------------------------------------------------------------- component updates
         Console.WriteLine("Component updates");
         Updates.VcRuntimeOk = () => true;
