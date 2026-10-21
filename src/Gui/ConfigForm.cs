@@ -86,7 +86,7 @@ namespace WebHut
             var svcHost = new Panel { Dock = DockStyle.Top, Height = Px(40), BackColor = Ui.Sidebar };
             svcHost.Controls.Add(_svc);
             _svc.Width = Px(SideW - 24);
-            side.Controls.Add(_navList);
+            side.Controls.Add(ScrollHost.Wrap(_navList));
             side.Controls.Add(svcHost);
             side.Controls.Add(new Label { UseMnemonic = false, Text = "Server configuration", Font = Ui.SectionTitle, ForeColor = Ui.Ink, Dock = DockStyle.Top, Height = Px(36), Padding = new Padding(Px(6), 0, 0, 0), BackColor = Ui.Sidebar });
 
@@ -114,7 +114,7 @@ namespace WebHut
             footer.Controls.Add(_cancel, 1, 0);
             footer.Controls.Add(_save, 2, 0);
 
-            Controls.Add(_scroll);
+            Controls.Add(ScrollHost.Wrap(_scroll));
             Controls.Add(side);
             Controls.Add(footer);
             BuildNav();

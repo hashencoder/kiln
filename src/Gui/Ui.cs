@@ -96,10 +96,42 @@ namespace WebHut
         }
 
         /// <summary>Give standard WinForms controls (text boxes, lists, combos...) the theme colours.</summary>
+        [System.Runtime.InteropServices.DllImport("uxtheme.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern int SetWindowTheme(IntPtr hwnd, string subApp, string subIdList);
+        [System.Runtime.InteropServices.DllImport("uxtheme.dll", EntryPoint = "#133")]
+        static extern bool AllowDarkModeForWindow(IntPtr hwnd, bool allow);
+        [System.Runtime.InteropServices.DllImport("uxtheme.dll", EntryPoint = "#135")]
+        static extern int SetPreferredAppMode(int mode);
+        static bool _appModeSet;
+
+        /// <summary>
+        /// Windows' own scroll bars in dark or light: the "DarkMode_Explorer" visual style (Windows 10 1809+ / 11).
+        /// Older Windows keeps the classic bar. Page-level scrolling uses <see cref="ScrollHost"/> instead.
+        /// </summary>
+        public static void ThemeScrollBars(Control c, bool dark)
+        {
+            if (!Sys.IsWindows) return;
+            Action apply = () =>
+            {
+                try
+                {
+                    if (!_appModeSet) { _appModeSet = true; try { SetPreferredAppMode(1); } catch { } }   // 1 = AllowDark
+                    try { AllowDarkModeForWindow(c.Handle, dark); } catch { }
+                    SetWindowTheme(c.Handle, dark ? "DarkMode_Explorer" : "Explorer", null);
+                }
+                catch { }
+            };
+            if (c.IsHandleCreated) apply();
+            else c.HandleCreated += (s, e) => apply();
+        }
+
         public static void ThemeTree(Control root)
         {
             foreach (Control c in root.Controls)
             {
+                // Native scroll bars (text boxes, lists, the activity log) follow the theme; the log console is always dark.
+                if (c is TextBoxBase || c is ListView || c is ListBox || c is DataGridView)
+                    ThemeScrollBars(c, IsDark || c.BackColor == LogBg || (c.BackColor.GetBrightness() < 0.3f && c.BackColor.A == 255));
                 if (c.Parent is NumberField || c.Parent is TextField || c.Tag as string == "keep-colors") continue;
                 if (c is TextBoxBase || c is ListView || c is ListBox || c is ComboBox || c is NumericUpDown || c is DataGridView)
                 {

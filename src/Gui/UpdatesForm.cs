@@ -110,7 +110,7 @@ namespace WebHut
             footer.Controls.Add(_close, 3, 0);
             footer.Controls.Add(_go, 4, 0);
 
-            Controls.Add(_body);
+            Controls.Add(ScrollHost.Wrap(_body));
             Controls.Add(head);
             Controls.Add(sumBar);
             Controls.Add(footer);
@@ -512,7 +512,7 @@ namespace WebHut
             footer.Controls.Add(cancel);
             AcceptButton = ok; CancelButton = cancel;
 
-            Controls.Add(body);
+            Controls.Add(ScrollHost.Wrap(body));
             Controls.Add(footer);
             int h = body.Padding.Vertical + body.Controls.Cast<Control>().Sum(c => c.GetPreferredSize(new Size(inner, 0)).Height + c.Margin.Vertical) + footer.Height;
             ClientSize = new Size(w, Math.Min(h + Px(8), Screen.PrimaryScreen.WorkingArea.Height - Px(120)));
