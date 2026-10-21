@@ -89,14 +89,22 @@ Settings has five pages: **General** (start servers on open, keep running in the
 | **Check for updates…** | Compares installed Apache, the active PHP branch, MariaDB, phpMyAdmin and the active Node major with the latest versions, and updates the ones you tick (see below) |
 | **Install / repair Visual C++ runtime** | Re-runs Microsoft's installer |
 
-#### How updates work
+#### Component updates
 
-1. The affected servers are stopped.
-2. The new version is downloaded and verified like at setup.
-3. The old folder moves to `tmp\backup\<component>-<timestamp>\`, and the new one takes its place. `php.ini` and phpMyAdmin's `config.inc.php` are carried over.
-4. The servers start again.
+**Settings › Maintenance › Check for updates** opens the update manager. For each component it shows the installed and latest version, a status (*Up to date*, *Update available*, *Manual update*, *Check failed*), a link to the publisher's release notes, and when the list was last checked (**Check again** looks again). Only eligible updates can be ticked; **Select all updates** / **Clear selection** do what they say.
 
-MariaDB updates are offered **within the same series only** (12.3.x → 12.3.y). Moving to a new LTS series (for example 12.3 → a future 13.x LTS) changes the on-disk format. Do it deliberately: back up with `mariadb-dump --all-databases`, replace `mariadb\` with the new version, start it, then run `mariadb-upgrade -u root`.
+Before anything runs, a confirmation lists what each update stops, keeps and checks. Each component is then updated on its own, with its stage shown in its row:
+
+1. **Download and verify** while everything keeps running. The SHA-256 published by PHP, MariaDB, phpMyAdmin and Node.js is checked; Apache Lounge publishes no machine-readable checksum, so its package is accepted only over HTTPS from apachelounge.com. Every package is then opened and must contain the files a Windows x64 build has (for example `bin/httpd.exe`, `php8apache2_4.dll`, `bin/mariadbd.exe`). A package hosted anywhere else without a checksum is refused.
+2. **Back up** (MariaDB only): every database is dumped to `data\backups` first. If the backup fails, MariaDB is not touched.
+3. **Stop only what uses the component**: Apache for Apache and the active PHP; MariaDB for MariaDB; running Node apps for the active Node.js. phpMyAdmin updates with Apache running. Unrelated services keep running.
+4. **Swap**: the old folder moves to `tmp\backup\<component>-<timestamp>\`. Kept from the old version: `php.ini` and extra `ext\*.dll` (PHP), extra `modules\*.so` such as `mod_fcgid.so` (Apache), `config.inc.php` (phpMyAdmin), globally installed npm packages (Node.js). Config files in `config\`, virtual hosts, `www\` and `data\` live outside these folders and are never touched.
+5. **Health check**: the new binary must run and report the new version; Apache and PHP must pass `httpd -t`; after restarting, Apache must answer HTTP requests, MariaDB must answer queries (after `mariadb-upgrade`), phpMyAdmin must load.
+6. **Roll back** if any check fails: the new folder moves aside, the previous one is put back, and the stopped services start again. The row shows *Previous version kept* with the technical details.
+
+Updates that can't be done safely here are shown as **Manual update** with the reason: a new MariaDB release series (12.3 → 12.4 changes the data format), a different PHP version line or Node.js major (install those side by side in Settings › Runtime), a new phpMyAdmin major, or an Apache/PHP build that needs a newer Visual C++ runtime.
+
+To move MariaDB to a new series by hand: back up with `mariadb-dump --all-databases`, replace `mariadb\` with the new version, start it, then run `mariadb-upgrade -u root`.
 
 ## whut
 

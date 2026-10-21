@@ -30,7 +30,7 @@ $resources = Get-ChildItem -Path (Join-Path $repo "overlay") -Recurse -File | So
 
 $refs = @("System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows.Forms.dll",
           "System.Web.Extensions.dll", "System.IO.Compression.dll", "System.IO.Compression.FileSystem.dll",
-          "System.Net.Http.dll") | ForEach-Object { "/reference:`"$(Join-Path $fw $_)`"" }
+          "System.Net.Http.dll", "System.Security.dll") | ForEach-Object { "/reference:`"$(Join-Path $fw $_)`"" }
 
 $common = @("/nologo", "/optimize+", "/debug-", "/platform:anycpu", "/warn:4", "/win32icon:`"$(Join-Path $repo 'assets\webhut.ico')`"") + $refs + $resources
 $core = Get-ChildItem (Join-Path $repo "src\Core\*.cs") | ForEach-Object { "`"$($_.FullName)`"" }

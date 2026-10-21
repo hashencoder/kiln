@@ -194,7 +194,7 @@ namespace WebHut
         }
     }
 
-    public enum PillState { Running, Stopped, Busy, Partial, Error }
+    public enum PillState { Running, Stopped, Busy, Partial, Error, Info }
 
     /// <summary>Status badge: tinted rounded pill with a dot.</summary>
     public class Pill : Painted
@@ -231,6 +231,7 @@ namespace WebHut
                 case PillState.Running: fg = Ui.Green; bg = Ui.GreenSoft; break;
                 case PillState.Busy: case PillState.Partial: fg = Ui.Amber; bg = Ui.AmberSoft; break;
                 case PillState.Error: fg = Ui.Red; bg = Ui.RedSoft; break;
+                case PillState.Info: fg = Ui.Info; bg = Ui.Mix(Ui.Info, Ui.Card, Ui.IsDark ? 0.22f : 0.12f); break;
                 default: fg = Ui.Grey; bg = Ui.GreySoft; break;
             }
             var ts = TextRenderer.MeasureText(Text ?? "", Font);
@@ -416,14 +417,22 @@ namespace WebHut
             BackColor = Ui.Card;
             Size = new Size(width, Ui.Px(38));
             Padding = new Padding(Ui.Px(12), 0, Ui.Px(10), 0);
-            _box = new TextBox { BorderStyle = BorderStyle.None, Font = Ui.Mono, BackColor = Ui.Card, ForeColor = Ui.Ink, MaxLength = 5, Anchor = AnchorStyles.Left | AnchorStyles.Right };
+            _box = new TextBox { BorderStyle = BorderStyle.None, Font = Ui.Mono, BackColor = Ui.Card, ForeColor = Ui.Ink, MaxLength = Math.Max(1, max.ToString().Length), Anchor = AnchorStyles.Left | AnchorStyles.Right };
             _box.KeyPress += (s, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
             _box.TextChanged += (s, e) => { var h = ValueChanged; if (h != null) h(this, EventArgs.Empty); Invalidate(); };
             _box.GotFocus += (s, e) => Invalidate();
             _box.LostFocus += (s, e) => { _box.Text = Value.ToString(); Invalidate(); };
             Controls.Add(_box);
-            Resize += (s, e) => _box.SetBounds(Padding.Left, (Height - _box.Height) / 2, Width - Padding.Horizontal, _box.Height);
         }
+        /// <summary>Colour behind the rounded corners (fields normally sit on a card).</summary>
+        public Color Under = Color.Empty;
+        protected override void OnLayout(LayoutEventArgs e)
+        {
+            base.OnLayout(e);
+            if (_box == null) return;
+            _box.SetBounds(Padding.Left, Math.Max(0, (Height - _box.Height) / 2), Math.Max(10, Width - Padding.Horizontal), _box.Height);
+        }
+        protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); PerformLayout(); }
         public int Value
         {
             get { int v; return int.TryParse(_box.Text, out v) ? Math.Max(_min, Math.Min(_max, v)) : _min; }
@@ -433,9 +442,9 @@ namespace WebHut
         protected override void OnPaint(PaintEventArgs e)
         {
             var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias;
-            Color under = Ui.Card;
-            for (var c = Parent; c != null; c = c.Parent) if (c.BackColor.A == 255) { under = c.BackColor; break; }
-            g.Clear(under);
+            if (_box.BackColor != Ui.Card) _box.BackColor = Ui.Card;
+            if (_box.ForeColor != Ui.Ink) _box.ForeColor = Ui.Ink;
+            g.Clear(Under.IsEmpty ? Ui.Card : Under);
             using (var p = Ui.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Ui.Px(8)))
             {
                 using (var b = new SolidBrush(Ui.Card)) g.FillPath(b, p);
@@ -513,6 +522,69 @@ namespace WebHut
             float d = h - 5;
             float x = _on ? Width - 3 - d : 3;
             using (var b = new SolidBrush(Color.White)) g.FillEllipse(b, x, 3, d, d);
+        }
+    }
+
+    /// <summary>Rounded check box in the WebHut style.</summary>
+    public class CheckMark : Painted
+    {
+        bool _on;
+        public event EventHandler CheckedChanged;
+        public CheckMark() { Size = new Size(S(20), S(20)); Cursor = Cursors.Hand; TabStop = true; SetStyle(ControlStyles.Selectable, true); }
+        public bool Checked
+        {
+            get { return _on; }
+            set { if (_on == value) return; _on = value; Invalidate(); var h = CheckedChanged; if (h != null) h(this, EventArgs.Empty); }
+        }
+        protected override void OnClick(EventArgs e) { if (Enabled) Checked = !Checked; base.OnClick(e); }
+        protected override void OnKeyDown(KeyEventArgs e) { if (e.KeyCode == Keys.Space && Enabled) Checked = !Checked; base.OnKeyDown(e); }
+        protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
+        protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics; Smooth(g);
+            var r = new RectangleF(1f, 1f, Width - 2.5f, Height - 2.5f);
+            using (var p = Ui.Rounded(r, S(5)))
+            {
+                if (!Enabled) { using (var b = new SolidBrush(Ui.Surface)) g.FillPath(b, p); using (var pen = new Pen(Ui.Line)) g.DrawPath(pen, p); return; }
+                if (_on) using (var b = new SolidBrush(Ui.Accent)) g.FillPath(b, p);
+                else
+                {
+                    using (var b = new SolidBrush(Ui.Card)) g.FillPath(b, p);
+                    using (var pen = new Pen(Focused || Hover ? Ui.AccentSoftLine : Ui.Faint, Math.Max(1f, S(1.2f)))) g.DrawPath(pen, p);
+                }
+            }
+            if (_on)
+                using (var pen = new Pen(Color.White, Math.Max(1.6f, S(2))) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+                    g.DrawLines(pen, new[] { new PointF(Width * 0.27f, Height * 0.52f), new PointF(Width * 0.44f, Height * 0.68f), new PointF(Width * 0.74f, Height * 0.34f) });
+        }
+    }
+
+    /// <summary>Thin rounded progress bar; Value &lt; 0 shows an indeterminate sweep.</summary>
+    public class ProgressLine : Painted
+    {
+        int _value = -1; float _phase;
+        readonly Timer _t = new Timer { Interval = 40 };
+        public ProgressLine() { Height = S(4); _t.Tick += (s, e) => { _phase = (_phase + 0.025f) % 1.3f; Invalidate(); }; }
+        public int Value
+        {
+            get { return _value; }
+            set { _value = value; if (value < 0 && Visible) _t.Start(); else _t.Stop(); Invalidate(); }
+        }
+        protected override void OnVisibleChanged(EventArgs e) { if (!Visible) _t.Stop(); else if (_value < 0) _t.Start(); base.OnVisibleChanged(e); }
+        protected override void Dispose(bool disposing) { if (disposing) _t.Dispose(); base.Dispose(disposing); }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics; Smooth(g);
+            float h = Height - 0.5f;
+            using (var p = Ui.Rounded(new RectangleF(0, 0, Width - 0.5f, h), h / 2)) using (var b = new SolidBrush(Ui.Surface)) g.FillPath(b, p);
+            float x, w;
+            if (_value >= 0) { x = 0; w = (Width - 0.5f) * Math.Min(100, _value) / 100f; }
+            else { w = Width * 0.3f; x = (_phase - 0.3f) * Width; }
+            if (w <= 1) return;
+            var clip = g.Clip; g.SetClip(new RectangleF(0, 0, Width, Height));
+            using (var p = Ui.Rounded(new RectangleF(x, 0, w, h), h / 2)) using (var b = new SolidBrush(Ui.Accent)) g.FillPath(b, p);
+            g.Clip = clip;
         }
     }
 

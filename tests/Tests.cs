@@ -264,6 +264,93 @@ static class Tests
         Check(File.Exists(Path.Combine(xampp, "htdocs", "myshop", "index.php")), "XAMPP originals untouched");
 
 
+        // ---------------------------------------------------------------- component updates
+        Console.WriteLine("Component updates");
+        Updates.VcRuntimeOk = () => true;
+        var ucfg = new WebHutConfig { Php = "8.5", Node = "24" };
+        Func<string, string, string, string, Component> UC = (id, ver, url, sha) => new Component
+            { Id = id, Name = id, Version = ver, Url = url, Sha256 = sha, FileName = id + ".zip", Branch = id == "php" ? "8.5" : id == "node" ? "24" : null };
+        string sha64 = new string('a', 64);
+        Check(Updates.Evaluate(UC("php", "8.5.12", "https://windows.php.net/x.zip", sha64), "8.5.11", ucfg).State == UpdState.Available, "newer patch is offered");
+        Check(Updates.Evaluate(UC("php", "8.5.11", "https://windows.php.net/x.zip", sha64), "8.5.11", ucfg).State == UpdState.UpToDate, "same version is up to date");
+        Check(Updates.Evaluate(UC("php", "8.5.9", "https://windows.php.net/x.zip", sha64), "8.5.11", ucfg).State == UpdState.UpToDate, "older version is never offered as an update");
+        Check(Updates.Evaluate(UC("php", "8.6.0", "https://windows.php.net/x.zip", sha64), "8.5.11", ucfg).State == UpdState.Blocked, "different PHP line is blocked (install side by side)");
+        var mseries = Updates.Evaluate(UC("mariadb", "12.4.1", "https://dlm.mariadb.com/x.zip", sha64), "12.3.3", ucfg);
+        Check(mseries.State == UpdState.Blocked && mseries.Note.Contains("release series"), "new MariaDB series is blocked with a reason");
+        Check(Updates.Evaluate(UC("mariadb", "12.3.4", "https://dlm.mariadb.com/x.zip", sha64), "12.3.3", ucfg).State == UpdState.Available, "MariaDB patch within the series is offered");
+        Check(Updates.Evaluate(UC("node", "26.1.0", "https://nodejs.org/x.zip", sha64), "24.22.0", ucfg).State == UpdState.Blocked, "different Node major is blocked");
+        Check(Updates.Evaluate(UC("phpmyadmin", "6.0.0", "https://files.phpmyadmin.net/x.zip", sha64), "5.2.3", ucfg).State == UpdState.Blocked, "new phpMyAdmin major is blocked");
+        Check(Updates.Evaluate(UC("apache", "2.4.70 (VS18)", "http://www.apachelounge.com/x.zip", null), "2.4.69 (VS18)", ucfg).State == UpdState.Blocked, "non-HTTPS download is blocked");
+        Check(Updates.Evaluate(UC("apache", "2.4.70 (VS18)", "https://evil.example/x.zip", null), "2.4.69 (VS18)", ucfg).State == UpdState.Blocked, "unofficial host without checksum is blocked");
+        Check(Updates.Evaluate(UC("apache", "2.4.70 (VS18)", "https://www.apachelounge.com/x.zip", null), "2.4.69 (VS18)", ucfg).State == UpdState.Available, "official Apache Lounge download is offered");
+        Check(Updates.Evaluate(UC("apache", "2.4.69 (VS18)", "https://www.apachelounge.com/x.zip", null), "2.4.69 (VS17)", ucfg).State == UpdState.Available, "same Apache with a newer VS build is offered");
+        Updates.VcRuntimeOk = () => false;
+        Check(Updates.Evaluate(UC("apache", "2.4.70 (VS18)", "https://www.apachelounge.com/x.zip", null), "2.4.69 (VS18)", ucfg).Note.Contains("Visual C++"), "Apache update needs the VC++ runtime");
+        Updates.VcRuntimeOk = () => true;
+        var lf = UC("node", null, null, null); lf.Error = "timeout";
+        Check(Updates.Evaluate(lf, "24.22.0", ucfg).State == UpdState.LookupFailed, "failed lookup is reported, not offered");
+        Check(Updates.Evaluate(UC("phpmyadmin", "5.2.3", "https://files.phpmyadmin.net/x.zip", sha64), null, ucfg).State == UpdState.NotInstalled, "missing component is offered for install");
+        Check(Updates.NotesUrl(UC("php", "8.5.12", null, null)) == "https://www.php.net/ChangeLog-8.php#8.5.12" &&
+              Updates.NotesUrl(UC("node", "24.22.1", null, null)) == "https://nodejs.org/en/blog/release/v24.22.1" &&
+              Updates.NotesUrl(UC("mariadb", "12.3.4", null, null)) == "https://mariadb.com/docs/release-notes/community-server/12.3/12.3.4", "release-notes links");
+
+        string uz = Path.Combine(K.Tmp, "uztest");
+        Directory.CreateDirectory(uz);
+        bool pkgOk = true;
+        try { Updates.CheckPackage(UC("mariadb", "1", null, null), MakeZip(uz, "m.zip", new[] { "mariadb-12.3.4-winx64/bin/mariadbd.exe", "mariadb-12.3.4-winx64/bin/mariadb.exe", "mariadb-12.3.4-winx64/bin/mariadb-dump.exe" })); }
+        catch { pkgOk = false; }
+        Check(pkgOk, "genuine-looking MariaDB package passes the content check");
+        bool pkgBad = false;
+        try { Updates.CheckPackage(UC("mariadb", "1", null, null), MakeZip(uz, "m2.zip", new[] { "readme.txt" })); } catch (InvalidDataException) { pkgBad = true; }
+        Check(pkgBad, "package without mariadbd.exe is rejected");
+
+        // phpMyAdmin end to end: config.inc.php kept, old version backed up, nothing stopped
+        Directory.CreateDirectory(K.Pma);
+        File.WriteAllText(Path.Combine(K.Pma, "index.php"), "old");
+        File.WriteAllText(Path.Combine(K.Pma, "config.inc.php"), "<?php // mine");
+        File.WriteAllText(Path.Combine(K.Pma, ".webhut-version"), "5.2.2");
+        var pmaZip = MakeZip(uz, "pma.zip", new[] { "phpMyAdmin-5.2.3-all-languages/index.php", "phpMyAdmin-5.2.3-all-languages/libraries/x.php" });
+        var pmaItem = Updates.Evaluate(new Component { Id = "phpmyadmin", Name = "phpMyAdmin", Version = "5.2.3", LocalFile = pmaZip, Sha256 = sha64 }, "5.2.2", ucfg);
+        var stages = new List<UpdStage>();
+        Updates.Run(new List<UpdateItem> { pmaItem }, ucfg, it => stages.Add(it.Stage), CancellationToken.None);
+        Check(pmaItem.Stage == UpdStage.Done, "phpMyAdmin update completes", pmaItem.Message + " " + pmaItem.Error);
+        Check(File.ReadAllText(Path.Combine(K.Pma, "config.inc.php")) == "<?php // mine" && File.ReadAllText(Path.Combine(K.Pma, "index.php")) == "x" &&
+              WebHutConfig.FullVersion(K.Pma) == "5.2.3", "new phpMyAdmin in place, config.inc.php kept");
+        Check(stages.Contains(UpdStage.Verifying) && stages.Contains(UpdStage.Installing) && stages.Contains(UpdStage.Checking), "progress reports each stage");
+
+        // A package that fails verification changes nothing
+        var badPma = Updates.Evaluate(new Component { Id = "phpmyadmin", Name = "phpMyAdmin", Version = "5.2.4", LocalFile = MakeZip(uz, "bad.zip", new[] { "x/readme.txt" }), Sha256 = sha64 }, "5.2.3", ucfg);
+        Updates.Run(new List<UpdateItem> { badPma }, ucfg, it => { }, CancellationToken.None);
+        Check(badPma.Stage == UpdStage.Failed && WebHutConfig.FullVersion(K.Pma) == "5.2.3", "invalid package fails before anything is replaced");
+
+        // Node: the new version fails its health check -> previous version and npm globals restored
+        string nd = K.NodeDir("24");
+        Directory.CreateDirectory(Path.Combine(nd, "global", "node_modules", "typescript"));
+        File.WriteAllText(Path.Combine(nd, "node.exe"), "old node");
+        File.WriteAllText(Path.Combine(nd, ".webhut-version"), "24.22.0");
+        var nodeZip = MakeZip(uz, "node.zip", new[] { "node-v24.22.1-win-x64/node.exe", "node-v24.22.1-win-x64/npm.cmd" });
+        var nodeItem = Updates.Evaluate(new Component { Id = "node", Name = "Node.js", Branch = "24", Version = "24.22.1", LocalFile = nodeZip, Sha256 = sha64 }, "24.22.0", ucfg);
+        Updates.Run(new List<UpdateItem> { nodeItem }, ucfg, it => { }, CancellationToken.None);
+        Check(nodeItem.Stage == UpdStage.RolledBack && !string.IsNullOrEmpty(nodeItem.Error), "failed health check rolls back", nodeItem.Stage + ": " + nodeItem.Message);
+        Check(File.ReadAllText(Path.Combine(nd, "node.exe")) == "old node" && WebHutConfig.FullVersion(nd) == "24.22.0", "previous Node.js restored");
+        Check(Directory.Exists(Path.Combine(nd, "global", "node_modules", "typescript")), "global npm packages survive the rollback");
+
+        // Cancelling before an item starts changes nothing
+        var cts = new CancellationTokenSource(); cts.Cancel();
+        var cItem = Updates.Evaluate(new Component { Id = "phpmyadmin", Name = "phpMyAdmin", Version = "5.2.9", LocalFile = pmaZip, Sha256 = sha64 }, "5.2.3", ucfg);
+        Updates.Run(new List<UpdateItem> { cItem }, ucfg, it => { }, cts.Token);
+        Check(cItem.Stage == UpdStage.Cancelled && WebHutConfig.FullVersion(K.Pma) == "5.2.3", "cancel skips pending updates");
+
+        // Carry-over of user-added files
+        string oldA = Path.Combine(uz, "oldA"), newA = Path.Combine(uz, "newA");
+        Directory.CreateDirectory(Path.Combine(oldA, "modules")); Directory.CreateDirectory(Path.Combine(newA, "modules"));
+        File.WriteAllText(Path.Combine(oldA, "modules", "mod_fcgid.so"), "fcgid");
+        File.WriteAllText(Path.Combine(oldA, "modules", "mod_rewrite.so"), "old rewrite");
+        File.WriteAllText(Path.Combine(newA, "modules", "mod_rewrite.so"), "new rewrite");
+        Installer.CarryOver(oldA, newA, "modules", "*.so");
+        Check(File.ReadAllText(Path.Combine(newA, "modules", "mod_fcgid.so")) == "fcgid" && File.ReadAllText(Path.Combine(newA, "modules", "mod_rewrite.so")) == "new rewrite",
+              "extra modules carried over; shipped ones not replaced");
+
         if (port != null)
         {
             Console.WriteLine("Downloads");

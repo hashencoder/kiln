@@ -204,6 +204,12 @@ namespace WebHut
             return bmp;
         }
 
+        /// <summary>Blend <paramref name="a"/> over <paramref name="b"/> (amount 0..1 of a).</summary>
+        public static Color Mix(Color a, Color b, float amount)
+        {
+            return Color.FromArgb((int)(a.R * amount + b.R * (1 - amount)), (int)(a.G * amount + b.G * (1 - amount)), (int)(a.B * amount + b.B * (1 - amount)));
+        }
+
         public static GraphicsPath Rounded(RectangleF r, float radius)
         {
             var p = new GraphicsPath();

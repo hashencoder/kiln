@@ -23,7 +23,7 @@ while IFS= read -r -d '' f; do
   RES+=("-resource:${rel},${rel}")
 done < <(cd . && find overlay -type f -print0 | sort -z)
 
-REFS=(mscorlib System System.Core System.Drawing System.Windows.Forms System.Web.Extensions
+REFS=(mscorlib System System.Core System.Security System.Drawing System.Windows.Forms System.Web.Extensions
       System.IO.Compression System.IO.Compression.FileSystem System.Net.Http)
 REFARGS=(-nostdlib -noconfig -lib:"$REF" -lib:"$REF/Facades")
 for r in "${REFS[@]}"; do REFARGS+=(-r:"$r.dll"); done
