@@ -1,13 +1,13 @@
-# 06 – Control panel & webhut
+# 06 – Control panel & whut
 
 WebHut ships two programs that share one core:
 
-- **`WebHutPanel.exe`**: the control panel and setup wizard.
-- **`webhut.exe`**: the same operations from a terminal or script.
+- **`WebHut.exe`**: the control panel and setup wizard.
+- **`whut.exe`**: the same operations from a terminal or script.
 
 Both are small, self-contained .NET Framework 4.8 executables (about 180 KB and 130 KB), and Windows 10 and 11 already include the runtime.
 
-## WebHutPanel.exe
+## WebHut.exe
 
 ### First run: the setup window
 
@@ -85,47 +85,47 @@ Only one panel can run per WebHut folder. Separate WebHut folders can run side b
 
 MariaDB updates are offered **within the same series only** (12.3.x → 12.3.y). Moving to a new LTS series (for example 12.3 → a future 13.x LTS) changes the on-disk format. Do it deliberately: back up with `mariadb-dump --all-databases`, replace `mariadb\` with the new version, start it, then run `mariadb-upgrade -u root`.
 
-## webhut
+## whut
 
 ```text
-webhut status                      Show every service
-webhut start   [all|apache|mariadb|<node-app>]
-webhut stop    [all|apache|mariadb|<node-app>]
-webhut restart [all|apache|mariadb|<node-app>]
-webhut sites                       Regenerate vhosts for folders in www\ and Node apps
-webhut php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
-webhut setup                       Download and install everything (first run)
-webhut backup                      Back up all databases now (data\backups)
-webhut backups                     List backups
-webhut restore [<file>|latest]     Load a backup into the running MariaDB
-webhut rebuild-db [<file>|latest]  Set a damaged data folder aside and rebuild it from a backup
-webhut import-xampp [<folder>] [--recover] [--projects]
+whut status                      Show every service
+whut start   [all|apache|mariadb|<node-app>]
+whut stop    [all|apache|mariadb|<node-app>]
+whut restart [all|apache|mariadb|<node-app>]
+whut sites                       Regenerate vhosts for folders in www\ and Node apps
+whut php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
+whut setup                       Download and install everything (first run)
+whut backup                      Back up all databases now (data\backups)
+whut backups                     List backups
+whut restore [<file>|latest]     Load a backup into the running MariaDB
+whut rebuild-db [<file>|latest]  Set a damaged data folder aside and rebuild it from a backup
+whut import-xampp [<folder>] [--recover] [--projects]
                                     Copy databases (and htdocs projects) from XAMPP
-webhut shell                       Open a console with php, node, npm and composer on PATH
-webhut version
+whut shell                       Open a console with php, node, npm and composer on PATH
+whut version
 ```
 
 - The default target is `all`. As with the panel, `start all` includes only Node apps marked autostart; `stop all` stops everything.
-- Node app targets use the app name: `webhut restart api`.
+- Node app targets use the app name: `whut restart api`.
 - Exit code `0` means success, `1` a failure (details on stderr), and `2` an unusable folder path.
-- `webhut setup` is the non-interactive version of the setup window. It needs every component to resolve, so offline installs go through the GUI's **Use a zip I downloaded…**.
-- `webhut` and `WebHutPanel.exe` can be used at the same time; the panel picks up changes within 2 seconds.
+- `whut setup` is the non-interactive version of the setup window. It needs every component to resolve, so offline installs go through the GUI's **Use a zip I downloaded…**.
+- `whut` and `WebHut.exe` can be used at the same time; the panel picks up changes within 2 seconds.
 
 ```text
-> webhut status
+> whut status
 SERVICE          STATE     PID     PORT    DETAIL
 Apache           running   5120    80      2.4.68 · PHP 8.5.11
 MariaDB          running   6612    3306    12.3.3
 api              stopped   -       3000    Node 24 · npm run dev
 ```
 
-Editing Node apps from the CLI means editing `node-apps.json` directly, then running `webhut sites` and `webhut restart apache`.
+Editing Node apps from the CLI means editing `node-apps.json` directly, then running `whut sites` and `whut restart apache`.
 
 ## Inside the code
 
 ```text
 src/
-├── Core/                 Shared by WebHutPanel.exe and webhut.exe
+├── Core/                 Shared by WebHut.exe and whut.exe
 │   ├── Util.cs           Paths (K), logging, JSON helpers, process/port utilities
 │   ├── Config.cs         webhut.json and node-apps.json models
 │   ├── Resolver.cs       Finds the latest download for each component (+ versions.json pins)
@@ -135,7 +135,7 @@ src/
 │   ├── Backup.cs         Database backups, restore, rebuild-from-backup
 │   ├── XamppImport.cs    Copy databases and htdocs projects from XAMPP
 │   └── Vhosts.cs         Generates config/apache/generated/*.conf
-├── Gui/                  Windows Forms UI (WebHutPanel.exe)
+├── Gui/                  Windows Forms UI (WebHut.exe)
 │   ├── Program.cs        Entry point, single-instance guard
 │   ├── MainForm.cs       The panel and tray icon
 │   ├── SetupForm.cs      First-run wizard
@@ -144,7 +144,7 @@ src/
 │   ├── DatabaseForm.cs   Backups window and XAMPP import window
 │   └── Ui.cs             Colors, fonts, buttons, logo drawing
 └── Cli/
-    └── CliProgram.cs     webhut.exe
+    └── CliProgram.cs     whut.exe
 overlay/                  Config templates, embedded into both executables at build time
 tests/                    Logic tests + a real-MariaDB integration test (Mono on Linux)
 ```

@@ -15,7 +15,7 @@ All settings are plain text files you can open from the panel (each service's **
 | `config\mariadb\my.ini` | MariaDB settings | Created once; yours to edit |
 | `apps\phpmyadmin\config.inc.php` | phpMyAdmin | Created once; WebHut updates only the port and `AllowNoPassword` |
 
-After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or `webhut restart apache`). WebHut runs `httpd -t` before every start and shows Apache's exact error if the config is invalid.
+After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or `whut restart apache`). WebHut runs `httpd -t` before every start and shows Apache's exact error if the config is invalid.
 
 ---
 
@@ -75,7 +75,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | `dir` | App folder. A path relative to the WebHut root (`www/api`) or absolute (`D:/code/api`). |
 | `command` | Run with `cmd.exe` in `dir`. Any command works: `npm run dev`, `npm start`, `node server.js`, `npx vite --port 5173`. |
 | `port` | WebHut sets `PORT` to this value and proxies the hostname to it. The app must listen on it. |
-| `autostart` | Include in **Start all** and `webhut start` |
+| `autostart` | Include in **Start all** and `whut start` |
 | `env` | Extra environment variables |
 
 See [04 – Node.js integration](04-node-integration.md) for framework recipes.
@@ -95,7 +95,7 @@ See [04 – Node.js integration](04-node-integration.md) for framework recipes.
 
 ### Generated vhosts
 
-On every Apache start (and on **Refresh sites** / `webhut sites`), WebHut writes:
+On every Apache start (and on **Refresh sites** / `whut sites`), WebHut writes:
 
 - **`generated\sites.conf`**: one vhost per folder in `www\` whose name is a valid hostname label (letters, digits, hyphens; no spaces or dots). The folder `Shop` becomes `shop.localhost`.
   - `DocumentRoot` is `www\<folder>\public` when a `public` subfolder exists (Laravel, Symfony, Slim and others), otherwise `www\<folder>`.

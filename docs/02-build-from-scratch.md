@@ -1,6 +1,6 @@
 # 02 – Build the stack by hand
 
-`WebHutPanel.exe` automates everything on this page. Doing it once by hand is the best way to understand what WebHut does, to debug an unusual machine, or to build your own variant. Every config file referenced here is in the repo's [`overlay/`](../overlay) folder; those are the same templates embedded in `WebHutPanel.exe`.
+`WebHut.exe` automates everything on this page. Doing it once by hand is the best way to understand what WebHut does, to debug an unusual machine, or to build your own variant. Every config file referenced here is in the repo's [`overlay/`](../overlay) folder; those are the same templates embedded in `WebHut.exe`.
 
 Commands are for **Command Prompt** (`cmd.exe`). The examples use `C:\webhut`; any path without spaces works.
 

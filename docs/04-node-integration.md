@@ -38,7 +38,7 @@ The app is also reachable directly at `http://localhost:<port>`. The Apache host
 | Folder | `www/api` | Where `package.json` is. Folders inside WebHut are stored relative, so the WebHut folder stays portable. |
 | Command | `npm run dev` | Anything you'd type in a terminal in that folder |
 | Port | `3000` | WebHut suggests the next free one |
-| Start with "Start all" | ✓ | Include in **Start all** / `webhut start` |
+| Start with "Start all" | ✓ | Include in **Start all** / `whut start` |
 | Environment | `DATABASE_URL=mysql://root@127.0.0.1:3306/api` | One `KEY=value` per line |
 
 Run `npm install` first: open **Shell**, `cd` into the folder, and run `npm install`. WebHut doesn't install dependencies by itself.

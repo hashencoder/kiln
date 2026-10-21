@@ -7,9 +7,9 @@ labels: bug
 **What happened**
 <!-- What you clicked or ran, what you expected, what you got instead -->
 
-**webhut status**
+**whut status**
 ```
-paste output of: webhut status
+paste output of: whut status
 ```
 
 **Last lines of logs\webhut.log**
@@ -23,7 +23,7 @@ paste here
 ```
 
 **Environment**
-- WebHut version (`webhut version`):
+- WebHut version (`whut version`):
 - Windows version (`winver`):
 - WebHut folder path:
 - Antivirus / proxy software, if any:

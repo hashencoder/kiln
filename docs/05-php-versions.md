@@ -9,7 +9,7 @@ WebHut installs the newest stable PHP branch at setup. You can install more bran
 From the command line:
 
 ```cmd
-webhut php 8.4
+whut php 8.4
 ```
 
 This installs 8.4 if needed, makes it active, and restarts Apache if it's running.

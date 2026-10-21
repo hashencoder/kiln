@@ -4,9 +4,9 @@ WEBHUT - portable Apache + PHP + MariaDB + Node.js for Windows
 1. Put this "WebHut" folder somewhere short with no spaces, e.g. C:\webhut
    (not inside Program Files).
 
-2. Double-click WebHutPanel.exe (the control panel and installer).
-   webhut.exe is the command-line tool for terminals and scripts; if you
-   double-click it, it simply opens WebHutPanel.exe for you.
+2. Double-click WebHut.exe (the control panel and installer).
+   whut.exe is the command-line tool for terminals and scripts; if you
+   double-click it, it simply opens WebHut.exe for you.
    The first time, a setup window downloads the official Windows builds of
    Apache, PHP, MariaDB, phpMyAdmin, Node.js, Composer and the CA
    certificate bundle into this folder, then configures them.
@@ -22,7 +22,7 @@ Backups:         automatic every 2 hours and before stopping (data\backups);
 From XAMPP:      stop MySQL in XAMPP, then WebHut -> Database... -> Import from XAMPP
 phpMyAdmin:      http://localhost/phpmyadmin
 Terminal:        WebHut -> Shell (php, node, npm, composer, mariadb on PATH)
-Command line:    webhut status | start | stop | restart | sites | php 8.4
+Command line:    whut status | start | stop | restart | sites | php 8.4
 
 Windows may show a SmartScreen warning the first time because the program
 is new and not code-signed: click "More info" -> "Run anyway".

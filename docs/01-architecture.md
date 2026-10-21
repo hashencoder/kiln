@@ -14,7 +14,7 @@ flowchart LR
     N1 -->|TCP 127.0.0.1:3306| M
     A -->|/phpmyadmin| PMA[phpMyAdmin on PHP]
     PMA --> M
-    K[WebHutPanel.exe / webhut.exe] -.downloads, configures, starts, stops.-> A
+    K[WebHut.exe / whut.exe] -.downloads, configures, starts, stops.-> A
     K -.-> M
     K -.-> N1
     K -.-> N2
@@ -26,7 +26,7 @@ flowchart LR
 - **PHP** has no process of its own in the default mode. (In per-site mode, Apache launches `php-cgi.exe` workers instead; see [05](05-php-versions.md).)
 - **MariaDB** is its own process on `127.0.0.1:3306`.
 - **Node apps** each run as their own process tree (`cmd.exe` running your command, for example `npm run dev`), on their own port.
-- **WebHutPanel.exe** (GUI) and **webhut.exe** (console) share the same core library. They're process managers and config writers: if the panel closes or crashes, the servers keep running, and reopening the panel picks them up again.
+- **WebHut.exe** (GUI) and **whut.exe** (console) share the same core library. They're process managers and config writers: if the panel closes or crashes, the servers keep running, and reopening the panel picks them up again.
 
 ## Process model
 
@@ -37,7 +37,7 @@ flowchart LR
 | `cmd.exe` → `node.exe` (one per app) | `cmd.exe /d /s /c "<command> >> <root>/logs/node-<app>.log 2>&1"` in the app folder, with `PORT` set | `taskkill /PID <cmd pid> /T /F` (the whole tree) |
 
 - Everything runs as the **current user**. Binding ports 80 and 3306 on Windows needs **no admin rights**.
-- PIDs are kept in `tmp\pids\`. A PID only counts if that process started around when the PID file was written, so a stale file left over from before a reboot can never point WebHut at an unrelated process. To catch strays, WebHut also treats any `httpd.exe` or `mariadbd.exe` whose executable lives inside the WebHut folder as "running", so a server started by an earlier session (or by `webhut`) still shows up and can be stopped.
+- PIDs are kept in `tmp\pids\`. A PID only counts if that process started around when the PID file was written, so a stale file left over from before a reboot can never point WebHut at an unrelated process. To catch strays, WebHut also treats any `httpd.exe` or `mariadbd.exe` whose executable lives inside the WebHut folder as "running", so a server started by an earlier session (or by `whut`) still shows up and can be stopped.
 - Node output goes to a log file through `cmd.exe`'s own redirection, not through a pipe held by WebHut. That's why apps keep running and logging after the panel exits.
 
 ## Ports
@@ -125,7 +125,7 @@ Putting the active PHP folder first on `PATH` matters. PHP extensions such as `o
 1. **Resolve.** WebHut looks up the latest version and download URL of each component in parallel: `windows.php.net/downloads/releases/releases.json`, the MariaDB REST API, `nodejs.org/dist/index.json`, phpMyAdmin's `version.json`, and the Apache Lounge download page. A maintainer-published `versions.json` can pin any of them (see [07](07-packaging-and-releases.md#pinning-versions-with-versionsjson)).
 2. **Download** into `tmp\downloads\`, verifying SHA-256 when the publisher provides one (PHP, MariaDB, Node.js, phpMyAdmin, Composer, CA bundle). Apache Lounge publishes no machine-readable checksum, so its zip is downloaded over HTTPS without one.
 3. **Unpack** each zip into place, unwrapping a single top-level folder (and picking `Apache24\` out of the Apache Lounge zip).
-4. **Write config** from templates embedded in `WebHutPanel.exe` (`overlay/` in the repo): `httpd.conf`, vhost files, `my.ini`, a `php.ini` that enables only the extensions present in that PHP build, a phpMyAdmin config with a random secret, and the `www\index.php` dashboard.
+4. **Write config** from templates embedded in `WebHut.exe` (`overlay/` in the repo): `httpd.conf`, vhost files, `my.ini`, a `php.ini` that enables only the extensions present in that PHP build, a phpMyAdmin config with a random secret, and the `www\index.php` dashboard.
 5. **Initialise MariaDB** with `mariadb-install-db.exe --datadir=data\mariadb`.
 
 Every step is safe to re-run; finished downloads are reused.
@@ -135,5 +135,5 @@ Every step is safe to re-run; finished downloads are reused.
 1. **Official binaries, unmodified.** WebHut adds only config and a launcher. That keeps updates trivial, keeps WebHut's trust surface small, and keeps the licensing simple ([10](10-licensing.md)).
 2. **Portable and self-contained.** One folder, no services, no admin rights in normal use.
 3. **Your stuff is never overwritten.** Config, custom vhosts, `php.ini`, databases and sites survive upgrades.
-4. **The CLI and GUI share one core.** Starting, stopping, status, sites, PHP switching and setup work the same from `webhut`. Node apps are edited in the panel or in `node-apps.json`. This helps scripting, CI and bug reports.
+4. **The CLI and GUI share one core.** Starting, stopping, status, sites, PHP switching and setup work the same from `whut`. Node apps are edited in the panel or in `node-apps.json`. This helps scripting, CI and bug reports.
 5. **Safe defaults.** Loopback only, `Require local` on every site, and loud warnings about production use.

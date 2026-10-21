@@ -40,7 +40,7 @@ Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistribut
 ## Quick start
 
 1. Download `WebHut-<version>-win64.zip` from [Releases](../../releases) and extract it to a short path **without spaces**, such as `C:\webhut`.
-2. Run **`WebHutPanel.exe`**. The setup window finds the latest versions. Click **Install**.
+2. Run **`WebHut.exe`**. The setup window finds the latest versions. Click **Install**.
 3. Click **Start all**, then **Open localhost**.
 
 | | |
@@ -52,7 +52,7 @@ Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistribut
 | Coming from XAMPP | Stop MySQL in XAMPP, then **Database… → Import from XAMPP…** ([docs/11](docs/11-databases.md#moving-from-xampp)) |
 | Backups | Automatic every 2 hours and before each stop; restore or rebuild in **Database…** |
 | Terminal | **Shell** opens a console with `php`, `node`, `npm`, `npx`, `composer` and `mariadb` on `PATH` |
-| Command line | `webhut status`, `webhut start`, `webhut php 8.4` and more ([docs/06](docs/06-control-panel.md#webhut)) |
+| Command line | `whut status`, `whut start`, `whut php 8.4` and more ([docs/06](docs/06-control-panel.md#whut)) |
 
 > Windows may show a SmartScreen warning the first time ("Windows protected your PC") because WebHut is new and unsigned. Click **More info → Run anyway**. See [docs/07](docs/07-packaging-and-releases.md#code-signing-and-smartscreen) for how maintainers can sign releases.
 
@@ -60,7 +60,7 @@ Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistribut
 
 ```text
 C:\webhut\
-├── WebHutPanel.exe, webhut.exe   Control panel and command-line tool
+├── WebHut.exe, whut.exe   Control panel and command-line tool
 ├── webhut.json               Your settings (PHP/Node version, ports, ...)
 ├── node-apps.json          Node apps WebHut manages
 ├── apache\                 Official Apache build, untouched
@@ -91,7 +91,7 @@ Settings and data live **outside** the component folders, so upgrading Apache, M
 | [03 – Configuration reference](docs/03-configuration.md) | `httpd.conf`, vhosts, `php.ini`, `my.ini`, phpMyAdmin, `webhut.json`, `versions.json` |
 | [04 – Node.js integration](docs/04-node-integration.md) | Node apps, reverse proxy, websockets, Vite/Next.js/Express recipes |
 | [05 – PHP versions](docs/05-php-versions.md) | Switching versions, adding versions, per-site versions with `mod_fcgid` |
-| [06 – Control panel & webhut](docs/06-control-panel.md) | Every button and command, and how the panel works inside |
+| [06 – Control panel & whut](docs/06-control-panel.md) | Every button and command, and how the panel works inside |
 | [07 – Building & releasing](docs/07-packaging-and-releases.md) | Compile, package, publish on GitHub, pin versions, sign |
 | [08 – Security](docs/08-security.md) | Keeping a dev stack safe |
 | [09 – Troubleshooting](docs/09-troubleshooting.md) | Port conflicts, missing DLLs, extensions, MariaDB, Node |

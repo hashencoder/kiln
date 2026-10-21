@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Database integration test against a real MariaDB server (Linux + Mono).
-# Exercises webhut's real start/stop, crash durability, backup, restore,
+# Exercises whut's real start/stop, crash durability, backup, restore,
 # rebuild-from-backup and XAMPP import code paths. Linux MariaDB binaries
 # stand in for the Windows .exe files via symlinks.
 #
@@ -15,12 +15,12 @@ bad()  { echo "  FAIL $1"; fail=$((fail+1)); }
 check(){ if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 q()    { mariadb --protocol=TCP -h 127.0.0.1 -P "$PORT" -u root -N -e "$1" 2>/dev/null; }
 KLOG="${TMPDIR:-/tmp}/webhut-int-$$.log"; : > "$KLOG"
-kctl() { echo "### webhut $*" >> "$KLOG"; (cd "$W" && mono webhut.exe "$@") 2>&1 | grep -v max_open_files | tee -a "$KLOG"; return "${PIPESTATUS[0]}"; }
+kctl() { echo "### whut $*" >> "$KLOG"; (cd "$W" && mono whut.exe "$@") 2>&1 | grep -v max_open_files | tee -a "$KLOG"; return "${PIPESTATUS[0]}"; }
 cleanup() { for p in $(pgrep mariadbd); do grep -q "$W" /proc/$p/cmdline 2>/dev/null && kill -9 $p; done; sleep 1; rm -rf "$W" "$KLOG"; }
 trap cleanup EXIT
 
 mkdir -p "$W/mariadb/bin" "$W/config/mariadb" "$W/data"
-cp dist/webhut.exe dist/webhut.exe.config "$W/"
+cp dist/whut.exe dist/whut.exe.config "$W/"
 for n in mariadbd mariadb mariadb-dump mariadb-admin; do
   ln -s "$(command -v $n || echo /usr/sbin/$n)" "$W/mariadb/bin/$n.exe"
 done
@@ -35,7 +35,7 @@ mariadb-install-db --datadir="$W/data/mariadb" --auth-root-authentication-method
 
 echo "== start / stop"
 kctl start mariadb >/dev/null
-check "webhut starts MariaDB with WebHut's my.ini" '[ "$(q "select 1")" = "1" ]'
+check "whut starts MariaDB with WebHut's my.ini" '[ "$(q "select 1")" = "1" ]'
 check "crash-safe setting active (innodb_flush_log_at_trx_commit=1)" '[ "$(q "select @@innodb_flush_log_at_trx_commit")" = "1" ]'
 q "create database shop; create table shop.orders (id int primary key, note varchar(50)) engine=innodb;"
 q "use shop; insert into orders select seq, concat('order ', seq) from seq_1_to_100;"
@@ -93,5 +93,5 @@ check "temporary XAMPP server stopped afterwards" '! pgrep -f "mysqld.exe.*$X" >
 kctl stop mariadb >/dev/null
 echo
 echo "$pass passed, $fail failed"
-[ "$fail" -eq 0 ] || { echo "--- webhut output ---"; cat "$KLOG"; }
+[ "$fail" -eq 0 ] || { echo "--- whut output ---"; cat "$KLOG"; }
 [ "$fail" -eq 0 ]

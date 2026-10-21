@@ -39,7 +39,7 @@ What's in a backup:
 - Because MariaDB's own user tables aren't included, restoring a backup never changes your root password or other users.
 - The files are standard. You can restore them anywhere: `gunzip -c file.sql.gz | mariadb -u root`, or import them in phpMyAdmin (it accepts `.sql.gz`).
 
-When MariaDB fails to start, WebHut asks right away whether to rebuild from the newest backup. You can also do it any time from **Database… → Rebuild from backup…**, or with `webhut rebuild-db`.
+When MariaDB fails to start, WebHut asks right away whether to rebuild from the newest backup. You can also do it any time from **Database… → Rebuild from backup…**, or with `whut rebuild-db`.
 
 ## Moving from XAMPP
 
@@ -55,7 +55,7 @@ How it works:
 - WebHut starts **XAMPP's own** MySQL temporarily, on a private port, with `--skip-grant-tables`, so XAMPP's root password doesn't matter. It then dumps the selected databases with `mariadb-dump`, stops XAMPP's server again, and loads the dump into WebHut's MariaDB.
 - This is a **logical copy** (SQL), not a file copy. That's what makes it safe across versions: XAMPP ships MariaDB 10.4, WebHut runs 12.x, and copying data folders between those versions directly is a common way to corrupt them.
 - Before loading anything, WebHut backs up its own current databases. If a database with the same name already exists in WebHut, its tables are replaced by XAMPP's, and you're warned first.
-- XAMPP's internal `phpmyadmin` database isn't copied. The empty `test` database is unticked by default in the import window (`webhut` imports it too).
+- XAMPP's internal `phpmyadmin` database isn't copied. The empty `test` database is unticked by default in the import window (`whut` imports it too).
 - `htdocs` projects are copied to `www\<name>`. A project that already exists in `www\` is skipped, never overwritten. XAMPP's own folders (`dashboard`, `img`, `webalizer`, `xampp`) are skipped. After importing, click **Refresh sites** to open them at `http://<name>.localhost`.
 
 ### When XAMPP's MySQL is the one that crashed
@@ -83,8 +83,8 @@ GRANT ALL ON shop.* TO 'shop'@'localhost';
 ### From the command line
 
 ```text
-webhut import-xampp                        # auto-detect C:\xampp, databases only
-webhut import-xampp D:\xampp --projects    # also copy htdocs projects
-webhut import-xampp --recover              # XAMPP's MySQL is damaged
-webhut backup | backups | restore [file|latest] | rebuild-db [file|latest]
+whut import-xampp                        # auto-detect C:\xampp, databases only
+whut import-xampp D:\xampp --projects    # also copy htdocs projects
+whut import-xampp --recover              # XAMPP's MySQL is damaged
+whut backup | backups | restore [file|latest] | rebuild-db [file|latest]
 ```
