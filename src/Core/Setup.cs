@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace WebHut
 {
-    /// <summary>First-run setup shared by the wizard and webhut.</summary>
+    /// <summary>First-run setup shared by the wizard and whut.</summary>
     public static class Setup
     {
         /// <summary>Resolve every component in parallel (network calls).</summary>

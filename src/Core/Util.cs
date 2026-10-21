@@ -12,11 +12,11 @@ using System.Web.Script.Serialization;
 
 namespace WebHut
 {
-    /// <summary>Well-known paths. Everything is relative to the folder WebHutPanel.exe lives in.</summary>
+    /// <summary>Well-known paths. Everything is relative to the folder WebHut.exe lives in.</summary>
     public static class K
     {
         public const string AppName = "WebHut";
-        public const string AppVersion = "1.0.2";
+        public const string AppVersion = "1.1.0";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
         // repo so every WebHut install can pick up pinned versions you publish,
@@ -236,7 +236,7 @@ namespace WebHut
 
         /// <summary>
         /// Stop servers we launch from inheriting our stdin/stdout/stderr. Otherwise a caller that
-        /// captures webhut's output (PowerShell, CI) would wait forever for Apache to close the pipe.
+        /// captures whut's output (PowerShell, CI) would wait forever for Apache to close the pipe.
         /// </summary>
         public static void DontInheritStdHandles()
         {
@@ -486,7 +486,7 @@ namespace WebHut
 
         public static void EnableModernTls()
         {
-            // WebHutPanel.exe.config opts into SystemDefault (0): Windows then picks TLS 1.2/1.3 itself.
+            // WebHut.exe.config opts into SystemDefault (0): Windows then picks TLS 1.2/1.3 itself.
             // Never force TLS 1.3: on Windows 10 SChannel has no TLS 1.3 client, and naming it
             // explicitly makes every HTTPS request fail ("The function requested is not supported").
             try

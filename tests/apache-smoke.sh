@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs WebHut's real Apache config (httpd.conf, default vhost, generated site
 # and Node-proxy vhosts, mod_php) on a real Apache + PHP (Linux), started by
-# webhut, and checks what browsers would get: PHP pages, *.localhost vhosts,
+# whut, and checks what browsers would get: PHP pages, *.localhost vhosts,
 # public/ detection, the Node reverse proxy, and the network-access rules.
 #
 # Needs: apt install apache2 libapache2-mod-php mono-devel; ./build/build.sh first. Run as root.
@@ -22,7 +22,7 @@ KEEP_LOG="${KEEP_LOG:-}"
 
 PHPSO=$(ls /usr/lib/apache2/modules/libphp*.so | head -1)
 mkdir -p "$W/apache/bin" "$W/apache/conf" "$W/php/8.5" "$W/www"
-cp dist/webhut.exe dist/webhut.exe.config "$W/"
+cp dist/whut.exe dist/whut.exe.config "$W/"
 ln -s /usr/lib/apache2/modules "$W/apache/modules"
 cp /etc/mime.types "$W/apache/conf/mime.types"
 ln -s "$PHPSO" "$W/php/8.5/php8apache2_4.dll"
@@ -48,10 +48,10 @@ printf '{"apps":[{"name":"api","dir":"www/api","command":"x","port":3456,"autost
 
 cfg() { printf '{ "php": "8.5", "httpPort": %s, "lanAccess": %s }\n' "$PORT" "$1" > "$W/webhut.json"; }
 
-echo "== start through webhut (config test + launch)"
+echo "== start through whut (config test + launch)"
 cfg false
-(cd "$W" && setsid mono webhut.exe start apache) > "$W/start.log" 2>&1
-check "webhut starts Apache with WebHut's httpd.conf (httpd -t passed)" 'grep -q "Apache is running" "$W/start.log"'
+(cd "$W" && setsid mono whut.exe start apache) > "$W/start.log" 2>&1
+check "whut starts Apache with WebHut's httpd.conf (httpd -t passed)" 'grep -q "Apache is running" "$W/start.log"'
 [ "$fail" -eq 0 ] || { cat "$W/start.log"; tail -20 "$W/logs/apache-error.log" 2>/dev/null; exit 1; }
 
 echo "== pages"
@@ -71,7 +71,7 @@ stop_apache
 echo "== network access ON"
 ip addr add 10.99.0.1/32 dev lo 2>/dev/null; HAVE_PRIV=$?
 cfg true
-(cd "$W" && setsid mono webhut.exe start apache) > "$W/start2.log" 2>&1
+(cd "$W" && setsid mono whut.exe start apache) > "$W/start2.log" 2>&1
 check "starts with network access on"                    'grep -q "Apache is running" "$W/start2.log"'
 check "still works locally"                              'get blog.localhost / | grep -q "blog-public"'
 if [ "$HAVE_PRIV" -eq 0 ]; then

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Builds WebHutPanel.exe and webhut.exe on Windows with the C# compiler that ships
+  Builds WebHut.exe and whut.exe on Windows with the C# compiler that ships
   with the .NET Framework 4.8 (no Visual Studio or SDK needed).
 
 .EXAMPLE
@@ -46,19 +46,19 @@ function Invoke-Csc([string[]]$csArgs) {
     } finally { Remove-Item $rsp -ErrorAction SilentlyContinue }
 }
 
-Write-Host "Building WebHutPanel.exe..."
-Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\WebHutPanel.exe`"", "/main:WebHut.Program") + $core + $gui)
-Write-Host "Building webhut.exe..."
-Invoke-Csc ($common + @("/target:exe", "/out:`"$out\webhut.exe`"", "/main:WebHut.CliProgram") + $core + $cli)
+Write-Host "Building WebHut.exe..."
+Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\WebHut.exe`"", "/main:WebHut.Program") + $core + $gui)
+Write-Host "Building whut.exe..."
+Invoke-Csc ($common + @("/target:exe", "/out:`"$out\whut.exe`"", "/main:WebHut.CliProgram") + $core + $cli)
 
-Copy-Item (Join-Path $repo "build\WebHutPanel.exe.config") (Join-Path $out "WebHutPanel.exe.config") -Force
-Copy-Item (Join-Path $repo "build\WebHutPanel.exe.config") (Join-Path $out "webhut.exe.config") -Force
+Copy-Item (Join-Path $repo "build\WebHut.exe.config") (Join-Path $out "WebHut.exe.config") -Force
+Copy-Item (Join-Path $repo "build\WebHut.exe.config") (Join-Path $out "whut.exe.config") -Force
 
 if ($Package) {
     $stage = Join-Path $out "WebHut"
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path $stage | Out-Null
-    Copy-Item "$out\WebHutPanel.exe", "$out\WebHutPanel.exe.config", "$out\webhut.exe", "$out\webhut.exe.config" $stage
+    Copy-Item "$out\WebHut.exe", "$out\WebHut.exe.config", "$out\whut.exe", "$out\whut.exe.config" $stage
     Copy-Item (Join-Path $repo "LICENSE") $stage
     Copy-Item (Join-Path $repo "dist-readme.txt") (Join-Path $stage "README.txt")
     $zip = Join-Path $out "WebHut-$Version-win64.zip"

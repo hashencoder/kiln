@@ -34,6 +34,7 @@ namespace WebHut
                 }
 
                 Log.Info("WebHut " + K.AppVersion + " started in " + K.Root);
+                RemoveOldPanel();
                 Application.ThreadException += (s, e) => Fatal(e.Exception);
                 AppDomain.CurrentDomain.UnhandledException += (s, e) => Fatal(e.ExceptionObject as Exception);
 
@@ -45,6 +46,22 @@ namespace WebHut
                 Application.Run(new MainForm());
             }
             return 0;
+        }
+
+        /// <summary>1.0.x shipped the panel as WebHutPanel.exe; 1.1 renamed it to WebHut.exe.
+        /// Remove the stale copy left behind when a new zip is extracted over an old folder.
+        /// (Never touch webhut.exe: on Windows that is this very file, names ignore case.)</summary>
+        static void RemoveOldPanel()
+        {
+            foreach (var name in new[] { "WebHutPanel.exe", "WebHutPanel.exe.config" })
+            {
+                try
+                {
+                    var f = System.IO.Path.Combine(K.Root, name);
+                    if (System.IO.File.Exists(f)) { System.IO.File.Delete(f); Log.Info("Removed old " + name + " (now WebHut.exe)."); }
+                }
+                catch { }
+            }
         }
 
         static void Fatal(Exception e)

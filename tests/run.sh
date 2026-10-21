@@ -4,8 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 WORK="${TMPDIR:-/tmp}/webhut-test-$$"
 mkdir -p "$WORK/served"
-cp dist/webhut.exe "$WORK/"
-mcs -langversion:7.2 -target:exe -out:"$WORK/Tests.exe" -r:"$WORK/webhut.exe" \
+cp dist/whut.exe "$WORK/"
+mcs -langversion:7.2 -target:exe -out:"$WORK/Tests.exe" -r:"$WORK/whut.exe" \
     -r:System.IO.Compression.dll -r:System.IO.Compression.FileSystem.dll tests/Tests.cs
 
 # A fake PHP zip served over HTTP for the download tests
@@ -18,7 +18,7 @@ SERVER=$!
 trap 'kill $SERVER 2>/dev/null; rm -rf "$WORK"' EXIT
 sleep 1
 
-echo "== webhut smoke test"
-( cd "$WORK" && mono webhut.exe version && mono webhut.exe help | head -3 )
+echo "== whut smoke test"
+( cd "$WORK" && mono whut.exe version && mono whut.exe help | head -3 )
 echo "== logic tests"
 NO_PROXY=127.0.0.1 no_proxy=127.0.0.1 mono "$WORK/Tests.exe" "$PORT"

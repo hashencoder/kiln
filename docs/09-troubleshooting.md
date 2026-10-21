@@ -29,8 +29,8 @@ Start with the **Activity** log in the panel and the service's **Logs** button. 
 | "Windows couldn't load Apache's runtime DLLs" | Visual C++ Redistributable missing or too old | **Settings → Install / repair Visual C++ runtime**, or install <https://aka.ms/vc14/vc_redist.x64.exe> |
 | "Cannot load …php8apache2_4.dll" | The PHP build is Non Thread Safe, or the VC++ runtime is too old | Install the **x64 Thread Safe** build (WebHut's default). Update the VC++ runtime. |
 | "Apache configuration test failed: Syntax error on line N of …" | A config edit broke something | Open the file named in the message. WebHut shows Apache's exact error. |
-| "WEBHUT_ROOT is not defined" | Apache was started without WebHut's arguments | Start it from WebHut or `webhut`, or copy the arguments from [02](02-build-from-scratch.md#9-start-everything) |
-| "AH00072: make_sock: could not bind to address" | Port in use, sometimes by a stale `httpd.exe` | Run `webhut stop apache`, or end `httpd.exe` in Task Manager |
+| "WEBHUT_ROOT is not defined" | Apache was started without WebHut's arguments | Start it from WebHut or `whut`, or copy the arguments from [02](02-build-from-scratch.md#9-start-everything) |
+| "AH00072: make_sock: could not bind to address" | Port in use, sometimes by a stale `httpd.exe` | Run `whut stop apache`, or end `httpd.exe` in Task Manager |
 | Clicking Stop takes ~15 s, then "didn't stop cleanly" | Apache couldn't be signalled (security software sometimes blocks it) | Harmless; WebHut ends the process instead |
 
 ### Port 80 is taken
@@ -50,7 +50,7 @@ Or avoid the conflict: **Settings → HTTP port → 8080**. Sites are then at `h
 | Symptom | Fix |
 |---|---|
 | "Port 3306 is already in use by mysqld.exe / mariadbd.exe" | Another MySQL or MariaDB (an old XAMPP, or a MySQL service) is running. Stop it (`services.msc`), or set WebHut's MySQL port to 3307. |
-| MariaDB won't start after a power cut or crash (`mariadb.err` mentions corruption or a failed recovery) | WebHut offers **Rebuild from backup** right away (or use **Database… → Rebuild from backup…**, or `webhut rebuild-db`). The damaged folder is kept as `data\mariadb-damaged-<date>`. If you need changes newer than the last backup, see [11](11-databases.md#when-xampps-mysql-is-the-one-that-crashed): the same recovery modes apply to `data\mariadb-damaged-*`. |
+| MariaDB won't start after a power cut or crash (`mariadb.err` mentions corruption or a failed recovery) | WebHut offers **Rebuild from backup** right away (or use **Database… → Rebuild from backup…**, or `whut rebuild-db`). The damaged folder is kept as `data\mariadb-damaged-<date>`. If you need changes newer than the last backup, see [11](11-databases.md#when-xampps-mysql-is-the-one-that-crashed): the same recovery modes apply to `data\mariadb-damaged-*`. |
 | "Access denied for user 'root'" when stopping | `mysqlRootPassword` in `webhut.json` doesn't match the real password. Fix it there; WebHut falls back to ending the process in the meantime. |
 | XAMPP import: "XAMPP's MySQL is running" | Stop MySQL in the XAMPP Control Panel first. Both would use the same files. |
 | XAMPP import: "XAMPP's MySQL didn't start" | Tick **XAMPP's MySQL is damaged** and scan again ([11](11-databases.md#when-xampps-mysql-is-the-one-that-crashed)) |
@@ -98,8 +98,8 @@ Security software sometimes quarantines `httpd.exe`, `mariadbd.exe` or WebHut it
 
 - **Reset config only**: stop everything, delete `config\` (back up `config\apache\custom\` first), and start the servers again. WebHut recreates any missing config file from its templates on every start, and it never overwrites existing ones.
 - **Reinstall a component**: stop everything and delete its folder (for example `mariadb\`). For Apache or the last PHP version, the setup window reappears on the next launch; for MariaDB or phpMyAdmin, **Settings → Check for updates…** offers to install it; for Node.js, use **Settings → Install latest LTS**.
-- **Full reset, keeping databases**: keep `data\mariadb\`, `www\` and `node-apps.json`; delete everything else except `WebHutPanel.exe`, `webhut.exe` and their `.config` files; run `WebHutPanel.exe`.
+- **Full reset, keeping databases**: keep `data\mariadb\`, `www\` and `node-apps.json`; delete everything else except `WebHut.exe`, `whut.exe` and their `.config` files; run `WebHut.exe`.
 
 ## Reporting a bug
 
-Include the output of `webhut status`, the last 50 lines of `logs\webhut.log`, the relevant server log, your Windows version (`winver`), and what you clicked. Remove any passwords first.
+Include the output of `whut status`, the last 50 lines of `logs\webhut.log`, the relevant server log, your Windows version (`winver`), and what you clicked. Remove any passwords first.

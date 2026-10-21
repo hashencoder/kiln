@@ -244,7 +244,7 @@ namespace WebHut
             foreach (var d in Directory.GetDirectories(src)) CopyDir(d, Path.Combine(dest, Path.GetFileName(d)));
         }
 
-        /// <summary>Whole import in one call (used by webhut and the import window).</summary>
+        /// <summary>Whole import in one call (used by whut and the import window).</summary>
         public void Run(WebHutConfig cfg, List<string> dbs, bool allowRecovery, IEnumerable<string> projects)
         {
             if (dbs != null && dbs.Count > 0)

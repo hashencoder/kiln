@@ -32,11 +32,11 @@ jobs:
         shell: pwsh
         run: ./build/build.ps1 -Package -Version ${{ steps.ver.outputs.version }}
 
-      - name: Smoke test webhut
+      - name: Smoke test whut
         shell: pwsh
         run: |
-          ./dist/webhut.exe version
-          ./dist/webhut.exe help
+          ./dist/whut.exe version
+          ./dist/whut.exe help
 
       - uses: actions/upload-artifact@v4
         with:

@@ -5,31 +5,31 @@ using System.Threading;
 
 namespace WebHut
 {
-    /// <summary>webhut.exe - command-line control for scripts and terminals.</summary>
+    /// <summary>whut.exe - command-line control for scripts and terminals.</summary>
     public static class CliProgram
     {
-        const string Help = @"webhut - control your WebHut stack from the command line
+        const string Help = @"whut - control your WebHut stack from the command line
 
 Usage:
-  webhut status                      Show every service
-  webhut start   [all|apache|mariadb|<node-app>]
-  webhut stop    [all|apache|mariadb|<node-app>]
-  webhut restart [all|apache|mariadb|<node-app>]
-  webhut sites                       Regenerate vhosts for folders in www\ and Node apps
-  webhut php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
-  webhut setup                       Download and install everything (first run)
-  webhut backup                      Back up all databases now (data\backups)
-  webhut backups                     List backups
-  webhut restore [<file>|latest]     Load a backup into the running MariaDB
-  webhut rebuild-db [<file>|latest]  MariaDB won't start after a crash: set the damaged
+  whut status                      Show every service
+  whut start   [all|apache|mariadb|<node-app>]
+  whut stop    [all|apache|mariadb|<node-app>]
+  whut restart [all|apache|mariadb|<node-app>]
+  whut sites                       Regenerate vhosts for folders in www\ and Node apps
+  whut php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
+  whut setup                       Download and install everything (first run)
+  whut backup                      Back up all databases now (data\backups)
+  whut backups                     List backups
+  whut restore [<file>|latest]     Load a backup into the running MariaDB
+  whut rebuild-db [<file>|latest]  MariaDB won't start after a crash: set the damaged
                                       data folder aside and rebuild it from a backup
-  webhut import-xampp [<folder>] [--recover] [--projects]
+  whut import-xampp [<folder>] [--recover] [--projects]
                                       Copy databases (and with --projects, htdocs folders)
                                       from XAMPP. Stop XAMPP's MySQL first.
-  webhut shell                       Open a console with php, node, npm and composer on PATH
-  webhut version
+  whut shell                       Open a console with php, node, npm and composer on PATH
+  whut version
 
-Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.json.";
+Default target is 'all'. Node apps are managed in WebHut.exe or node-apps.json.";
 
         public static int Main(string[] args)
         {
@@ -38,7 +38,7 @@ Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.j
             // people expect the app, so open the control panel instead of flashing the help text.
             if (args.Length == 0 && Native.OwnsConsoleAlone())
             {
-                var panel = System.IO.Path.Combine(K.Root, "WebHutPanel.exe");
+                var panel = System.IO.Path.Combine(K.Root, "WebHut.exe");
                 if (System.IO.File.Exists(panel))
                 {
                     try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(panel) { UseShellExecute = true, WorkingDirectory = K.Root }); return 0; }
@@ -63,7 +63,7 @@ Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.j
                     case "restart": return Each(target, s => s.Restart(), false);
                     case "sites":
                         Vhosts.Write(Services.Cfg);
-                        Console.WriteLine("Vhosts regenerated. Restart Apache to apply: webhut restart apache");
+                        Console.WriteLine("Vhosts regenerated. Restart Apache to apply: whut restart apache");
                         return 0;
                     case "php": return Php(args.Length > 1 ? args[1] : null);
                     case "setup": return RunSetup();
@@ -140,7 +140,7 @@ Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.j
             bool recover = rest.Remove("--recover");
             bool projects = rest.Remove("--projects");
             string root = rest.FirstOrDefault() ?? XamppImport.Find();
-            if (root == null || !XamppImport.IsXampp(root)) { Console.Error.WriteLine("XAMPP not found. Pass its folder: webhut import-xampp C:\\xampp"); return 1; }
+            if (root == null || !XamppImport.IsXampp(root)) { Console.Error.WriteLine("XAMPP not found. Pass its folder: whut import-xampp C:\\xampp"); return 1; }
             using (var x = new XamppImport(root))
             {
                 var level = x.StartServerWithRecovery(recover);
@@ -190,7 +190,7 @@ Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.j
             {
                 Console.Error.WriteLine("Some components couldn't be resolved. Download them by hand from:");
                 foreach (var c in bad) Console.Error.WriteLine("  " + c.Name + ": " + c.Homepage);
-                Console.Error.WriteLine("then use the setup wizard in WebHutPanel.exe ('Use a zip I downloaded').");
+                Console.Error.WriteLine("then use the setup wizard in WebHut.exe ('Use a zip I downloaded').");
                 return 1;
             }
             if (!Installer.VcRedistOk())
@@ -199,7 +199,7 @@ Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.j
             int last = -10;
             inst.Progress += (m, p) => { if (p < 0 || p >= last + 10 || p == 100) { last = p; Console.WriteLine("  " + m); } };
             Setup.Run(inst, comps, CancellationToken.None);
-            Console.WriteLine("Done. Start everything with: webhut start");
+            Console.WriteLine("Done. Start everything with: whut start");
             return 0;
         }
     }

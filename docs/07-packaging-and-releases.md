@@ -7,10 +7,10 @@ This page is for maintainers: how to build WebHut, test it, publish a release on
 ```text
 WebHut-1.0.0-win64.zip
 └── WebHut\
-    ├── WebHutPanel.exe            Control panel + setup wizard
-    ├── WebHutPanel.exe.config     Runtime settings (.NET 4.8, TLS defaults, long paths)
-    ├── webhut.exe         Command-line tool
-    ├── webhut.exe.config
+    ├── WebHut.exe          Control panel + setup wizard
+    ├── WebHut.exe.config   Runtime settings (.NET 4.8, TLS defaults, long paths)
+    ├── whut.exe            Command-line tool
+    ├── whut.exe.config
     ├── LICENSE
     └── README.txt          Short user instructions (from dist-readme.txt)
 ```
@@ -24,7 +24,7 @@ If you want an offline "full" bundle as well, see [Offline bundles](#offline-bun
 ### On Windows (no SDK needed)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File build\build.ps1                       # dist\WebHutPanel.exe, dist\webhut.exe
+powershell -ExecutionPolicy Bypass -File build\build.ps1                       # dist\WebHut.exe, dist\whut.exe
 powershell -ExecutionPolicy Bypass -File build\build.ps1 -Package -Version 1.0.0  # + dist\WebHut-1.0.0-win64.zip and .sha256
 ```
 
@@ -36,8 +36,8 @@ Visual Studio or JetBrains Rider work too: create a .NET Framework 4.8 WinForms 
 
 ```bash
 sudo apt install mono-devel          # or: brew install mono
-./build/build.sh                     # dist/WebHutPanel.exe, dist/webhut.exe
-./tests/run.sh                       # logic tests + a webhut smoke test
+./build/build.sh                     # dist/WebHut.exe, dist/whut.exe
+./tests/run.sh                       # logic tests + a whut smoke test
 ```
 
 The output is a normal Windows executable; Mono's compiler targets the same .NET Framework 4.8 reference assemblies.
@@ -47,8 +47,8 @@ The output is a normal Windows executable; Mono's compiler targets the same .NET
 Two suites:
 
 - **`tests/run.sh`** runs `tests/Tests.cs`, the platform-independent logic. Details below.
-- **`tests/apache-smoke.sh`** runs WebHut's real Apache config on a real Apache + PHP, started by `webhut`: the dashboard, `*.localhost` vhosts, `public\` detection, `localhost/<folder>/`, `.htaccess` protection, the Node reverse proxy, and the network-access rules (private addresses allowed, public addresses refused, phpMyAdmin local-only). Needs `apt install apache2 libapache2-mod-php`.
-- **`tests/integration.sh`** runs `webhut` against **real MariaDB servers** (Linux binaries standing in for the Windows ones): start and stop, a hard kill right after committed writes (no rows may be lost), backup, restore, rebuild after deliberately corrupting the data files, and a full XAMPP import. Needs `apt install mariadb-server mariadb-client`.
+- **`tests/apache-smoke.sh`** runs WebHut's real Apache config on a real Apache + PHP, started by `whut`: the dashboard, `*.localhost` vhosts, `public\` detection, `localhost/<folder>/`, `.htaccess` protection, the Node reverse proxy, and the network-access rules (private addresses allowed, public addresses refused, phpMyAdmin local-only). Needs `apt install apache2 libapache2-mod-php`.
+- **`tests/integration.sh`** runs `whut` against **real MariaDB servers** (Linux binaries standing in for the Windows ones): start and stop, a hard kill right after committed writes (no rows may be lost), backup, restore, rebuild after deliberately corrupting the data files, and a full XAMPP import. Needs `apt install mariadb-server mariadb-client`.
 
 `tests/Tests.cs` covers the platform-independent logic: config round-trips, config templates, `php.ini` generation, vhost generation rules, zip unpacking and upgrade backups, folder relocation, every download-page parser (against saved samples), and downloads with SHA-256 verification against a local HTTP server. Run it before every release. Then do the manual Windows check below.
 
@@ -56,7 +56,7 @@ Two suites:
 
 On a clean Windows VM (or Windows Sandbox):
 
-1. Extract the zip to `C:\webhut`, run `WebHutPanel.exe`, install everything.
+1. Extract the zip to `C:\webhut`, run `WebHut.exe`, install everything.
 2. **Start all**. Check that `http://localhost` shows the dashboard with PHP, Apache and database details.
 3. Create `www\test\index.php`, click **Refresh sites**, and open `http://test.localhost`.
 4. Log in to phpMyAdmin as `root`.
@@ -130,14 +130,14 @@ Unsigned new executables trigger Windows SmartScreen ("Windows protected your PC
 3. **Free signing for open source.** [SignPath Foundation](https://signpath.org/) signs releases for qualifying OSS projects through a GitHub Actions integration.
 4. **A paid certificate** or Microsoft's cloud code-signing service (Trusted Signing), then add a `signtool sign` step to the workflow after the build step.
 
-Signing `WebHutPanel.exe` and `webhut.exe` (not just the zip) is what matters.
+Signing `WebHut.exe` and `whut.exe` (not just the zip) is what matters.
 
 ## Renaming the project
 
 If you fork WebHut and want your own name (for example "Forge"):
 
-1. Find-and-replace `WebHut` → `Forge` and `webhut` → `forge` across the repo. Check `K.AppName`, the `-main:WebHut.Program` and `-main:WebHut.CliProgram` arguments in both build scripts (the namespace), and the `WEBHUT_` variable names in `overlay/` and `src/`.
-2. Rename `webhut` in both build scripts and the docs.
+1. Find-and-replace `WebHut` → `Forge` and `whut` → `forge` across the repo. Check `K.AppName`, the `-main:WebHut.Program` and `-main:WebHut.CliProgram` arguments in both build scripts (the namespace), and the `WEBHUT_` variable names in `overlay/` and `src/`.
+2. Rename `whut` in both build scripts and the docs.
 3. Redraw the icon if you like (`build/make_icon.py`), then regenerate `assets/webhut.ico` and `assets/webhut-512.png`.
 4. Don't call the project "XAMPP" or anything confusingly similar. That name belongs to Apache Friends. "An XAMPP alternative" in the description is fine.
 
@@ -145,7 +145,7 @@ If you fork WebHut and want your own name (for example "Forge"):
 
 Some users want a zip that works without internet (classrooms, air-gapped machines). If you publish one, you're **redistributing** third-party binaries, so read [10 – Licensing](10-licensing.md) first. To build one:
 
-1. Run `WebHutPanel.exe` once on a clean machine and complete setup.
+1. Run `WebHut.exe` once on a clean machine and complete setup.
 2. Delete `webhut.json`, `node-apps.json`, `data\`, `logs\`, `tmp\`, `config\apache\generated\` and `apps\phpmyadmin\config.inc.php` (so each install generates its own secret). Each `php.ini` keeps a `; webhut-root:` marker line, which WebHut uses to fix paths wherever the bundle is extracted.
 3. Add a `THIRD-PARTY-NOTICES.txt` with every component's license (see [10](10-licensing.md#if-you-redistribute-binaries)).
 4. Zip the folder.
