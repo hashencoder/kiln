@@ -152,6 +152,21 @@ namespace WebHut
                                             12 + (float)Math.Cos(a) * 9.5f, 12 + (float)Math.Sin(a) * 9.5f);
                         }
                         break;
+                    case "copy":
+                        using (var p = Ui.Rounded(new RectangleF(8.5f, 8.5f, 12.5f, 12.5f), 2f)) g.DrawPath(pen, p);
+                        g.DrawLines(pen, P(15.5f, 5.5f, 15.5f, 4.5f, 14, 3, 5, 3, 3, 5, 3, 14, 4.5f, 15.5f, 5.5f, 15.5f));
+                        break;
+                    case "expand":
+                        g.DrawLines(pen, P(7, 9.5f, 12, 4.5f, 17, 9.5f));
+                        g.DrawLines(pen, P(7, 14.5f, 12, 19.5f, 17, 14.5f));
+                        break;
+                    case "collapse":
+                        g.DrawLines(pen, P(7, 4.5f, 12, 9.5f, 17, 4.5f));
+                        g.DrawLines(pen, P(7, 19.5f, 12, 14.5f, 17, 19.5f));
+                        break;
+                    case "chevron":
+                        g.DrawLines(pen, P(9, 6, 15, 12, 9, 18));
+                        break;
                     case "logs":
                         g.DrawLine(pen, 8, 6, 20, 6);
                         g.DrawLine(pen, 8, 12, 20, 12);

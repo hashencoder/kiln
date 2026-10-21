@@ -4,6 +4,28 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-10-21
+
+Dashboard refinements from a design review.
+
+### Changed
+- **No more duplicated navigation:**
+  - The sidebar now lists places: Dashboard, **Sites** (a menu of your sites, the www folder and Refresh), **Databases** (phpMyAdmin, backups and XAMPP import, my.ini), **Node apps**, **Logs** (each log file) and **Settings**.
+  - Everyday actions stay in Quick Actions.
+  - The sidebar is narrower, and its footer separates the **Dark mode** switch from the smaller **About** and **Quit WebHut**.
+- **Header health chip** next to Start all: all running, some running, all stopped, starting/stopping, or failed.
+- **Service table:**
+  - A wider Details column, so versions no longer wrap.
+  - Port and PID aligned in JetBrains Mono.
+  - Compact icon buttons for the log and the config.
+  - **Open** is disabled until the service is running, with a tooltip saying what it opens.
+- **Clear service states:** a spinner pill and disabled buttons while starting or stopping, and a red **Failed** pill when a start fails.
+- **Activity console:**
+  - Compact by default, with ⇕ to expand it.
+  - Filters: **All / Apache / MariaDB / Errors**.
+  - A **Copy** button, and **Clear** clears only the view (log files are kept).
+- **Spacing:** Quick Action tiles are smaller and horizontal, and card spacing and heights are consistent.
+
 ## [1.3.1] - 2026-10-21
 
 ### Fixed
