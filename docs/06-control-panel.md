@@ -27,7 +27,7 @@ When `apache\` or a PHP version is missing, WebHut opens the setup window instea
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│ 🔥 WebHut                                         [Start all] [Stop all]│
+│ 🔥 WebHut                                                    [Start all]│
 │    C:\webhut · PHP 8.5.11 · Node 24.11.1                                │
 ├──────────────────────────────────────────────────────────────────────┤
 │    Service   Details                 PID    Port                      │
@@ -50,13 +50,13 @@ When `apache\` or a PHP version is missing, WebHut opens the setup window instea
 | **Open** | Apache: `http://localhost`. MariaDB: phpMyAdmin. Node app: `http://<name>.localhost`. |
 | **Logs** | Opens the service's log in Notepad (`apache-error.log`, `mariadb.err`, `node-<name>.log`) |
 | **Config** | Opens `httpd.conf`, `my.ini` or `node-apps.json` |
-| **Start all / Stop all** | Apache and MariaDB plus Node apps marked *Start with "Start all"*. Stop all stops every service, Node apps included. |
+| **Start all / Stop all** | One button that follows the servers' state. When nothing is running it reads **Start all**: Apache and MariaDB, plus Node apps marked *Start with "Start all"*. Once anything is running it reads **Stop all**, which stops every service, Node apps included. |
 | **Shell** | A console in `www\` with `php`, `node`, `npm`, `npx`, `composer`, `mariadb` and `httpd` on `PATH` |
 | **Refresh sites** | Regenerates vhosts from the folders in `www\` and restarts Apache if it's running |
 | **Node apps…** | Add, edit and remove Node apps ([04](04-node-integration.md)) |
 | **Database…** | Backups (automatic and manual), restore, rebuild from backup, and **Import from XAMPP…** ([11](11-databases.md)) |
 | **Settings…** | See below |
-| Tray icon | Closing the window keeps WebHut in the tray (configurable). Right-click for Start all, Stop all, Open localhost and Exit. **Exit** asks whether to stop the servers or leave them running. |
+| Tray icon | Closing the window keeps WebHut in the tray (configurable). Right-click for Start all (or Stop all when servers are running), Open localhost and Exit. **Exit** asks whether to stop the servers or leave them running. |
 
 If MariaDB fails to start and backups exist, WebHut offers to rebuild it from the newest one (the damaged folder is kept). When Windows shuts down or you log off, WebHut stops MariaDB cleanly first, so a shutdown never needs crash recovery.
 

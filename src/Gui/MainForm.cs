@@ -26,6 +26,9 @@ namespace WebHut
         readonly NotifyIcon _tray = new NotifyIcon();
         Label _sub;
         bool _exiting, _refreshing, _trayHintShown;
+        Button _allBtn;
+        ToolStripMenuItem _trayAll;
+        bool _anyRunning, _sequenceRunning;
 
         WebHutConfig Cfg { get { return Services.Cfg; } }
 
@@ -82,8 +85,9 @@ namespace WebHut
             titles.Controls.Add(_sub);
 
             var actions = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Anchor = AnchorStyles.Right, Margin = new Padding(0, 8, 0, 0) };
-            actions.Controls.Add(Ui.Btn("Start all", (s, e) => StartAll(), true));
-            actions.Controls.Add(Ui.Btn("Stop all", (s, e) => StopAll()));
+            // One button that flips between "Start all" and "Stop all" with the servers' state.
+            _allBtn = Ui.Btn("Start all", (s, e) => ToggleAll(), true, 96);
+            actions.Controls.Add(_allBtn);
 
             t.Controls.Add(logo, 0, 0);
             t.Controls.Add(titles, 1, 0);
@@ -238,6 +242,8 @@ namespace WebHut
                     }
                     int up = t.Result.Count(x => x.pid > 0);
                     _tray.Text = "WebHut - " + up + " of " + t.Result.Count + " running";
+                    _anyRunning = up > 0;
+                    UpdateAllButton();
                 }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
@@ -295,6 +301,26 @@ namespace WebHut
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
+        /// <summary>Start everything when nothing is running; otherwise stop everything.</summary>
+        void ToggleAll()
+        {
+            if (_sequenceRunning) return;
+            if (_anyRunning) StopAll(); else StartAll();
+        }
+
+        void UpdateAllButton()
+        {
+            if (_allBtn == null) return;
+            if (_sequenceRunning) return;
+            _allBtn.Enabled = true;
+            _allBtn.Text = _anyRunning ? "Stop all" : "Start all";
+            _allBtn.BackColor = _anyRunning ? Ui.Card : Ui.Accent;
+            _allBtn.ForeColor = _anyRunning ? Ui.Ink : Color.White;
+            _allBtn.FlatAppearance.BorderColor = _anyRunning ? Ui.Line : Ui.Accent;
+            _allBtn.FlatAppearance.MouseOverBackColor = _anyRunning ? Color.FromArgb(245, 241, 235) : Ui.AccentHover;
+            if (_trayAll != null) _trayAll.Text = _allBtn.Text;
+        }
+
         void StartAll()
         {
             var list = Services.All().Where(s => !(s is NodeService) || ((NodeService)s).App.AutoStart).ToList();
@@ -310,6 +336,10 @@ namespace WebHut
 
         void RunSequence(List<Service> list, Action<Service> act, bool starting)
         {
+            if (_sequenceRunning) return;
+            _sequenceRunning = true;
+            if (_allBtn != null) { _allBtn.Enabled = false; _allBtn.Text = starting ? "Starting…" : "Stopping…"; }
+            if (_trayAll != null) _trayAll.Enabled = false;
             foreach (var s in list) s.Busy = true;
             bool dbFailed = false;
             Task.Run(() =>
@@ -326,6 +356,8 @@ namespace WebHut
                 }
             }).ContinueWith(t =>
             {
+                _sequenceRunning = false;
+                if (_trayAll != null) _trayAll.Enabled = true;
                 RefreshStatus();
                 if (starting && dbFailed && Visible) OfferRebuild();
             }, TaskScheduler.FromCurrentSynchronizationContext());
@@ -378,8 +410,7 @@ namespace WebHut
             _tray.Visible = true;
             var menu = new ContextMenuStrip();
             menu.Items.Add("Open WebHut", null, (s, e) => ShowFromTray());
-            menu.Items.Add("Start all", null, (s, e) => StartAll());
-            menu.Items.Add("Stop all", null, (s, e) => StopAll());
+            _trayAll = (ToolStripMenuItem)menu.Items.Add("Start all", null, (s, e) => ToggleAll());
             menu.Items.Add("Open localhost", null, (s, e) => Sys.OpenUrl(Services.Apache.Url));
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Exit", null, (s, e) => ExitApp());
