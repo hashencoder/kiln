@@ -50,6 +50,7 @@ namespace WebHut
             {
                 case "apache":
                     PlaceZip(file, K.Apache, "Apache24", null);
+                    CarryOver(LastBackupDir, K.Apache, "modules", "*.so");   // e.g. mod_fcgid.so added by hand
                     WriteVersion(K.Apache, c.Version);
                     break;
                 case "php":
@@ -57,6 +58,7 @@ namespace WebHut
                         string branch = c.Branch ?? GuessBranch(c.Version, file);
                         string dir = K.PhpDir(branch);
                         PlaceZip(file, dir, null, new[] { "php.ini" });
+                        CarryOver(LastBackupDir, dir, "ext", "*.dll");       // e.g. php_xdebug.dll added by hand
                         WriteVersion(dir, c.Version);
                         if (!File.Exists(Path.Combine(dir, "php.ini"))) WritePhpIni(dir);
                         if (string.IsNullOrEmpty(Cfg.Php)) Cfg.Php = branch;
@@ -77,6 +79,7 @@ namespace WebHut
                         string major = c.Branch ?? (c.Version ?? "0").Split('.')[0];
                         string dir = K.NodeDir(major);
                         PlaceZip(file, dir, null, null);
+                        CarryFolder(LastBackupDir, dir, "global");           // globally installed npm packages
                         WriteVersion(dir, c.Version);
                         Directory.CreateDirectory(Path.Combine(dir, "global"));
                         if (string.IsNullOrEmpty(Cfg.Node)) Cfg.Node = major;
@@ -200,8 +203,50 @@ namespace WebHut
         /// that folder's contents become target. Files in keep[] are carried over from an existing install.
         /// An existing target is moved to tmp\backup first.
         /// </summary>
+        /// <summary>Where PlaceZip moved the previous install (null when there was none). Used to roll back an update.</summary>
+        public string LastBackupDir;
+
+        /// <summary>
+        /// After an update, bring over what the user added to the old install and the new package lacks:
+        /// extra files matching <paramref name="pattern"/> in <paramref name="sub"/> (e.g. mod_fcgid.so, php_xdebug.dll).
+        /// Never replaces a file the new package ships.
+        /// </summary>
+        public static int CarryOver(string oldDir, string newDir, string sub, string pattern)
+        {
+            if (oldDir == null) return 0;
+            string from = Path.Combine(oldDir, sub), to = Path.Combine(newDir, sub);
+            if (!Directory.Exists(from)) return 0;
+            int n = 0;
+            Directory.CreateDirectory(to);
+            foreach (var f in Directory.GetFiles(from, pattern))
+            {
+                var dest = Path.Combine(to, Path.GetFileName(f));
+                if (File.Exists(dest)) continue;
+                File.Copy(f, dest);
+                Log.Info("Kept " + Path.Combine(sub, Path.GetFileName(f)) + " from the previous version.");
+                n++;
+            }
+            return n;
+        }
+
+        /// <summary>Move a whole folder of user data (e.g. Node's global npm packages) from the old install into the new one.</summary>
+        public static void CarryFolder(string oldDir, string newDir, string sub)
+        {
+            if (oldDir == null) return;
+            string from = Path.Combine(oldDir, sub), to = Path.Combine(newDir, sub);
+            if (!Directory.Exists(from)) return;
+            if (Directory.Exists(to))
+            {
+                if (Directory.EnumerateFileSystemEntries(to).Any()) return;
+                Directory.Delete(to);
+            }
+            Directory.Move(from, to);
+            Log.Info("Kept " + sub + " from the previous version.");
+        }
+
         public void PlaceZip(string zip, string target, string innerName, string[] keep)
         {
+            LastBackupDir = null;
             string work = Path.Combine(K.Tmp, "x");
             if (Directory.Exists(work)) Directory.Delete(work, true);
             Directory.CreateDirectory(work);
@@ -232,6 +277,7 @@ namespace WebHut
                 string backup = Path.Combine(K.Tmp, "backup", Path.GetFileName(target) + "-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"));
                 Directory.CreateDirectory(Path.GetDirectoryName(backup));
                 Directory.Move(target, backup);
+                LastBackupDir = backup;
                 Log.Info("Previous " + Path.GetFileName(target) + " moved to " + backup);
             }
             Directory.CreateDirectory(Path.GetDirectoryName(target));

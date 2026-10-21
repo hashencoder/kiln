@@ -23,6 +23,7 @@ namespace WebHut
         public int BackupEveryHours = 2;
         public int BackupKeep = 10;
         public string Theme = "system";      // system | light | dark
+        public string LastUpdateCheck = "";  // ISO time of the last component update check
 
         public static WebHutConfig Load()
         {
@@ -46,6 +47,7 @@ namespace WebHut
                     c.BackupEveryHours = Math.Max(0, ToInt(Json.Get(o, "backupEveryHours"), 2));
                     c.BackupKeep = Math.Max(1, ToInt(Json.Get(o, "backupKeep"), 10));
                     c.Theme = NormTheme(Json.Str(o, "theme"));
+                    c.LastUpdateCheck = Json.Str(o, "lastUpdateCheck") ?? "";
                 }
             }
             catch (Exception e) { Log.Error("Couldn't read webhut.json, using defaults: " + e.Message); }
@@ -66,7 +68,7 @@ namespace WebHut
                 {"mysqlRootPassword", MysqlRootPassword}, {"startOnLaunch", StartOnLaunch},
                 {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl},
                 {"lanAccess", LanAccess}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep},
-                {"theme", Theme}
+                {"theme", Theme}, {"lastUpdateCheck", LastUpdateCheck}
             };
             File.WriteAllText(K.ConfigFile, Json.Pretty(d));
         }

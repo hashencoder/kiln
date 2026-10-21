@@ -190,20 +190,14 @@ namespace WebHut
             return side;
         }
 
+        /// <summary>Offers the other theme: "Dark mode" while light, "Light mode" while dark.</summary>
         Control ThemeRow(int width)
         {
-            var row = new TableLayoutPanel { Width = width, Height = Px(40), ColumnCount = 3, BackColor = Ui.Sidebar, Margin = new Padding(0), Cursor = Cursors.Hand };
-            row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(38)));
-            row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            row.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            var icon = new IconBox("moon", Ui.NavInk, Px(20)) { Anchor = AnchorStyles.Left, Margin = new Padding(Px(14), 0, 0, 0) };
-            var label = new Label { Text = "Dark mode", Font = Ui.Nav, ForeColor = Ui.Ink, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(Px(10), 0, 0, 0) };
-            var sw = new Switch { Checked = Ui.IsDark, Anchor = AnchorStyles.Right, Margin = new Padding(0, 0, Px(6), 0) };
-            sw.CheckedChanged += (s, e) => { bool dark = sw.Checked; BeginInvoke(new Action(() => SetTheme(dark))); };
-            EventHandler flip = (s, e) => sw.Checked = !sw.Checked;
-            row.Click += flip; label.Click += flip; icon.Click += flip;
-            row.Controls.Add(icon, 0, 0); row.Controls.Add(label, 1, 0); row.Controls.Add(sw, 2, 0);
-            return row;
+            bool dark = Ui.IsDark;
+            var n = new NavItem(dark ? "Light mode" : "Dark mode", dark ? "sun" : "moon") { Width = width };
+            _tips.SetToolTip(n, dark ? "Switch to the light theme" : "Switch to the dark theme");
+            n.Click += (s, e) => BeginInvoke(new Action(() => SetTheme(!Ui.IsDark)));
+            return n;
         }
 
         NavItem PageNav(FlowLayoutPanel host, int width, string text, string icon, int page, Action quick)

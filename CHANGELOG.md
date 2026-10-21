@@ -4,6 +4,35 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.5.1] - 2026-10-21
+
+### Added
+- **Component updates, rebuilt as an update manager:**
+  - Installed → latest version for each component, with a status and a link to the publisher's release notes.
+  - Shows when you last checked, with a **Check again** button.
+  - Only eligible updates can be ticked. **Select all updates** and **Clear selection** buttons.
+  - A confirmation lists what each update stops, keeps and checks.
+  - Each row shows its own progress: download, verification, backup, install, health check and restart.
+  - Results include expandable technical details and a link to the log.
+- **Per-component update rules:**
+  - Only the services that use a component are stopped.
+  - Databases are backed up before MariaDB is replaced, and MariaDB is left untouched if the backup fails.
+  - `mariadb-upgrade` runs after a MariaDB update.
+  - Each new version must pass a health check (it runs and reports its version, `httpd -t` passes, Apache answers, MariaDB answers queries, phpMyAdmin loads).
+  - A component that fails its health check is put back to the previous version automatically.
+- **Safety checks:**
+  - Every package is checked for the files a genuine Windows x64 build contains.
+  - A download without a checksum is accepted only over HTTPS from the official publisher.
+  - These updates are blocked, with the reason shown: a new MariaDB series, a different PHP line or Node.js major, a new phpMyAdmin major, or an Apache/PHP build that needs a newer Visual C++ runtime.
+
+### Fixed
+- **Updates no longer lose things you added:**
+  - Globally installed npm packages.
+  - Extra Apache modules (for example `mod_fcgid.so`).
+  - Extra PHP extensions in `ext\`.
+- The sidebar theme button now offers the other theme: **Dark mode** in the light theme, **Light mode** in the dark theme.
+- The port fields in Settings showed the number in the corner with a black box. The number is now centred in a rounded field, in both themes.
+
 ## [1.5.0] - 2026-10-21
 
 ### Added
