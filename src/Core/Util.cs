@@ -16,7 +16,7 @@ namespace WebHut
     public static class K
     {
         public const string AppName = "WebHut";
-        public const string AppVersion = "1.0.1";
+        public const string AppVersion = "1.0.2";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
         // repo so every WebHut install can pick up pinned versions you publish,
@@ -206,6 +206,17 @@ namespace WebHut
         static extern bool ShutdownBlockReasonCreate(IntPtr hwnd, string reason);
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern bool ShutdownBlockReasonDestroy(IntPtr hwnd);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        static extern uint GetConsoleProcessList(uint[] list, uint count);
+
+        /// <summary>True when this process is the only one attached to its console, i.e. Windows created the
+        /// console just for us because the program was double-clicked rather than run from a terminal.</summary>
+        public static bool OwnsConsoleAlone()
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) return false;
+            try { var l = new uint[4]; return GetConsoleProcessList(l, 4) == 1; } catch { return false; }
+        }
 
         /// <summary>Show "WebHut: stopping the database safely" on the Windows shutdown screen while we work.</summary>
         public static void BlockShutdown(IntPtr hwnd, string reason) { try { ShutdownBlockReasonCreate(hwnd, reason); } catch { } }

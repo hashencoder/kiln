@@ -33,6 +33,7 @@ namespace WebHut
                     return 0;
                 }
 
+                Log.Info("WebHut " + K.AppVersion + " started in " + K.Root);
                 Application.ThreadException += (s, e) => Fatal(e.Exception);
                 AppDomain.CurrentDomain.UnhandledException += (s, e) => Fatal(e.ExceptionObject as Exception);
 

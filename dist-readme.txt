@@ -4,7 +4,9 @@ WEBHUT - portable Apache + PHP + MariaDB + Node.js for Windows
 1. Put this "WebHut" folder somewhere short with no spaces, e.g. C:\webhut
    (not inside Program Files).
 
-2. Double-click WebHutPanel.exe.
+2. Double-click WebHutPanel.exe (the control panel and installer).
+   webhut.exe is the command-line tool for terminals and scripts; if you
+   double-click it, it simply opens WebHutPanel.exe for you.
    The first time, a setup window downloads the official Windows builds of
    Apache, PHP, MariaDB, phpMyAdmin, Node.js, Composer and the CA
    certificate bundle into this folder, then configures them.
