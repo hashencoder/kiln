@@ -167,6 +167,28 @@ namespace WebHut
                     case "chevron":
                         g.DrawLines(pen, P(9, 6, 15, 12, 9, 18));
                         break;
+                    case "warning":
+                        g.DrawPolygon(pen, P(12, 3.5f, 21.5f, 20, 2.5f, 20));
+                        g.DrawLine(pen, 12, 9.5f, 12, 14);
+                        g.FillEllipse(brush, 10.8f, 16, 2.4f, 2.4f);
+                        break;
+                    case "plus":
+                        g.DrawLine(pen, 12, 5, 12, 19);
+                        g.DrawLine(pen, 5, 12, 19, 12);
+                        break;
+                    case "key":
+                        g.DrawEllipse(pen, 3, 9, 8, 8);
+                        g.DrawLines(pen, P(11, 13, 21, 13, 21, 16.5f));
+                        g.DrawLine(pen, 17, 13, 17, 16);
+                        break;
+                    case "more":
+                        g.FillEllipse(brush, 4, 10.6f, 2.8f, 2.8f);
+                        g.FillEllipse(brush, 10.6f, 10.6f, 2.8f, 2.8f);
+                        g.FillEllipse(brush, 17.2f, 10.6f, 2.8f, 2.8f);
+                        break;
+                    case "check":
+                        g.DrawLines(pen, P(4.5f, 12.5f, 9.5f, 17.5f, 19.5f, 6.5f));
+                        break;
                     case "logs":
                         g.DrawLine(pen, 8, 6, 20, 6);
                         g.DrawLine(pen, 8, 12, 20, 12);

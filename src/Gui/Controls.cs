@@ -113,7 +113,7 @@ namespace WebHut
                 x += iconSize + gap;
             }
             TextRenderer.DrawText(g, Text, Font, new Rectangle(x, 0, ts.Width + 2, Height), ink,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
             if (Focused && ShowFocusCues)
                 using (var p = Ui.Rounded(new RectangleF(2.5f, 2.5f, Width - 5.5f, Height - 5.5f), S(5)))
                 using (var pen = new Pen(Color.FromArgb(120, Ui.Accent)) { DashStyle = DashStyle.Dot }) g.DrawPath(pen, p);
@@ -190,7 +190,7 @@ namespace WebHut
             int ic = S(20);
             Icons.Draw(g, _icon, new RectangleF(S(16), (Height - ic) / 2f, ic, ic), Active ? Ui.AccentInk : Ui.NavInk);
             TextRenderer.DrawText(g, Text, Active ? Ui.NavBold : Font, new Rectangle(S(50), 0, Width - S(54), Height),
-                Active ? Ui.AccentInk : Ui.Ink, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+                Active ? Ui.AccentInk : Ui.Ink, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         }
     }
 
@@ -247,7 +247,7 @@ namespace WebHut
             }
             else using (var b = new SolidBrush(fg)) g.FillEllipse(b, pad, (Height - dot) / 2f, dot, dot);
             TextRenderer.DrawText(g, Text, Font, new Rectangle(pad + dot + gap, 0, ts.Width + 2, Height), fg,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
         }
     }
 
@@ -275,9 +275,9 @@ namespace WebHut
             Icons.Draw(g, _icon, new RectangleF(x, (Height - ic) / 2f, ic, ic), Ui.AccentInk);
             int tx = x + ic + S(12), tw = Width - tx - S(8);
             TextRenderer.DrawText(g, Text, Font, new Rectangle(tx, S(11), tw, S(20)), Ui.Ink,
-                TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
             TextRenderer.DrawText(g, _sub, Ui.Small, new Rectangle(tx, S(33), tw, S(18)), Ui.Muted,
-                TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
         }
     }
 
@@ -334,8 +334,145 @@ namespace WebHut
                         if (i == _sel) using (var pen = new Pen(Ui.Line)) g.DrawPath(pen, p);
                     }
                 TextRenderer.DrawText(g, _items[i], i == _sel ? Ui.SmallBold : Font, r, i == _sel ? Ui.Ink : Ui.Muted,
-                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
             }
+        }
+    }
+
+    /// <summary>Rounded dropdown in the WebHut style; opens a themed menu.</summary>
+    public class Dropdown : Painted
+    {
+        public readonly System.Collections.Generic.List<string> Items = new System.Collections.Generic.List<string>();
+        int _sel = -1;
+        public event EventHandler SelectedIndexChanged;
+        public Dropdown(int width)
+        {
+            Font = Ui.Base; Cursor = Cursors.Hand; TabStop = true;
+            SetStyle(ControlStyles.Selectable, true);
+            Size = new Size(width, S(38));
+        }
+        public int SelectedIndex
+        {
+            get { return _sel; }
+            set { if (value == _sel) return; _sel = value; Invalidate(); var h = SelectedIndexChanged; if (h != null) h(this, EventArgs.Empty); }
+        }
+        public string SelectedItem
+        {
+            get { return _sel >= 0 && _sel < Items.Count ? Items[_sel] : null; }
+            set { SelectedIndex = value == null ? -1 : Items.IndexOf(value); }
+        }
+        protected override void OnClick(EventArgs e)
+        {
+            base.OnClick(e);
+            if (Items.Count == 0) return;
+            var list = new System.Collections.Generic.List<PopupItem>();
+            for (int i = 0; i < Items.Count; i++)
+            {
+                int idx = i;
+                list.Add(new PopupItem { Title = Items[i], Checked = i == _sel, Icon = i == _sel ? null : "", Act = () => SelectedIndex = idx });
+            }
+            PopupMenu.Show(this, PopupMenu.Side.Below, null, list, Math.Max(Width, S(200)));
+        }
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Down && _sel < Items.Count - 1) SelectedIndex = _sel + 1;
+            else if (e.KeyCode == Keys.Up && _sel > 0) SelectedIndex = _sel - 1;
+            else if (e.KeyCode == Keys.Space || e.KeyCode == Keys.Enter || (e.Alt && e.KeyCode == Keys.Down)) OnClick(EventArgs.Empty);
+            base.OnKeyDown(e);
+        }
+        protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
+        protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics; Smooth(g);
+            using (var p = Ui.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), S(8)))
+            {
+                using (var b = new SolidBrush(Enabled ? (Hover ? Ui.Hover : Ui.Card) : Ui.Surface)) g.FillPath(b, p);
+                using (var pen = new Pen(Focused || Hover ? Ui.AccentSoftLine : Ui.Line)) g.DrawPath(pen, p);
+            }
+            TextRenderer.DrawText(g, SelectedItem ?? (Items.Count == 0 ? "None installed" : ""), Font,
+                new Rectangle(S(12), 0, Width - S(40), Height), SelectedItem == null ? Ui.Faint : Ui.Ink,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+            int c = S(14);
+            var st = g.Save();
+            g.TranslateTransform(Width - S(26), (Height - c) / 2f);
+            g.RotateTransform(90, System.Drawing.Drawing2D.MatrixOrder.Prepend);
+            g.TranslateTransform(0, -c);
+            Icons.Draw(g, "chevron", new RectangleF(0, 0, c, c), Ui.Muted);
+            g.Restore(st);
+        }
+    }
+
+    /// <summary>Rounded numeric text field (digits only).</summary>
+    public class NumberField : Panel
+    {
+        readonly TextBox _box;
+        readonly int _min, _max;
+        public event EventHandler ValueChanged;
+        public NumberField(int min, int max, int width)
+        {
+            _min = min; _max = max;
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
+            BackColor = Ui.Card;
+            Size = new Size(width, Ui.Px(38));
+            Padding = new Padding(Ui.Px(12), 0, Ui.Px(10), 0);
+            _box = new TextBox { BorderStyle = BorderStyle.None, Font = Ui.Mono, BackColor = Ui.Card, ForeColor = Ui.Ink, MaxLength = 5, Anchor = AnchorStyles.Left | AnchorStyles.Right };
+            _box.KeyPress += (s, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
+            _box.TextChanged += (s, e) => { var h = ValueChanged; if (h != null) h(this, EventArgs.Empty); Invalidate(); };
+            _box.GotFocus += (s, e) => Invalidate();
+            _box.LostFocus += (s, e) => { _box.Text = Value.ToString(); Invalidate(); };
+            Controls.Add(_box);
+            Resize += (s, e) => _box.SetBounds(Padding.Left, (Height - _box.Height) / 2, Width - Padding.Horizontal, _box.Height);
+        }
+        public int Value
+        {
+            get { int v; return int.TryParse(_box.Text, out v) ? Math.Max(_min, Math.Min(_max, v)) : _min; }
+            set { _box.Text = value.ToString(); }
+        }
+        public bool IsValid { get { int v; return int.TryParse(_box.Text, out v) && v >= _min && v <= _max; } }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias;
+            Color under = Ui.Card;
+            for (var c = Parent; c != null; c = c.Parent) if (c.BackColor.A == 255) { under = c.BackColor; break; }
+            g.Clear(under);
+            using (var p = Ui.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), Ui.Px(8)))
+            {
+                using (var b = new SolidBrush(Ui.Card)) g.FillPath(b, p);
+                using (var pen = new Pen(!IsValid ? Ui.Red : _box.Focused ? Ui.AccentSoftLine : Ui.Line)) g.DrawPath(pen, p);
+            }
+        }
+    }
+
+    public enum CalloutKind { Info, Warning, Danger }
+
+    /// <summary>Tinted message box inside a page: icon + wrapped text.</summary>
+    public class Callout : Painted
+    {
+        CalloutKind _kind;
+        public Callout(CalloutKind kind, string text, int width)
+        {
+            _kind = kind; Text = text; Font = Ui.Small; Width = width;
+            Margin = new Padding(0, S(4), 0, S(8));
+            Fit();
+        }
+        public void Set(CalloutKind kind, string text) { _kind = kind; Text = text; Fit(); Invalidate(); }
+        void Fit()
+        {
+            var sz = TextRenderer.MeasureText(Text ?? "", Font, new Size(Width - S(52), 0), TextFormatFlags.WordBreak);
+            Height = Math.Max(S(40), sz.Height + S(22));
+        }
+        protected override void OnResize(EventArgs e) { Fit(); base.OnResize(e); }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics; Smooth(g);
+            Color fg = _kind == CalloutKind.Danger ? Ui.Red : _kind == CalloutKind.Warning ? Ui.Amber : Ui.Info;
+            Color bg = _kind == CalloutKind.Danger ? Ui.RedSoft : _kind == CalloutKind.Warning ? Ui.AmberSoft : Ui.Surface;
+            using (var p = Ui.Rounded(new RectangleF(0.5f, 0.5f, Width - 1.5f, Height - 1.5f), S(8)))
+            using (var b = new SolidBrush(bg)) g.FillPath(b, p);
+            Icons.Draw(g, _kind == CalloutKind.Info ? "info" : "warning", new RectangleF(S(14), S(11), S(18), S(18)), fg);
+            TextRenderer.DrawText(g, Text, Font, new Rectangle(S(42), S(11), Width - S(52), Height - S(16)), Ui.Ink,
+                TextFormatFlags.WordBreak | TextFormatFlags.Left | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
         }
     }
 

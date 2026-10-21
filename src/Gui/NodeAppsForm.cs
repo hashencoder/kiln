@@ -7,63 +7,371 @@ using System.Windows.Forms;
 
 namespace WebHut
 {
+    /// <summary>Node apps: a small process manager. Each app is a card row with status, Start/Stop, Open and a ⋯ menu.</summary>
     public class NodeAppsForm : Form
     {
         public bool Changed;
-        readonly ListView _list = new ListView { View = View.Details, FullRowSelect = true, Dock = DockStyle.Fill, BorderStyle = BorderStyle.FixedSingle, MultiSelect = false };
-        List<NodeApp> _apps;
+
+        class AppRow
+        {
+            public NodeApp App;
+            public NodeService Svc;
+            public Pill Status;
+            public Label Pid, Auto;
+            public IconButton Toggle, Open;
+            public bool Busy, Failed, WasRunning, StopRequested;
+            public string FailReason;
+        }
+
+        static int Px(float v) { return Ui.Px(v); }
+
+        List<NodeApp> _apps = new List<NodeApp>();
+        readonly List<AppRow> _rows = new List<AppRow>();
+        readonly Timer _timer = new Timer { Interval = 2000 };
+        readonly ToolTip _tips = new ToolTip { InitialDelay = 400 };
+        Panel _listHost;
+        TableLayoutPanel _list;
+        Label _summary;
+        Panel _searchBox;
+        TextBox _search;
+        bool _refreshing;
 
         public NodeAppsForm()
         {
             Ui.Style(this);
+            AutoScaleMode = AutoScaleMode.None;
             Text = "Node apps";
-            ClientSize = new Size(820, 440);
+            var wa = Screen.PrimaryScreen.WorkingArea;
+            ClientSize = new Size(Math.Min(Px(1000), wa.Width - Px(40)), Math.Min(Px(650), wa.Height - Px(60)));
+            MinimumSize = new Size(Math.Min(Px(820), wa.Width - Px(20)), Math.Min(Px(460), wa.Height - Px(20)));
             StartPosition = FormStartPosition.CenterParent;
             ShowInTaskbar = false;
-            _list.Columns.Add("Name / URL", 200);
-            _list.Columns.Add("Port", 60);
-            _list.Columns.Add("Folder", 230);
-            _list.Columns.Add("Command", 150);
-            _list.Columns.Add("Auto-start", 80);
-            _list.DoubleClick += (s, e) => Edit();
+            BackColor = Ui.Bg;
 
-            var t = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(16), ColumnCount = 1 };
-            t.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            t.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            t.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            var intro = Ui.Lbl("Each app runs its command with PORT set, and Apache serves it at http://<name>.localhost (websockets included).", Ui.Small, Ui.Muted);
-            intro.Margin = new Padding(0, 0, 0, 10);
-            t.Controls.Add(intro);
-            t.Controls.Add(_list);
-            var b = new FlowLayoutPanel { AutoSize = true, Margin = new Padding(0, 10, 0, 0), Dock = DockStyle.Fill };
-            b.Controls.Add(Ui.Btn("Add…", (s, e) => Add(), true));
-            b.Controls.Add(Ui.Btn("Edit…", (s, e) => Edit()));
-            b.Controls.Add(Ui.Btn("Remove", (s, e) => Remove()));
-            var close = Ui.Btn("Close", (s, e) => Close(), false, 90);
-            close.Anchor = AnchorStyles.Right;
-            b.Controls.Add(close);
-            t.Controls.Add(b);
-            Controls.Add(t);
+            // ---- header: title + summary on the left, search + Add app on the right
+            var head = new TableLayoutPanel { Dock = DockStyle.Top, Height = Px(96), ColumnCount = 2, BackColor = Ui.Bg, Padding = new Padding(Px(28), Px(22), Px(28), Px(8)) };
+            head.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            head.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var titles = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, BackColor = Ui.Bg, Margin = new Padding(0) };
+            titles.Controls.Add(new Label { Text = "Node apps", Font = Ui.H2, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
+            _summary = new Label { Text = "Manage local Node.js processes and development servers", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(0, Px(2), 0, 0) };
+            titles.Controls.Add(_summary);
+            var actions = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Ui.Bg, Anchor = AnchorStyles.Right | AnchorStyles.Top, Margin = new Padding(0, Px(4), 0, 0) };
+            _searchBox = BuildSearch();
+            var add = new IconButton("Add app", "plus", ButtonKind.Primary) { Margin = new Padding(0) };
+            add.SetMin(Px(120), Px(40));
+            add.Click += (s, e) => Add();
+            actions.Controls.Add(_searchBox);
+            actions.Controls.Add(add);
+            head.Controls.Add(titles, 0, 0);
+            head.Controls.Add(actions, 1, 0);
+
+            // ---- list (scrolls)
+            _listHost = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Ui.Bg, Padding = new Padding(Px(28), Px(6), Px(28), Px(12)) };
+            _list = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 1, BackColor = Ui.Bg };
+            _list.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            _listHost.Controls.Add(_list);
+
+            // ---- footer: help on the left, Close on its own on the right
+            var footer = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = Px(64), ColumnCount = 2, BackColor = Ui.Card, Padding = new Padding(Px(28), Px(12), Px(28), Px(12)) };
+            footer.Paint += (s, e) => { using (var pen = new Pen(Ui.Line)) e.Graphics.DrawLine(pen, 0, 0, footer.Width, 0); };
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var help = new IconButton("How Node apps work", "info", ButtonKind.Ghost) { Font = Ui.Small, IconColor = Ui.Muted, Anchor = AnchorStyles.Left, Margin = new Padding(0) };
+            help.Click += (s, e) => ShowHelp();
+            var close = new IconButton("Close", null, ButtonKind.Outline) { Anchor = AnchorStyles.Right, Margin = new Padding(0) };
+            close.SetMin(Px(100), Px(40));
+            close.Click += (s, e) => Close();
+            footer.Controls.Add(help, 0, 0);
+            footer.Controls.Add(close, 1, 0);
+
+            Controls.Add(_listHost);
+            Controls.Add(head);
+            Controls.Add(footer);
             CancelButton = close;
-            Load += (s, e) => Reload();
+
+            _timer.Tick += (s, e) => RefreshStatus();
+            Load += (s, e) => { Reload(); _timer.Start(); };
+            FormClosed += (s, e) => _timer.Stop();
+            _listHost.Resize += (s, e) => FitRows();
         }
+
+        Panel BuildSearch()
+        {
+            var box = new Panel { Size = new Size(Px(220), Px(40)), BackColor = Ui.Bg, Margin = new Padding(0, 0, Px(10), 0), Padding = new Padding(Px(34), 0, Px(10), 0) };
+            box.Paint += (s, e) =>
+            {
+                var g = e.Graphics; g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using (var p = Ui.Rounded(new RectangleF(0.5f, 0.5f, box.Width - 1.5f, box.Height - 1.5f), Px(8)))
+                {
+                    using (var b = new SolidBrush(Ui.Card)) g.FillPath(b, p);
+                    using (var pen = new Pen(_search != null && _search.Focused ? Ui.AccentSoftLine : Ui.Line)) g.DrawPath(pen, p);
+                }
+                // magnifier
+                using (var pen = new Pen(Ui.Muted, Math.Max(1.5f, Px(1.6f))))
+                {
+                    float c = Px(12), x = Px(12), y = (box.Height - c) / 2f - Px(1);
+                    g.DrawEllipse(pen, x, y, c * 0.75f, c * 0.75f);
+                    g.DrawLine(pen, x + c * 0.65f, y + c * 0.65f, x + c, y + c);
+                }
+            };
+            _search = new TextBox { BorderStyle = BorderStyle.None, Font = Ui.Base, BackColor = Ui.Card, ForeColor = Ui.Ink };
+            _search.TextChanged += (s, e) => Reload();
+            _search.GotFocus += (s, e) => box.Invalidate();
+            _search.LostFocus += (s, e) => box.Invalidate();
+            box.Controls.Add(_search);
+            box.Resize += (s, e) => _search.SetBounds(box.Padding.Left, (box.Height - _search.Height) / 2, box.Width - box.Padding.Horizontal, _search.Height);
+            _tips.SetToolTip(_search, "Filter by name, URL, port or command");
+            return box;
+        }
+
+        // ------------------------------------------------------------------ list
 
         void Reload()
         {
             _apps = NodeApp.LoadAll();
-            _list.Items.Clear();
-            foreach (var a in _apps)
+            var keep = _rows.ToDictionary(r => r.App.Name, r => r);   // keep busy/failed state across rebuilds
+            string q = _search == null ? "" : _search.Text.Trim();
+            _searchBox.Visible = _apps.Count > 5 || q.Length > 0;
+
+            _list.SuspendLayout();
+            foreach (Control c in _list.Controls.Cast<Control>().ToList()) c.Dispose();
+            _list.Controls.Clear();
+            _list.RowStyles.Clear();
+            _list.RowCount = 0;
+            _rows.Clear();
+
+            if (_apps.Count == 0) AddToList(EmptyState());
+            else
             {
-                var i = new ListViewItem(a.Host) { Tag = a };
-                i.SubItems.Add(a.Port.ToString());
-                i.SubItems.Add(a.Dir);
-                i.SubItems.Add(a.Command);
-                i.SubItems.Add(a.AutoStart ? "Yes" : "");
-                _list.Items.Add(i);
+                var shown = _apps.Where(a => q.Length == 0 || (a.Name + " " + a.Host + " " + a.Port + " " + a.Command + " " + a.Dir).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                if (shown.Count == 0) AddToList(new Label { Text = "No apps match \"" + q + "\".", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(Px(4), Px(16), 0, 0) });
+                foreach (var a in shown)
+                {
+                    AppRow old;
+                    var r = new AppRow { App = a, Svc = new NodeService(a) };
+                    if (keep.TryGetValue(a.Name, out old)) { r.Busy = old.Busy; r.Failed = old.Failed; r.FailReason = old.FailReason; r.WasRunning = old.WasRunning; }
+                    AddToList(BuildRow(r));
+                    _rows.Add(r);
+                }
+            }
+            _list.ResumeLayout();
+            FitRows();
+            UpdateSummary(-1);
+            RefreshStatus();
+        }
+
+        void AddToList(Control c)
+        {
+            int i = _list.RowCount++;
+            _list.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            _list.Controls.Add(c, 0, i);
+        }
+
+        void FitRows()
+        {
+            int w = _listHost.ClientSize.Width - _listHost.Padding.Horizontal;
+            foreach (Control c in _list.Controls) if (c is Card && c.Width != w) c.Width = w;
+        }
+
+        Control EmptyState()
+        {
+            var card = new Card { Height = Px(320), Width = Px(900), Margin = new Padding(0, Px(8), 0, 0) };
+            var stack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, BackColor = Ui.Card };
+            stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            stack.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            for (int i = 0; i < 5; i++) stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            stack.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            Func<Control, Control> center = c => { c.Anchor = AnchorStyles.None; return c; };
+            stack.Controls.Add(new Panel { BackColor = Ui.Card }, 0, 0);
+            stack.Controls.Add(center(new IconBox("cube", Ui.AccentInk, Px(40)) { Margin = new Padding(0, 0, 0, Px(12)) }), 0, 1);
+            stack.Controls.Add(center(new Label { Text = "No Node apps yet", Font = Ui.SectionTitle, ForeColor = Ui.Ink, AutoSize = true, BackColor = Ui.Card }), 0, 2);
+            stack.Controls.Add(center(new Label { Text = "Add a Node.js project to run it locally and reach it at a friendly .localhost address.", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, BackColor = Ui.Card, Margin = new Padding(0, Px(6), 0, Px(16)) }), 0, 3);
+            var add = new IconButton("Add your first app", "plus", ButtonKind.Primary);
+            add.SetMin(Px(180), Px(42));
+            add.Click += (s, e) => Add();
+            stack.Controls.Add(center(add), 0, 4);
+            stack.Controls.Add(center(new Label { Text = "Example:  myapp.localhost  →  localhost:3000", Font = Ui.Mono, ForeColor = Ui.Faint, AutoSize = true, BackColor = Ui.Card, Margin = new Padding(0, Px(14), 0, 0) }), 0, 5);
+            stack.Controls.Add(new Panel { BackColor = Ui.Card }, 0, 6);
+            card.Controls.Add(stack);
+            return card;
+        }
+
+        Control BuildRow(AppRow r)
+        {
+            var a = r.App;
+            var card = new Card { Height = Px(84), Width = Px(900), Margin = new Padding(0, 0, 0, Px(10)), Padding = new Padding(Px(18), Px(10), Px(14), Px(10)) };
+            var t = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 7, BackColor = Ui.Card };
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(40)));   // icon
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));      // identity
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(140)));  // status
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(130)));  // auto-start
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(80)));   // pid
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));           // start/stop + open
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));           // ⋯
+
+            t.Controls.Add(new IconBox("cube", Ui.AccentInk, Px(24)) { Anchor = AnchorStyles.Left }, 0, 0);
+
+            var id = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, BackColor = Ui.Card, Anchor = AnchorStyles.Left, Margin = new Padding(0) };
+            id.Controls.Add(new Label { Text = a.Name, Font = Ui.ServiceName, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
+            id.Controls.Add(new Label { Text = a.Host + "  ·  :" + a.Port, Font = Ui.Mono, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(0, Px(3), 0, 0) });
+            var cmd = new Label { Text = a.Command, Font = Ui.Mono, ForeColor = Ui.Faint, AutoSize = true, AutoEllipsis = true, MaximumSize = new Size(Px(320), 0), Margin = new Padding(0, Px(2), 0, 0) };
+            _tips.SetToolTip(cmd, a.Command + "\n" + a.FullDir);
+            id.Controls.Add(cmd);
+            t.Controls.Add(id, 1, 0);
+
+            r.Status = new Pill { Anchor = AnchorStyles.Left, Size = new Size(Px(128), Px(30)), Margin = new Padding(0) };
+            r.Status.Set(PillState.Stopped, "Stopped");
+            t.Controls.Add(r.Status, 2, 0);
+
+            // Auto-start is configuration, not state: plain text, not a switch, so it can't be mistaken for Start/Stop.
+            r.Auto = new Label { Text = a.AutoStart ? "Auto-start on" : "Manual start", Font = Ui.Small, ForeColor = a.AutoStart ? Ui.Ink : Ui.Muted, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0) };
+            _tips.SetToolTip(r.Auto, a.AutoStart ? "Starts with Start all (and when WebHut opens, if that setting is on). Change it in Edit." : "Only starts when you click Start. Change it in Edit.");
+            t.Controls.Add(r.Auto, 3, 0);
+
+            r.Pid = new Label { Text = "PID —", Font = Ui.Mono, ForeColor = Ui.Faint, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0) };
+            t.Controls.Add(r.Pid, 4, 0);
+
+            var btns = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Ui.Card, Anchor = AnchorStyles.Right, Margin = new Padding(0) };
+            r.Toggle = new IconButton("Start", "play", ButtonKind.Primary) { Font = Ui.BtnSmall };
+            r.Toggle.SetMin(Px(88), 0);
+            r.Toggle.Click += (s, e) => Toggle(r);
+            r.Open = new IconButton("Open", "external", ButtonKind.Outline) { Font = Ui.BtnSmall, IconColor = Ui.NavInk, Margin = new Padding(0) };
+            r.Open.Click += (s, e) => Sys.OpenUrl(r.Svc.Url);
+            btns.Controls.Add(r.Toggle); btns.Controls.Add(r.Open);
+            t.Controls.Add(btns, 5, 0);
+
+            var more = new IconButton("", "more", ButtonKind.Ghost) { IconColor = Ui.Muted, Anchor = AnchorStyles.Right, Margin = new Padding(Px(6), 0, 0, 0) };
+            _tips.SetToolTip(more, "More: restart, edit, logs, folder, terminal, remove");
+            more.Click += (s, e) => ShowMore(r, more);
+            t.Controls.Add(more, 6, 0);
+
+            card.Controls.Add(t);
+            return card;
+        }
+
+        void ShowMore(AppRow r, Control anchor)
+        {
+            bool running = r.Svc.IsRunning;
+            PopupMenu.Show(anchor, PopupMenu.Side.BelowRight, r.App.Name, new List<PopupItem>
+            {
+                new PopupItem { Title = "Restart", Icon = "refresh", Enabled = running && !r.Busy, Act = () => Run(r, () => { r.Svc.Stop(); r.Svc.Start(); }, "Restarting…") },
+                new PopupItem { Title = "View logs", Icon = "file", Act = () => Sys.OpenInEditor(r.Svc.LogFile) },
+                new PopupItem { Title = "Open folder", Icon = "folder", Act = () => Sys.OpenFolder(r.App.FullDir) },
+                new PopupItem { Title = "Open terminal here", Icon = "terminal", Act = () => Services.OpenShell(r.App.FullDir) },
+                PopupItem.Line(),
+                new PopupItem { Title = "Edit…", Description = running ? "Stop the app first" : null, Icon = "gear", Enabled = !running && !r.Busy, Act = () => Edit(r.App) },
+                new PopupItem { Title = "Remove…", Icon = "trash", Danger = true, Enabled = !r.Busy, Act = () => Remove(r) }
+            }, Ui.Px(250));
+        }
+
+        // ------------------------------------------------------------------ status
+
+        void RefreshStatus()
+        {
+            if (_refreshing || _rows.Count == 0) { UpdateSummary(0); return; }
+            _refreshing = true;
+            var rows = _rows.ToList();
+            bool apache = Services.Apache.IsRunning;
+            System.Threading.Tasks.Task.Run(() => rows.Select(r =>
+            {
+                int pid = 0; bool listening = false;
+                try { pid = r.Svc.Pid(); } catch { }
+                if (pid > 0) listening = Sys.IsPortListening(r.App.Port);
+                return new { r, pid, listening };
+            }).ToList()).ContinueWith(t =>
+            {
+                _refreshing = false;
+                if (IsDisposed || t.IsFaulted) return;
+                int running = 0;
+                foreach (var x in t.Result)
+                {
+                    var r = x.r;
+                    if (r.Status.IsDisposed) continue;
+                    bool up = x.pid > 0;
+                    if (up) running++;
+                    if (r.Busy) continue;
+
+                    // Crash handling: running last time, gone now, and nobody asked it to stop.
+                    if (r.WasRunning && !up && !r.StopRequested)
+                    {
+                        r.Failed = true;
+                        r.FailReason = r.App.Name + " exited unexpectedly. Last lines of its log:\n" + Sys.Tail(r.Svc.LogFile, 12);
+                        Log.Warn(r.App.Name + " exited unexpectedly. See " + r.Svc.LogFile);
+                    }
+                    r.WasRunning = up;
+                    r.StopRequested = false;
+
+                    if (up && x.listening) { r.Failed = false; r.Status.Set(PillState.Running, "Running"); }
+                    else if (up) r.Status.Set(PillState.Partial, "No response");
+                    else if (r.Failed) r.Status.Set(PillState.Error, "Failed");
+                    else r.Status.Set(PillState.Stopped, "Stopped");
+                    _tips.SetToolTip(r.Status, up && !x.listening ? "The process runs, but nothing answers on port " + r.App.Port + ". Make sure the app listens on PORT (e.g. add --port %PORT% to the command)."
+                                              : r.Failed ? (r.FailReason ?? "Start failed. See the log.") : "");
+
+                    r.Pid.Text = up ? "PID " + x.pid : "PID —";
+                    r.Pid.ForeColor = up ? Ui.Ink : Ui.Faint;
+                    r.Toggle.Enabled = true;
+                    r.Toggle.Set(up ? "Stop" : "Start", up ? "stop" : "play", ButtonKind.Primary);
+                    r.Open.Enabled = up && x.listening && apache;
+                    _tips.SetToolTip(r.Open, r.Open.Enabled ? "Open " + r.Svc.Url
+                        : !up ? "Start the app first" : !x.listening ? "The app isn't answering on port " + r.App.Port + " yet" : "Start Apache first: it serves " + r.App.Host);
+                }
+                UpdateSummary(running);
+            }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        void UpdateSummary(int running)
+        {
+            if (_apps.Count == 0) { _summary.Text = "Manage local Node.js processes and development servers"; return; }
+            if (running < 0) return;
+            _summary.Text = _apps.Count + (_apps.Count == 1 ? " app" : " apps") + "   ·   " + running + " running   ·   " + (_apps.Count - running) + " stopped";
+        }
+
+        void Toggle(AppRow r)
+        {
+            bool running = r.Svc.IsRunning;
+            if (running) { r.StopRequested = true; Run(r, r.Svc.Stop, "Stopping…"); }
+            else
+            {
+                // Port conflict check before starting, with a clear message instead of a silent failure.
+                if (Sys.IsPortListening(r.App.Port))
+                {
+                    string owner = null;
+                    try { owner = Sys.PortOwner(r.App.Port); } catch { }
+                    r.Failed = true;
+                    r.FailReason = "Port " + r.App.Port + " is already in use" + (string.IsNullOrEmpty(owner) ? "" : " by " + owner) + ". Stop that program or choose another port in Edit.";
+                    Ui.Error(this, r.App.Name, r.FailReason);
+                    RefreshStatus();
+                    return;
+                }
+                r.Failed = false;
+                Run(r, r.Svc.Start, "Starting…");
             }
         }
 
-        NodeApp Selected { get { return _list.SelectedItems.Count == 0 ? null : (NodeApp)_list.SelectedItems[0].Tag; } }
+        void Run(AppRow r, Action act, string busy)
+        {
+            if (r.Busy) return;
+            r.Busy = true;
+            r.Toggle.Enabled = false; r.Open.Enabled = false;
+            r.Status.Set(PillState.Busy, busy);
+            System.Threading.Tasks.Task.Run(act).ContinueWith(t =>
+            {
+                r.Busy = false;
+                if (t.IsFaulted)
+                {
+                    r.Failed = busy != "Stopping…";
+                    r.FailReason = t.Exception.GetBaseException().Message;
+                    Log.Error(r.App.Name + ": " + r.FailReason);
+                    if (!IsDisposed) Ui.Error(this, r.App.Name, r.FailReason);
+                }
+                else r.WasRunning = busy != "Stopping…";
+                if (!IsDisposed) RefreshStatus();
+            }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        // ------------------------------------------------------------------ add / edit / remove
 
         void Add()
         {
@@ -78,32 +386,28 @@ namespace WebHut
             }
         }
 
-        void Edit()
+        void Edit(NodeApp app)
         {
-            var app = Selected;
             if (app == null) return;
-            var svc = new NodeService(app);
-            if (svc.IsRunning) { MessageBox.Show(this, "Stop " + app.Name + " before editing it.", "WebHut"); return; }
-            string oldName = app.Name;
-            using (var f = new NodeAppEditor(app, _apps, oldName))
+            if (new NodeService(app).IsRunning) { MessageBox.Show(this, "Stop " + app.Name + " before editing it.", "WebHut"); return; }
+            using (var f = new NodeAppEditor(app, _apps, app.Name))
             {
                 if (f.ShowDialog(this) != DialogResult.OK) { Reload(); return; }
                 Save();
             }
         }
 
-        void Remove()
+        void Remove(AppRow r)
         {
-            var app = Selected;
-            if (app == null) return;
-            var svc = new NodeService(app);
-            if (svc.IsRunning)
+            var app = r.App;
+            if (r.Svc.IsRunning)
             {
-                if (MessageBox.Show(this, app.Name + " is running. Stop and remove it?", "WebHut", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-                try { svc.Stop(); } catch (Exception e) { Log.Error(e.Message); }
+                if (MessageBox.Show(this, app.Name + " is running. Stop and remove it?\n\nIts files are not touched.", "Remove app", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+                r.StopRequested = true;
+                try { r.Svc.Stop(); } catch (Exception e) { Log.Error(e.Message); }
             }
-            else if (MessageBox.Show(this, "Remove " + app.Name + " from WebHut? Its files are not touched.", "WebHut", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-            _apps.Remove(app);
+            else if (MessageBox.Show(this, "Remove " + app.Name + " from WebHut?\n\nIts files are not touched.", "Remove app", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            _apps.RemoveAll(a => a.Name == app.Name);
             Save();
         }
 
@@ -112,6 +416,17 @@ namespace WebHut
             NodeApp.SaveAll(_apps);
             Changed = true;
             Reload();
+        }
+
+        void ShowHelp()
+        {
+            MessageBox.Show(this,
+                "WebHut runs each app's command in its folder with the PORT environment variable set, and Apache serves it at http://<name>.localhost (websockets included).\n\n" +
+                "Some dev servers ignore PORT. Pass it on the command line instead, for example:\n" +
+                "   npx vite --port %PORT%\n   next dev -p %PORT%\n\n" +
+                "Running means the process is up and answering on its port. No response means the process runs but nothing listens on the port yet.\n\n" +
+                "Stop ends the whole process tree (npm and the node processes it started).",
+                "How Node apps work", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 

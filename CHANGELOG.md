@@ -4,6 +4,34 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-10-21
+
+### Added
+- **Sites page:** every site with its address, folder and type, each with Open.
+- **Databases page:**
+  - MariaDB status, and your databases with table counts and sizes.
+  - Recent backups with one-click Restore, plus Back up now.
+  - Quick access to restore/rebuild, XAMPP import and my.ini.
+- **Right-click quick menus** on the Sites and Databases sidebar items. Left-click opens the page.
+- **New popup menus:** anchored beside their item, rounded with a shadow, icons and short descriptions. They close on Escape or an outside click, support the keyboard, and stay on screen.
+- **Toast notifications** in the bottom-right of the window for service started/stopped, Start all / Stop all, settings saved, backups, restores, refreshed sites and copied logs.
+
+### Changed
+- **Settings, redesigned:**
+  - A sidebar with General, Runtime, Services, Security and Maintenance.
+  - Rounded section cards with aligned rows and short helper text.
+  - Switches instead of checkboxes, compact Install buttons, and wider port fields.
+  - Warnings for a passwordless root user and for network access. phpMyAdmin and MariaDB always stay local.
+  - A sticky footer showing unsaved changes and which servers saving will restart.
+- **Node apps, redesigned as a process manager:**
+  - A helpful empty state, and each app as a card with its address, port, command and PID.
+  - A status for each app: Running, **No response** (the process runs but nothing answers on its port), Failed or Stopped.
+  - Auto-start shown as text so it can't be confused with Start/Stop.
+  - Start/Stop and Open on every row, plus a ⋯ menu: Restart, View logs, Open folder, Open terminal here, Edit, Remove.
+  - The port is checked before starting, and an app that exits unexpectedly is reported.
+  - Search appears once you have more than five apps.
+- Dropdowns use the new popup.
+
 ## [1.4.0] - 2026-10-21
 
 Dashboard refinements from a design review.
