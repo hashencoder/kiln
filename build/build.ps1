@@ -47,7 +47,9 @@ function Invoke-Csc([string[]]$csArgs) {
 }
 
 Write-Host "Building WebHut.exe..."
-Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\WebHut.exe`"", "/main:WebHut.Program") + $core + $gui)
+# Fonts (Inter, JetBrains Mono; SIL OFL 1.1) are embedded in the GUI only, as fonts/<file>
+$fonts = Get-ChildItem -Path (Join-Path $repo "assets\fonts\*.ttf") | Sort-Object Name | ForEach-Object { "/resource:`"$($_.FullName)`",fonts/$($_.Name)" }
+Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\WebHut.exe`"", "/main:WebHut.Program") + $fonts + $core + $gui)
 Write-Host "Building whut.exe..."
 Invoke-Csc ($common + @("/target:exe", "/out:`"$out\whut.exe`"", "/main:WebHut.CliProgram") + $core + $cli)
 
@@ -61,6 +63,9 @@ if ($Package) {
     Copy-Item "$out\WebHut.exe", "$out\WebHut.exe.config", "$out\whut.exe", "$out\whut.exe.config" $stage
     Copy-Item (Join-Path $repo "LICENSE") $stage
     Copy-Item (Join-Path $repo "dist-readme.txt") (Join-Path $stage "README.txt")
+    $lic = Join-Path $stage "licenses"
+    New-Item -ItemType Directory -Path $lic | Out-Null
+    Copy-Item (Join-Path $repo "assets\fonts\OFL-*.txt") $lic
     $zip = Join-Path $out "WebHut-$Version-win64.zip"
     if (Test-Path $zip) { Remove-Item $zip }
     Compress-Archive -Path $stage -DestinationPath $zip

@@ -62,6 +62,7 @@ When `apache\` or a PHP version is missing, WebHut opens the setup window instea
 | **Log files** | Opens the `logs\` folder |
 | **Activity** | Everything WebHut does, newest at the bottom. **Clear** empties the view (not the log file); **Auto-scroll** keeps the newest line in view. |
 | **Settings** | See below |
+| **Dark mode / Light mode** | Switches the colour theme (see Appearance below) |
 | **About** | Version, folder, and a link to the project page |
 | **Quit WebHut** | Fully closes WebHut. If servers are running, it asks whether to stop them first or leave them running in the background. |
 | Tray icon | Closing the window (X) keeps WebHut in the tray (configurable). Right-click for Start all (or Stop all when servers are running), Open localhost and Quit WebHut. |
@@ -76,6 +77,7 @@ Only one panel can run per WebHut folder. Separate WebHut folders can run side b
 |---|---|
 | PHP version | Choose an installed branch. **Install another version…** downloads one. Saving restarts Apache. |
 | Node.js version | Choose an installed major. **Install latest LTS** adds the newest LTS line. |
+| Appearance | **Match Windows** (default) follows Windows' light/dark app mode and switches live. You can also pick **Light** or **Dark**. The sidebar's **Dark mode / Light mode** item switches between the two in one click. |
 | HTTP port, MySQL port | Saving restarts the affected server and updates phpMyAdmin's config |
 | Database root → **Change…** | Runs `ALTER USER` for `root@localhost`, `root@127.0.0.1` and `root@::1` (starting MariaDB if needed), stores the new password, and updates phpMyAdmin's `AllowNoPassword` |
 | Network: allow access from other devices | Phones and other PCs on your Wi-Fi can open the sites; phpMyAdmin and MariaDB stay local ([08](08-security.md#opening-webhut-to-your-lan-for-testing-on-a-phone)). Saving restarts Apache. |

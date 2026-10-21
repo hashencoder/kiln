@@ -46,7 +46,7 @@ namespace WebHut
         public IconButton(string text, string icon, ButtonKind kind)
         {
             Text = text; _icon = icon; _kind = kind;
-            Font = kind == ButtonKind.Primary ? Ui.Bold : Ui.Base;
+            Font = Ui.Bold;
             Cursor = Cursors.Hand;
             SetStyle(ControlStyles.Selectable, true);
             TabStop = true;
@@ -55,12 +55,11 @@ namespace WebHut
         }
 
         public string IconName { get { return _icon; } set { _icon = value; Fit(); Invalidate(); } }
-        public ButtonKind Kind { get { return _kind; } set { _kind = value; Font = value == ButtonKind.Primary ? Ui.Bold : Ui.Base; Fit(); Invalidate(); } }
+        public ButtonKind Kind { get { return _kind; } set { _kind = value; Fit(); Invalidate(); } }
 
         public void Set(string text, string icon, ButtonKind kind)
         {
             Text = text; _icon = icon; _kind = kind;
-            Font = kind == ButtonKind.Primary ? Ui.Bold : Ui.Base;
             Fit(); Invalidate();
         }
 
@@ -106,7 +105,7 @@ namespace WebHut
             int x = (Width - total) / 2;
             if (_icon != null)
             {
-                var ic = IconColor ?? (_kind == ButtonKind.Primary ? Color.White : Ui.Accent);
+                var ic = IconColor ?? (_kind == ButtonKind.Primary ? Color.White : Ui.AccentInk);
                 if (!Enabled) ic = Blend(ic, 0.45f);
                 Icons.Draw(g, _icon, new RectangleF(x, (Height - iconSize) / 2f, iconSize, iconSize), ic);
                 x += iconSize + gap;
@@ -184,11 +183,11 @@ namespace WebHut
                 using (var p = Ui.Rounded(r, S(8)))
                 using (var b = new SolidBrush(Active ? Ui.AccentSoft : Ui.Hover)) g.FillPath(b, p);
             if (Active)
-                using (var b = new SolidBrush(Ui.Accent)) g.FillRectangle(b, 0, S(8), S(3), Height - S(16));
+                using (var b = new SolidBrush(Ui.AccentInk)) g.FillRectangle(b, 0, S(8), S(3), Height - S(16));
             int ic = S(20);
-            Icons.Draw(g, _icon, new RectangleF(S(16), (Height - ic) / 2f, ic, ic), Active ? Ui.Accent : Ui.NavInk);
+            Icons.Draw(g, _icon, new RectangleF(S(16), (Height - ic) / 2f, ic, ic), Active ? Ui.AccentInk : Ui.NavInk);
             TextRenderer.DrawText(g, Text, Active ? Ui.NavBold : Font, new Rectangle(S(50), 0, Width - S(54), Height),
-                Active ? Ui.Accent : Ui.Ink, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+                Active ? Ui.AccentInk : Ui.Ink, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         }
     }
 
@@ -198,7 +197,7 @@ namespace WebHut
     public class Pill : Painted
     {
         PillState _state = PillState.Stopped;
-        public Pill() { Font = Ui.Base; Size = new Size(S(104), S(30)); }
+        public Pill() { Font = Ui.Nav; Size = new Size(S(104), S(30)); }
         public void Set(PillState state, string text)
         {
             if (_state == state && Text == text) return;
@@ -213,7 +212,7 @@ namespace WebHut
                 case PillState.Running: fg = Ui.Green; bg = Ui.GreenSoft; break;
                 case PillState.Busy: fg = Ui.Amber; bg = Ui.AmberSoft; break;
                 case PillState.Error: fg = Ui.Red; bg = Ui.RedSoft; break;
-                default: fg = Ui.Muted; bg = Ui.GreySoft; break;
+                default: fg = Ui.Grey; bg = Ui.GreySoft; break;
             }
             var ts = TextRenderer.MeasureText(Text ?? "", Font);
             int dot = S(9), pad = S(11), gap = S(8);
@@ -247,7 +246,7 @@ namespace WebHut
                 using (var pen = new Pen(Hover ? Ui.AccentSoftLine : Ui.Line)) g.DrawPath(pen, p);
             }
             int ic = S(26), x = S(16);
-            Icons.Draw(g, _icon, new RectangleF(x, S(16), ic, ic), Ui.Accent);
+            Icons.Draw(g, _icon, new RectangleF(x, S(16), ic, ic), Ui.AccentInk);
             TextRenderer.DrawText(g, Text, Font, new Rectangle(x, S(52), Width - x - S(8), S(22)), Ui.Ink,
                 TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
             TextRenderer.DrawText(g, _sub, Ui.Small, new Rectangle(x, S(76), Width - x - S(8), S(20)), Ui.Muted,

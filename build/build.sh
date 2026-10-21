@@ -30,8 +30,12 @@ for r in "${REFS[@]}"; do REFARGS+=(-r:"$r.dll"); done
 
 COMMON=(-langversion:7.2 -optimize+ -debug- -platform:anycpu -warn:4 -nowarn:1591 "${REFARGS[@]}")
 
+# Fonts (Inter, JetBrains Mono; SIL OFL 1.1) are embedded in the GUI only, as fonts/<file>
+FONTS=()
+for f in assets/fonts/*.ttf; do FONTS+=("-resource:$f,fonts/$(basename "$f")"); done
+
 mcs "${COMMON[@]}" -target:winexe -out:"$OUT/WebHut.exe" -win32icon:"$ICON" \
-    -main:WebHut.Program "${RES[@]}" src/Core/*.cs src/Gui/*.cs
+    -main:WebHut.Program "${RES[@]}" "${FONTS[@]}" src/Core/*.cs src/Gui/*.cs
 
 mcs "${COMMON[@]}" -target:exe -out:"$OUT/whut.exe" -win32icon:"$ICON" \
     -main:WebHut.CliProgram "${RES[@]}" src/Core/*.cs src/Cli/*.cs

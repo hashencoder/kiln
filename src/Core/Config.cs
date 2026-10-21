@@ -22,6 +22,7 @@ namespace WebHut
         public bool AutoBackup = true;       // back up databases on stop and every BackupEveryHours
         public int BackupEveryHours = 2;
         public int BackupKeep = 10;
+        public string Theme = "system";      // system | light | dark
 
         public static WebHutConfig Load()
         {
@@ -44,6 +45,7 @@ namespace WebHut
                     c.LanAccess = Json.Get(o, "lanAccess") as bool? ?? false;
                     c.BackupEveryHours = Math.Max(0, ToInt(Json.Get(o, "backupEveryHours"), 2));
                     c.BackupKeep = Math.Max(1, ToInt(Json.Get(o, "backupKeep"), 10));
+                    c.Theme = NormTheme(Json.Str(o, "theme"));
                 }
             }
             catch (Exception e) { Log.Error("Couldn't read webhut.json, using defaults: " + e.Message); }
@@ -63,13 +65,20 @@ namespace WebHut
                 {"php", Php}, {"node", Node}, {"httpPort", HttpPort}, {"mysqlPort", MysqlPort},
                 {"mysqlRootPassword", MysqlRootPassword}, {"startOnLaunch", StartOnLaunch},
                 {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl},
-                {"lanAccess", LanAccess}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep}
+                {"lanAccess", LanAccess}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep},
+                {"theme", Theme}
             };
             File.WriteAllText(K.ConfigFile, Json.Pretty(d));
         }
 
         public string PhpDir { get { return K.PhpDir(Php); } }
         public string NodeDir { get { return string.IsNullOrEmpty(Node) ? null : K.NodeDir(Node); } }
+
+        public static string NormTheme(string t)
+        {
+            t = (t ?? "").Trim().ToLowerInvariant();
+            return t == "light" || t == "dark" ? t : "system";
+        }
 
         static int ToInt(object v, int dflt)
         {

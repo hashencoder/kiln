@@ -14,6 +14,8 @@ namespace WebHut
 
         readonly ComboBox _php = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 120 };
         readonly ComboBox _node = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 120 };
+        readonly ComboBox _theme = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
+        static readonly string[] ThemeIds = { "system", "light", "dark" };
         readonly NumericUpDown _http = new NumericUpDown { Minimum = 1, Maximum = 65535, Width = 90 };
         readonly NumericUpDown _mysql = new NumericUpDown { Minimum = 1, Maximum = 65535, Width = 90 };
         readonly CheckBox _startOnLaunch = new CheckBox { Text = "Start Apache, MariaDB and auto-start Node apps when WebHut opens", AutoSize = true };
@@ -30,7 +32,7 @@ namespace WebHut
         {
             Ui.Style(this);
             Text = "WebHut settings";
-            ClientSize = new Size(660, 560);
+            ClientSize = new Size(740, 600);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
@@ -50,6 +52,8 @@ namespace WebHut
 
             AddRow(t, "PHP version", _php, _addPhp);
             AddRow(t, "Node.js version", _node, _addNode);
+            _theme.Items.AddRange(new object[] { "Match Windows", "Light", "Dark" });
+            AddRow(t, "Appearance", _theme, Ui.Lbl("Colour theme of the WebHut window", Ui.Small, Ui.Muted));
             AddRow(t, "HTTP port", _http, Ui.Lbl("Apache, default 80", Ui.Small, Ui.Muted));
             AddRow(t, "MySQL port", _mysql, Ui.Lbl("MariaDB, default 3306", Ui.Small, Ui.Muted));
             AddRow(t, "Database root", _pwBtn, _pwState);
@@ -97,6 +101,7 @@ namespace WebHut
             foreach (var v in WebHutConfig.InstalledNode()) _node.Items.Add(v);
             _node.SelectedItem = Cfg.Node;
             if (_node.SelectedIndex < 0 && _node.Items.Count > 0) _node.SelectedIndex = 0;
+            _theme.SelectedIndex = Math.Max(0, Array.IndexOf(ThemeIds, WebHutConfig.NormTheme(Cfg.Theme)));
             _http.Value = Cfg.HttpPort;
             _mysql.Value = Cfg.MysqlPort;
             _startOnLaunch.Checked = Cfg.StartOnLaunch;
@@ -129,6 +134,7 @@ namespace WebHut
             Cfg.StartOnLaunch = _startOnLaunch.Checked;
             Cfg.MinimizeToTray = _tray.Checked;
             Cfg.LanAccess = _lan.Checked;
+            Cfg.Theme = ThemeIds[Math.Max(0, _theme.SelectedIndex)];
             Cfg.Save();
             if (mysqlChanged)
             {
@@ -236,7 +242,7 @@ namespace WebHut
 
         string Choose(string title, string label, List<string> items)
         {
-            using (var f = new Form { Text = title, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(320, 120), ShowInTaskbar = false })
+            using (var f = new Form { Text = title, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(360, 130), ShowInTaskbar = false })
             {
                 Ui.Style(f);
                 var l = Ui.Lbl(label); l.Location = new Point(14, 14);
@@ -265,7 +271,7 @@ namespace WebHut
         {
             Ui.Style(this);
             Text = "Component updates";
-            ClientSize = new Size(640, 360);
+            ClientSize = new Size(700, 400);
             StartPosition = FormStartPosition.CenterParent;
             ShowInTaskbar = false;
             _list.Columns.Add("Component", 160);

@@ -48,6 +48,22 @@ namespace WebHut
             StartPosition = FormStartPosition.CenterScreen;
             DoubleBuffered = true;
 
+            BuildUi();
+
+            BuildTray();
+            Log.Line += line => Ui.AppendDarkLog(_log, line, _autoScroll == null || _autoScroll.Checked);
+            _timer.Tick += (s, e) => RefreshStatus();
+            _backupTimer.Tick += (s, e) => ScheduledBackup();
+            Load += OnLoad;
+            FormClosing += OnClosing;
+            Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnWindowsThemeChanged;
+            FormClosed += (s, e) => Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnWindowsThemeChanged;
+        }
+
+        void BuildUi()
+        {
+            BackColor = Ui.Bg;
+            ForeColor = Ui.Ink;
             var main = new Panel { Dock = DockStyle.Fill, BackColor = Ui.Bg, Padding = new Padding(Px(30), Px(24), Px(30), Px(24)), AutoScroll = true };
             var stack = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, BackColor = Ui.Bg, MinimumSize = new Size(0, Px(700)) };
             stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -63,13 +79,38 @@ namespace WebHut
 
             Controls.Add(main);
             Controls.Add(BuildSidebar());
+        }
 
-            BuildTray();
-            Log.Line += line => Ui.AppendDarkLog(_log, line, _autoScroll == null || _autoScroll.Checked);
-            _timer.Tick += (s, e) => RefreshStatus();
-            _backupTimer.Tick += (s, e) => ScheduledBackup();
-            Load += OnLoad;
-            FormClosing += OnClosing;
+        /// <summary>Switch light/dark: rebuild the window with the new palette, keeping the log.</summary>
+        void ApplyTheme(bool dark)
+        {
+            if (dark == Ui.IsDark) return;
+            Ui.ApplyTheme(dark);
+            SuspendLayout();
+            var old = Controls.Cast<Control>().ToList();
+            Controls.Clear();
+            BuildUi();
+            foreach (var c in old) if (c != _log && !c.Contains(_log)) c.Dispose();
+            ResumeLayout(true);
+            Ui.TitleBar(this);
+            UpdateSubtitle();
+            BuildRows();
+            LayoutTiles();
+            _log.BackColor = Ui.LogBg;
+        }
+
+        void ToggleTheme()
+        {
+            Cfg.Theme = Ui.IsDark ? "light" : "dark";
+            try { Cfg.Save(); } catch (Exception e) { Log.Error(e.Message); }
+            ApplyTheme(Cfg.Theme == "dark");
+        }
+
+        void OnWindowsThemeChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+        {
+            if (e.Category != Microsoft.Win32.UserPreferenceCategory.General || Cfg.Theme != "system") return;
+            if (IsDisposed) return;
+            BeginInvoke(new Action(() => ApplyTheme(Ui.WantsDark("system"))));
         }
 
         // ------------------------------------------------------------------ layout
@@ -88,7 +129,7 @@ namespace WebHut
             var logo = new Logo(Px(46)) { Margin = new Padding(0, Px(4), 0, 0) };
             brand.Controls.Add(logo, 0, 0); brand.SetRowSpan(logo, 2);
             var name = new Label { Text = "WebHut", Font = Ui.Brand, ForeColor = Ui.Ink, AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Bottom, Margin = new Padding(0) };
-            var ver = new Label { Text = "v" + K.AppVersion, Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Top, Margin = new Padding(Px(1), 0, 0, 0) };
+            var ver = new Label { Text = "v" + K.AppVersion, Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Top, Margin = new Padding(Px(1), 0, 0, 0) };
             brand.Controls.Add(name, 1, 0);
             brand.Controls.Add(ver, 1, 1);
 
@@ -106,6 +147,7 @@ namespace WebHut
             var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, BackColor = Ui.Sidebar };
             var sep = new Panel { Height = 1, Width = w, BackColor = Ui.Line, Margin = new Padding(0, 0, 0, Px(10)) };
             bottom.Controls.Add(sep);
+            Nav(bottom, w, Ui.IsDark ? "Light mode" : "Dark mode", Ui.IsDark ? "sun" : "moon", ToggleTheme);
             Nav(bottom, w, "Settings", "gear", ShowSettings);
             Nav(bottom, w, "About", "info", ShowAbout);
             Nav(bottom, w, "Quit WebHut", "power", ExitApp);
@@ -132,12 +174,12 @@ namespace WebHut
 
             var titles = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(0), BackColor = Ui.Bg };
             titles.Controls.Add(new Label { Text = "WebHut", Font = Ui.H1, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
-            titles.Controls.Add(new Label { Text = "Local development environment", Font = Ui.Nav, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(Px(2), 0, 0, Px(4)) });
+            titles.Controls.Add(new Label { Text = "Local development environment", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(Px(2), 0, 0, Px(4)) });
             _sub = new Label { Text = "", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(Px(2), 0, 0, 0) };
             titles.Controls.Add(_sub);
 
             // One button that flips between "Start all" and "Stop all" with the servers' state.
-            _allBtn = new IconButton("Start all", "play", ButtonKind.Primary) { Font = Ui.NavBold, Anchor = AnchorStyles.Right | AnchorStyles.Top, Margin = new Padding(0, Px(10), 0, 0) };
+            _allBtn = new IconButton("Start all", "play", ButtonKind.Primary) { Anchor = AnchorStyles.Right | AnchorStyles.Top, Margin = new Padding(0, Px(10), 0, 0) };
             _allBtn.SetMin(Px(170), Px(48));
             _allBtn.Click += (s, e) => ToggleAll();
 
@@ -153,7 +195,7 @@ namespace WebHut
             h.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             h.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             var left = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Ui.Card, Margin = new Padding(0) };
-            left.Controls.Add(new IconBox(icon, Ui.Accent, Px(24)) { Margin = new Padding(0, Px(3), Px(12), 0) });
+            left.Controls.Add(new IconBox(icon, Ui.AccentInk, Px(24)) { Margin = new Padding(0, Px(3), Px(12), 0) });
             left.Controls.Add(new Label { Text = title, Font = Ui.H2, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
             h.Controls.Add(left, 0, 0);
             if (right != null) { right.Anchor = AnchorStyles.Right; h.Controls.Add(right, 1, 0); }
@@ -186,6 +228,7 @@ namespace WebHut
             _grid.Dock = DockStyle.Top;
             _grid.AutoSize = true;
             _grid.BackColor = Color.Transparent;
+            _grid.ColumnStyles.Clear();
             _grid.ColumnCount = 6;
             _grid.Padding = new Padding(Px(14), 0, Px(10), 0);
             _grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(168)));  // service
@@ -194,18 +237,21 @@ namespace WebHut
             _grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(70)));   // port
             _grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Px(126)));  // status
             _grid.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));           // actions
-            _grid.CellPaint += (s, e) =>
-            {
-                if (e.Row < _grid.RowCount - 1)
-                    using (var p = new Pen(Ui.Line))
-                        e.Graphics.DrawLine(p, e.CellBounds.Left - (e.Column == 0 ? Px(14) : 0), e.CellBounds.Bottom - 1,
-                            e.CellBounds.Right + (e.Column == 5 ? Px(10) : 0), e.CellBounds.Bottom - 1);
-            };
+            _grid.CellPaint -= GridCellPaint;
+            _grid.CellPaint += GridCellPaint;
             frame.Controls.Add(_grid);
 
             card.Controls.Add(frame);
             card.Controls.Add(CardHeader("pulse", "Services", summary));
             return card;
+        }
+
+        void GridCellPaint(object sender, TableLayoutCellPaintEventArgs e)
+        {
+            if (e.Row < _grid.RowCount - 1)
+                using (var p = new Pen(Ui.Line))
+                    e.Graphics.DrawLine(p, e.CellBounds.Left - (e.Column == 0 ? Px(14) : 0), e.CellBounds.Bottom - 1,
+                        e.CellBounds.Right + (e.Column == 5 ? Px(10) : 0), e.CellBounds.Bottom - 1);
         }
 
         Control BuildQuickActions()
@@ -292,13 +338,13 @@ namespace WebHut
                 var r = new Row { Svc = svc };
                 var row = r;
                 var nameCell = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, Px(14), Px(8), Px(14)), Anchor = AnchorStyles.Left };
-                nameCell.Controls.Add(new IconBox(IconFor(svc), Ui.Accent, Px(22)) { Margin = new Padding(0, Px(1), Px(12), 0) });
-                nameCell.Controls.Add(new Label { Text = svc.Title, Font = Ui.NavBold, ForeColor = Ui.Ink, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0, Px(1), 0, 0) });
+                nameCell.Controls.Add(new IconBox(IconFor(svc), Ui.AccentInk, Px(22)) { Margin = new Padding(0, Px(1), Px(12), 0) });
+                nameCell.Controls.Add(new Label { Text = svc.Title, Font = Ui.ServiceName, ForeColor = Ui.Ink, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0, Px(1), 0, 0) });
 
-                r.Detail = CellLabel(svc.Detail, Ui.Ink);
+                r.Detail = CellLabel(svc.Detail, Ui.Ink, Ui.Base);
                 r.Detail.AutoSize = false; r.Detail.AutoEllipsis = true; r.Detail.Dock = DockStyle.Fill; r.Detail.TextAlign = ContentAlignment.MiddleLeft;
-                r.Pid = CellLabel("-", Ui.Muted);
-                r.Port = CellLabel(svc.Port.ToString(), Ui.Ink);
+                r.Pid = CellLabel("-", Ui.Faint, Ui.Mono);
+                r.Port = CellLabel(svc.Port.ToString(), Ui.Ink, Ui.Mono);
                 r.Status = new Pill { Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, Px(8), 0) };
                 r.Status.Size = new Size(Px(124), Px(32));
                 r.Status.Set(PillState.Stopped, "Stopped");
@@ -330,9 +376,9 @@ namespace WebHut
             RefreshStatus();
         }
 
-        static Label CellLabel(string text, Color color)
+        static Label CellLabel(string text, Color color, Font font)
         {
-            return new Label { Text = text, Font = Ui.Nav, ForeColor = color, AutoSize = true, BackColor = Color.Transparent, Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, Px(8), 0) };
+            return new Label { Text = text, Font = font, ForeColor = color, AutoSize = true, BackColor = Color.Transparent, Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, Px(8), 0) };
         }
 
         void AddHeaderRow()
@@ -402,7 +448,7 @@ namespace WebHut
                         }
                         r.Status.Set(running ? PillState.Running : PillState.Stopped, running ? "Running" : "Stopped");
                         r.Pid.Text = running ? x.pid.ToString() : "-";
-                        r.Pid.ForeColor = running ? Ui.Ink : Ui.Muted;
+                        r.Pid.ForeColor = running ? Ui.Ink : Ui.Faint;
                         r.Port.Text = r.Svc.Port.ToString();
                         r.Detail.Text = r.Svc.Detail;
                         r.Toggle.Enabled = true;
@@ -412,6 +458,7 @@ namespace WebHut
                     _tray.Text = "WebHut - " + up + " of " + total + " running";
                     _summary.Text = up == total ? "All services running" : up == 0 ? "All services stopped" : up + " of " + total + " running";
                     _summaryDot.ForeColor = up == total ? Ui.Green : up == 0 ? Ui.Grey : Ui.Amber;
+                    _summary.ForeColor = Ui.Muted;
                     _anyRunning = up > 0;
                     UpdateAllButton();
                 }, TaskScheduler.FromCurrentSynchronizationContext());
@@ -484,7 +531,6 @@ namespace WebHut
             _allBtn.Enabled = true;
             if (_anyRunning) _allBtn.Set("Stop all", "stop", ButtonKind.Outline);
             else _allBtn.Set("Start all", "play", ButtonKind.Primary);
-            _allBtn.Font = Ui.NavBold;
             if (_trayAll != null) _trayAll.Text = _allBtn.Text;
         }
 
@@ -562,6 +608,7 @@ namespace WebHut
             using (var f = new SettingsForm())
             {
                 f.ShowDialog(this);
+                if (Ui.WantsDark(Cfg.Theme) != Ui.IsDark) ApplyTheme(!Ui.IsDark);
                 UpdateSubtitle();
                 BuildRows();
                 if (f.RestartApache && Services.Apache.IsRunning) Run(Services.Apache, Services.Apache.Restart, "Restarting…");
