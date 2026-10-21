@@ -4,6 +4,11 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-10-21
+
+### Added
+- A **Quit** button next to Start all / Stop all fully closes WebHut, like XAMPP's Quit. The window's X still only hides WebHut to the tray. Before this, Exit was only in the tray icon's menu, which Windows 11 often hides behind the ^ arrow.
+
 ## [1.1.1] - 2026-10-21
 
 ### Changed

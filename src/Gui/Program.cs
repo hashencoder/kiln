@@ -49,11 +49,12 @@ namespace WebHut
         }
 
         /// <summary>1.0.x shipped the panel as WebHutPanel.exe; 1.1 renamed it to WebHut.exe.
-        /// Remove the stale copy left behind when a new zip is extracted over an old folder.
+        /// Remove the stale copy left behind when a new zip is extracted over an old folder, and
+        /// *.old.exe copies left when a running WebHut was renamed aside during an update.
         /// (Never touch webhut.exe: on Windows that is this very file, names ignore case.)</summary>
         static void RemoveOldPanel()
         {
-            foreach (var name in new[] { "WebHutPanel.exe", "WebHutPanel.exe.config" })
+            foreach (var name in new[] { "WebHutPanel.exe", "WebHutPanel.exe.config", "WebHut.old.exe", "whut.old.exe" })
             {
                 try
                 {
