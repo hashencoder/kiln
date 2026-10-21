@@ -4,6 +4,13 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-10-21
+
+### Fixed
+- **Text too big at 125% / 150% display scaling.** WebHut loaded its fonts before declaring itself DPI-aware, so GDI+ cached a 96-dpi screen. The layout then stayed at 100% while Windows drew text at the real scale, which wrapped details and cut off tile captions. WebHut now declares DPI awareness first and reads the scale straight from Windows.
+- The window now fits the screen's work area on high-scaling displays.
+- Log timestamps always use `HH:mm:ss`. Windows time formats with dots (e.g. `19.10.01`) used to lose the grey `[time]` styling in the activity log.
+
 ## [1.3.0] - 2026-10-21
 
 ### Added
