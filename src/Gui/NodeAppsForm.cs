@@ -17,7 +17,7 @@ namespace WebHut
         {
             Ui.Style(this);
             Text = "Node apps";
-            ClientSize = new Size(760, 400);
+            ClientSize = new Size(820, 440);
             StartPosition = FormStartPosition.CenterParent;
             ShowInTaskbar = false;
             _list.Columns.Add("Name / URL", 200);

@@ -134,6 +134,24 @@ namespace WebHut
                         g.DrawLine(pen, 12, 7, 17.5f, 7);
                         g.DrawLine(pen, 12, 17, 17.5f, 17);
                         break;
+                    case "moon":
+                        using (var path = new GraphicsPath())
+                        {
+                            path.AddArc(3.5f, 3.5f, 17, 17, 300, 300);
+                            path.AddArc(8.5f, 1.5f, 13, 13, 168, -228);
+                            path.CloseFigure();
+                            g.DrawPath(pen, path);
+                        }
+                        break;
+                    case "sun":
+                        g.DrawEllipse(pen, 8, 8, 8, 8);
+                        for (int i = 0; i < 8; i++)
+                        {
+                            double a = i * Math.PI / 4;
+                            g.DrawLine(pen, 12 + (float)Math.Cos(a) * 7, 12 + (float)Math.Sin(a) * 7,
+                                            12 + (float)Math.Cos(a) * 9.5f, 12 + (float)Math.Sin(a) * 9.5f);
+                        }
+                        break;
                     case "logs":
                         g.DrawLine(pen, 8, 6, 20, 6);
                         g.DrawLine(pen, 8, 12, 20, 12);

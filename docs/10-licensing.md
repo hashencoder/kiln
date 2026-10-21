@@ -6,6 +6,17 @@
 
 WebHut's source code, config templates (`overlay/`) and documentation are released under the **MIT License** ([LICENSE](../LICENSE)). Anyone can use, modify and redistribute them, including commercially, as long as the copyright notice and license text are kept.
 
+## Fonts bundled in WebHut.exe
+
+The panel embeds two typefaces, unmodified, so it looks the same on every PC without installing anything:
+
+| Font | Used for | License |
+|---|---|---|
+| [Inter](https://github.com/rsms/inter) 4.1 (Regular, Medium, SemiBold, Bold) | All interface text | SIL Open Font License 1.1, © The Inter Project Authors |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) 2.304 (Regular) | Ports, PIDs and the activity log | SIL Open Font License 1.1, © The JetBrains Mono Project Authors |
+
+The OFL allows bundling the fonts with software. The license texts are in [`assets/fonts/`](../assets/fonts) and in the `licenses\` folder of every release zip. If a font can't be loaded, WebHut falls back to Segoe UI and Consolas.
+
 ## The components WebHut downloads
 
 | Component | License | Notes |

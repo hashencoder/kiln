@@ -9,47 +9,124 @@ namespace WebHut
     /// <summary>Shared look and feel.</summary>
     public static class Ui
     {
-        public static readonly Color Bg = Color.FromArgb(250, 248, 245);
-        public static readonly Color Card = Color.White;
-        public static readonly Color Ink = Color.FromArgb(31, 29, 26);
-        public static readonly Color Muted = Color.FromArgb(107, 101, 93);
-        public static readonly Color Line = Color.FromArgb(231, 225, 216);
-        public static readonly Color Accent = Color.FromArgb(194, 65, 12);
-        public static readonly Color AccentHover = Color.FromArgb(234, 88, 12);
-        public static readonly Color Green = Color.FromArgb(22, 163, 74);
-        public static readonly Color Amber = Color.FromArgb(217, 119, 6);
-        public static readonly Color Red = Color.FromArgb(220, 38, 38);
-        public static readonly Color Grey = Color.FromArgb(168, 162, 158);
-        public static readonly Color Sidebar = Color.FromArgb(252, 246, 240);
-        public static readonly Color Hover = Color.FromArgb(247, 240, 233);
-        public static readonly Color TileHover = Color.FromArgb(255, 250, 246);
-        public static readonly Color AccentSoft = Color.FromArgb(254, 232, 216);
-        public static readonly Color AccentSoftLine = Color.FromArgb(251, 191, 150);
-        public static readonly Color GreenSoft = Color.FromArgb(220, 252, 231);
-        public static readonly Color AmberSoft = Color.FromArgb(254, 243, 199);
-        public static readonly Color RedSoft = Color.FromArgb(254, 226, 226);
-        public static readonly Color GreySoft = Color.FromArgb(241, 238, 234);
-        public static readonly Color NavInk = Color.FromArgb(87, 83, 78);
-        public static readonly Color HeadBg = Color.FromArgb(250, 247, 243);
-        public static readonly Color LogBg = Color.FromArgb(28, 27, 31);
-        public static readonly Color LogInk = Color.FromArgb(228, 228, 231);
-        public static readonly Color LogTime = Color.FromArgb(150, 147, 160);
-        public static readonly Color LogGreen = Color.FromArgb(74, 222, 128);
-        public static readonly Color LogAmber = Color.FromArgb(251, 191, 36);
-        public static readonly Color LogRed = Color.FromArgb(248, 113, 113);
+        // Palette: set by ApplyTheme. Every control reads these when it paints or is created.
+        public static Color Bg, Sidebar, Card, Surface, Line, Ink, Muted, Faint;
+        public static Color Accent, AccentHover, AccentInk, AccentSoft, AccentSoftLine;
+        public static Color Hover, TileHover, HeadBg, NavInk;
+        public static Color Green, GreenSoft, Amber, AmberSoft, Red, RedSoft, Grey, GreySoft, Info;
+        public static Color LogBg, LogInk, LogTime, LogGreen, LogAmber, LogRed;
+        public static bool IsDark;
 
-        public static readonly Font Base = new Font("Segoe UI", 9.75f);
-        public static readonly Font Bold = new Font("Segoe UI Semibold", 9.75f);
-        public static readonly Font Small = new Font("Segoe UI", 8.75f);
-        public static readonly Font Title = new Font("Segoe UI Semibold", 17f);
-        public static readonly Font Mono = new Font("Consolas", 9f);
-        public static readonly Font H1 = new Font("Segoe UI Semibold", 24f);
-        public static readonly Font H2 = new Font("Segoe UI Semibold", 13f);
-        public static readonly Font Brand = new Font("Segoe UI Semibold", 15f);
-        public static readonly Font Nav = new Font("Segoe UI", 10.5f);
-        public static readonly Font NavBold = new Font("Segoe UI Semibold", 10.5f);
-        public static readonly Font Caps = new Font("Segoe UI Semibold", 8.25f);
-        public static readonly Font LogFont = new Font("Consolas", 10f);
+        static Ui() { ApplyTheme(false); }
+
+        static Color H(string hex) { return ColorTranslator.FromHtml(hex); }
+
+        /// <summary>WebHut brand palette. Brand orange #EA4B0C, Midnight Slate #151C26, Cloud White #F6F8FB.</summary>
+        public static void ApplyTheme(bool dark)
+        {
+            IsDark = dark;
+            Accent = H("#EA4B0C");
+            Green = H("#16A36A"); Amber = H("#D99516"); Red = H("#DC4545"); Grey = H("#8A96A6"); Info = H("#3284D6");
+            if (!dark)
+            {
+                Bg = H("#F6F8FB"); Sidebar = H("#FFFFFF"); Card = H("#FFFFFF"); Surface = H("#F0F3F7");
+                Line = H("#E2E7ED"); Ink = H("#17212F"); Muted = H("#667487"); Faint = H("#8793A3");
+                AccentHover = H("#C93F08"); AccentInk = H("#EA4B0C"); AccentSoft = H("#FFF0E8"); AccentSoftLine = H("#F7B899");
+                Hover = H("#F0F3F7"); TileHover = H("#FFF8F4"); HeadBg = Surface; NavInk = Muted;
+                GreenSoft = H("#E7F7EF"); AmberSoft = H("#FCF3E0"); RedSoft = H("#FCEBEB"); GreySoft = H("#F0F3F7");
+                LogBg = H("#151C26");
+            }
+            else
+            {
+                Bg = H("#10151D"); Sidebar = H("#151C26"); Card = H("#1B2430"); Surface = H("#242F3D");
+                Line = H("#344152"); Ink = H("#F5F7FA"); Muted = H("#A5B2C2"); Faint = H("#7D8B9D");
+                AccentHover = H("#FF762E"); AccentInk = H("#FF762E"); AccentSoft = H("#38251E"); AccentSoftLine = H("#8A3E1C");
+                Hover = H("#242F3D"); TileHover = H("#222C38"); HeadBg = Surface; NavInk = Muted;
+                GreenSoft = H("#173528"); AmberSoft = H("#3A2F17"); RedSoft = H("#3D2226"); GreySoft = H("#242F3D");
+                LogBg = H("#0D1218");
+            }
+            LogInk = H("#F5F7FA"); LogTime = H("#7D8B9D"); LogGreen = H("#3DD68C"); LogAmber = H("#F2B544"); LogRed = H("#F27474");
+        }
+
+        /// <summary>Resolve the "theme" setting: system follows Windows' app light/dark mode.</summary>
+        public static bool WantsDark(string theme)
+        {
+            theme = WebHutConfig.NormTheme(theme);
+            if (theme == "dark") return true;
+            if (theme == "light") return false;
+            try
+            {
+                using (var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    var v = k == null ? null : k.GetValue("AppsUseLightTheme");
+                    return v is int && (int)v == 0;
+                }
+            }
+            catch { return false; }
+        }
+
+        [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
+
+        /// <summary>Dark or light title bar (Windows 10 2004+ / 11); ignored elsewhere.</summary>
+        public static void TitleBar(Form f)
+        {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) return;
+            try { int on = IsDark ? 1 : 0; if (DwmSetWindowAttribute(f.Handle, 20, ref on, 4) != 0) DwmSetWindowAttribute(f.Handle, 19, ref on, 4); } catch { }
+        }
+
+        /// <summary>Draw ListView column headers in the theme (the system header ignores BackColor).</summary>
+        static void ThemeListView(ListView lv)
+        {
+            if (lv.View != View.Details || lv.OwnerDraw) return;
+            lv.OwnerDraw = true;
+            lv.DrawItem += (s, e) => { e.DrawDefault = true; };
+            lv.DrawSubItem += (s, e) => { e.DrawDefault = true; };
+            lv.DrawColumnHeader += (s, e) =>
+            {
+                using (var b = new SolidBrush(HeadBg)) e.Graphics.FillRectangle(b, e.Bounds);
+                using (var p = new Pen(Line))
+                {
+                    e.Graphics.DrawLine(p, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
+                    e.Graphics.DrawLine(p, e.Bounds.Right - 1, e.Bounds.Top + 4, e.Bounds.Right - 1, e.Bounds.Bottom - 5);
+                }
+                var r = new Rectangle(e.Bounds.X + 6, e.Bounds.Y, e.Bounds.Width - 8, e.Bounds.Height);
+                TextRenderer.DrawText(e.Graphics, (e.Header.Text ?? "").ToUpperInvariant(), Caps, r, Muted,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+            };
+        }
+
+        /// <summary>Give standard WinForms controls (text boxes, lists, combos...) the theme colours.</summary>
+        public static void ThemeTree(Control root)
+        {
+            foreach (Control c in root.Controls)
+            {
+                if (c is TextBoxBase || c is ListView || c is ListBox || c is ComboBox || c is NumericUpDown || c is DataGridView)
+                {
+                    if (c is RichTextBox && c.BackColor == LogBg) { }
+                    else { c.BackColor = Surface; c.ForeColor = Ink; }
+                    if (c is ComboBox) ((ComboBox)c).FlatStyle = FlatStyle.Flat;
+                    if (c is ListView) ThemeListView((ListView)c);
+                }
+                else if (c is CheckBox || c is RadioButton || c is GroupBox)
+                    c.ForeColor = Ink;
+                if (c.HasChildren) ThemeTree(c);
+            }
+        }
+
+        // Typography (Inter + JetBrains Mono, embedded; see Fonts.cs). Sizes are the design's px at 96 dpi.
+        public static readonly Font Base = Fonts.Make("Inter", Fonts.Px(14));                       // body 14/400
+        public static readonly Font Bold = Fonts.Make("Inter SemiBold", Fonts.Px(14));              // buttons 14/600
+        public static readonly Font Small = Fonts.Make("Inter", Fonts.Px(12));                      // secondary 12/400
+        public static readonly Font Title = Fonts.Make("Inter SemiBold", Fonts.Px(20));             // dialog titles
+        public static readonly Font Mono = Fonts.Make("JetBrains Mono", Fonts.Px(12));              // ports / PID 12/400
+        public static readonly Font H1 = Fonts.Make("Inter", Fonts.Px(28), FontStyle.Bold);         // app title 28/700
+        public static readonly Font H2 = Fonts.Make("Inter SemiBold", Fonts.Px(20));                // section headings 20/600
+        public static readonly Font Brand = Fonts.Make("Inter", Fonts.Px(22), FontStyle.Bold);      // sidebar wordmark
+        public static readonly Font Nav = Fonts.Make("Inter Medium", Fonts.Px(14));                 // sidebar 14/500
+        public static readonly Font NavBold = Fonts.Make("Inter SemiBold", Fonts.Px(14));           // active nav 14/600
+        public static readonly Font ServiceName = Fonts.Make("Inter SemiBold", Fonts.Px(15));       // service names 15/600
+        public static readonly Font Caps = Fonts.Make("Inter SemiBold", Fonts.Px(11));              // table headers 11/600
+        public static readonly Font LogFont = Fonts.Make("JetBrains Mono", Fonts.Px(12));           // activity log 12/400
 
         static float _dpi;
         /// <summary>Screen DPI (the process is DPI-aware, so this is the real value).</summary>
@@ -138,7 +215,7 @@ namespace WebHut
                 ForeColor = primary ? Color.White : Ink
             };
             b.FlatAppearance.BorderColor = primary ? Accent : Line;
-            b.FlatAppearance.MouseOverBackColor = primary ? AccentHover : Color.FromArgb(245, 241, 235);
+            b.FlatAppearance.MouseOverBackColor = primary ? AccentHover : Hover;
             if (click != null) b.Click += click;
             return b;
         }
@@ -163,6 +240,8 @@ namespace WebHut
             f.Icon = AppIcon;
             f.AutoScaleDimensions = new SizeF(96F, 96F);
             f.AutoScaleMode = AutoScaleMode.Dpi;
+            f.HandleCreated += (s, e) => TitleBar(f);
+            f.Load += (s, e) => ThemeTree(f);
         }
 
         public static void Error(IWin32Window owner, string title, string message)
@@ -228,7 +307,7 @@ namespace WebHut
         /// <summary>Small prompt dialog returning text or null.</summary>
         public static string Prompt(IWin32Window owner, string title, string label, bool password = false)
         {
-            using (var f = new Form { Text = title, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(380, 130), ShowInTaskbar = false })
+            using (var f = new Form { Text = title, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false, StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(420, 140), ShowInTaskbar = false })
             {
                 Style(f);
                 var l = Lbl(label); l.Location = new Point(14, 12);

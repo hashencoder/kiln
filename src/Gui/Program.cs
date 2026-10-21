@@ -38,6 +38,7 @@ namespace WebHut
                 Application.ThreadException += (s, e) => Fatal(e.Exception);
                 AppDomain.CurrentDomain.UnhandledException += (s, e) => Fatal(e.ExceptionObject as Exception);
 
+                Ui.ApplyTheme(Ui.WantsDark(Services.Cfg.Theme));
                 if (!Installer.IsInstalled())
                 {
                     using (var setup = new SetupForm())

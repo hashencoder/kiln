@@ -4,6 +4,23 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-10-21
+
+### Added
+- **Dark theme.** By default WebHut follows Windows' light/dark app mode and switches live when Windows does. **Settings → Appearance** can force Light or Dark, and the sidebar has a one-click **Dark mode / Light mode** switch. Title bars, dialogs, lists and inputs follow the theme too.
+
+### Changed
+- **Brand palette:**
+  - Brand orange #EA4B0C, with #C93F08 on hover; the dark-theme accent is #FF762E.
+  - Light theme: Cloud White #F6F8FB background, white surfaces.
+  - Dark theme: Midnight Slate #151C26 / #10151D.
+  - Status colours: running #16A36A, stopped #8A96A6, warning #D99516, error #DC4545, info #3284D6.
+- **Typography:**
+  - Inter for all interface text: title 28px/700, headings 20px/600, sidebar 14px/500, service names 15px/600, buttons 14px/600, body 14px, secondary text 12px, table headers 11px/600.
+  - JetBrains Mono 12px for ports, PIDs and the activity log.
+  - Both fonts are embedded in WebHut.exe (SIL OFL 1.1), so nothing needs installing.
+- Dialogs are slightly wider to fit the new type.
+
 ## [1.2.0] - 2026-10-21
 
 ### Changed
