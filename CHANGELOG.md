@@ -4,6 +4,11 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-10-21
+
+### Changed
+- **Start all** and **Stop all** are now one button. It reads "Start all" when nothing is running and "Stop all" once anything is, and shows "Starting…" or "Stopping…" while it works. The tray menu works the same way.
+
 ## [1.1.0] - 2026-10-21
 
 ### Changed
