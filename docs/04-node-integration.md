@@ -30,7 +30,7 @@ The app is also reachable directly at `http://localhost:<port>`. The Apache host
 
 ## Adding an app
 
-**Node apps… → Add…**
+**Node apps → Add…**
 
 | Field | Example | Notes |
 |---|---|---|

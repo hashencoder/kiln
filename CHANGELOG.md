@@ -4,6 +4,19 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-10-21
+
+### Changed
+- New control panel design:
+  - **Sidebar**: Dashboard, Open localhost, phpMyAdmin, www folder, Shell, Refresh sites, Node apps, Database tools and Log files, with Settings, About and Quit WebHut at the bottom.
+  - **Services table**: an icon for each service, a status pill (Running / Stopped / Starting… / Stopping…) and icon buttons for Start/Stop, Open, Logs and Config. A summary line shows how many services are running.
+  - **Quick Actions**: tiles for the everyday tasks.
+  - **Activity log**: a dark log with coloured lines, a **Clear** button and an **Auto-scroll** switch.
+- All icons are drawn by WebHut itself, so the panel looks the same on Windows 10 and 11. Sizes follow the display scaling (DPI).
+
+### Added
+- **About** shows the version and folder, and links to the project page.
+
 ## [1.1.2] - 2026-10-21
 
 ### Added

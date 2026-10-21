@@ -26,38 +26,45 @@ When `apache\` or a PHP version is missing, WebHut opens the setup window instea
 ### The panel
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ 🔥 WebHut                                             [Start all] [Quit]│
-│    C:\webhut · PHP 8.5.11 · Node 24.11.1                                │
-├──────────────────────────────────────────────────────────────────────┤
-│    Service   Details                 PID    Port                      │
-│ ●  Apache    2.4.68 · PHP 8.5.11     5120   80    [Stop] Open Logs Config │
-│ ●  MariaDB   12.3.3                  6612   3306  [Stop] Open Logs Config │
-│ ○  api       Node 24 · npm run dev   -      3000  [Start] Open Logs Config│
-├──────────────────────────────────────────────────────────────────────┤
-│ Open localhost  phpMyAdmin  www folder  Shell  Refresh sites          │
-│ Node apps…  Settings…  Logs folder                                    │
-├──────────────────────────────────────────────────────────────────────┤
-│ Activity                                                              │
-│ 10:41:02  Apache is running: http://localhost/                        │
-└──────────────────────────────────────────────────────────────────────┘
+┌────────────────┬─────────────────────────────────────────────────────────────┐
+│ 🔥 WebHut      │ WebHut                                        [▶ Start all] │
+│    v1.2.0      │ Local development environment                               │
+│                │ C:\webhut · PHP 8.5.11 · Node 24.22.0                       │
+│ ▌Dashboard     │ ┌ Services ─────────────────────────── ● All services running ┐
+│  Open localhost│ │ SERVICE  DETAILS          PID   PORT  STATUS     ACTIONS   │
+│  phpMyAdmin    │ │ Apache   2.4.69 · PHP 8.5 5120  80    ● Running  [■ Stop] Open Logs Config │
+│  www folder    │ │ MariaDB  12.3.3           6612  3306  ● Running  [■ Stop] Open Logs Config │
+│  Shell         │ │ api      Node 24 · npm…   -     3000  ● Stopped  [▶ Start] Open Logs Config│
+│  Refresh sites │ └─────────────────────────────────────────────────────────────┘
+│  Node apps     │ ┌ Quick Actions ──────────────────────────────────────────────┐
+│  Database tools│ │ Open localhost │ phpMyAdmin │ www folder │ Shell │ Refresh │ Node apps │
+│  Log files     │ └─────────────────────────────────────────────────────────────┘
+│                │ ┌ Activity ─────────────────────────── [Clear]  ◉ Auto-scroll ┐
+│  Settings      │ │ [10:41:02]  Apache is running: http://localhost/             │
+│  About         │ │ [10:41:05]  MariaDB is running on 127.0.0.1:3306             │
+│  Quit WebHut   │ └─────────────────────────────────────────────────────────────┘
+└────────────────┴─────────────────────────────────────────────────────────────┘
 ```
 
 | Control | Action |
 |---|---|
-| ● dot | Green: running. Grey: stopped. Amber: starting or stopping. Refreshed every 2 seconds. |
+| Status pill | **Running** (green), **Stopped** (grey), or **Starting… / Stopping…** (amber). Refreshed every 2 seconds. The Services header sums it up: all running, all stopped, or "1 of 2 running". |
 | **Start / Stop** | Start or stop that service. Failures show Apache's, MariaDB's or the app's own last log lines. |
 | **Open** | Apache: `http://localhost`. MariaDB: phpMyAdmin. Node app: `http://<name>.localhost`. |
 | **Logs** | Opens the service's log in Notepad (`apache-error.log`, `mariadb.err`, `node-<name>.log`) |
 | **Config** | Opens `httpd.conf`, `my.ini` or `node-apps.json` |
 | **Start all / Stop all** | One button that follows the servers' state. When nothing is running it reads **Start all**: Apache and MariaDB, plus Node apps marked *Start with "Start all"*. Once anything is running it reads **Stop all**, which stops every service, Node apps included. |
+| **Open localhost / phpMyAdmin / www folder** | In the sidebar and as Quick Actions tiles |
 | **Shell** | A console in `www\` with `php`, `node`, `npm`, `npx`, `composer`, `mariadb` and `httpd` on `PATH` |
 | **Refresh sites** | Regenerates vhosts from the folders in `www\` and restarts Apache if it's running |
-| **Node apps…** | Add, edit and remove Node apps ([04](04-node-integration.md)) |
-| **Database…** | Backups (automatic and manual), restore, rebuild from backup, and **Import from XAMPP…** ([11](11-databases.md)) |
-| **Settings…** | See below |
-| **Quit** | Fully closes WebHut. If servers are running, it asks whether to stop them first or leave them running in the background. |
-| Tray icon | Closing the window (X) keeps WebHut in the tray (configurable). Right-click for Start all (or Stop all when servers are running), Open localhost and Exit. **Exit** asks whether to stop the servers or leave them running. |
+| **Node apps** | Add, edit and remove Node apps ([04](04-node-integration.md)) |
+| **Database tools** | Backups (automatic and manual), restore, rebuild from backup, and **Import from XAMPP…** ([11](11-databases.md)) |
+| **Log files** | Opens the `logs\` folder |
+| **Activity** | Everything WebHut does, newest at the bottom. **Clear** empties the view (not the log file); **Auto-scroll** keeps the newest line in view. |
+| **Settings** | See below |
+| **About** | Version, folder, and a link to the project page |
+| **Quit WebHut** | Fully closes WebHut. If servers are running, it asks whether to stop them first or leave them running in the background. |
+| Tray icon | Closing the window (X) keeps WebHut in the tray (configurable). Right-click for Start all (or Stop all when servers are running), Open localhost and Quit WebHut. |
 
 If MariaDB fails to start and backups exist, WebHut offers to rebuild it from the newest one (the damaged folder is kept). When Windows shuts down or you log off, WebHut stops MariaDB cleanly first, so a shutdown never needs crash recovery.
 

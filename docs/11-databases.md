@@ -23,7 +23,7 @@ What none of this can do is protect against a dying disk. Copy `data\backups\` s
 
 ## Backups
 
-Open **Database…** in the panel.
+Open **Database tools** in the panel.
 
 | Control | |
 |---|---|
@@ -39,11 +39,11 @@ What's in a backup:
 - Because MariaDB's own user tables aren't included, restoring a backup never changes your root password or other users.
 - The files are standard. You can restore them anywhere: `gunzip -c file.sql.gz | mariadb -u root`, or import them in phpMyAdmin (it accepts `.sql.gz`).
 
-When MariaDB fails to start, WebHut asks right away whether to rebuild from the newest backup. You can also do it any time from **Database… → Rebuild from backup…**, or with `whut rebuild-db`.
+When MariaDB fails to start, WebHut asks right away whether to rebuild from the newest backup. You can also do it any time from **Database tools → Rebuild from backup…**, or with `whut rebuild-db`.
 
 ## Moving from XAMPP
 
-**Database… → Import from XAMPP…** copies your XAMPP databases, and optionally your `htdocs` projects, into WebHut. XAMPP isn't changed: nothing is moved or deleted, so you can keep using it until you're happy with WebHut.
+**Database tools → Import from XAMPP…** copies your XAMPP databases, and optionally your `htdocs` projects, into WebHut. XAMPP isn't changed: nothing is moved or deleted, so you can keep using it until you're happy with WebHut.
 
 1. **Stop MySQL in the XAMPP Control Panel.** WebHut needs XAMPP's data files to itself for a moment.
 2. Open **Import from XAMPP…**. WebHut finds `C:\xampp` (or any `X:\xampp`) automatically; use **Browse…** for another location.
