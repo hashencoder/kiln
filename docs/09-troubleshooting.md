@@ -50,7 +50,7 @@ Or avoid the conflict: **Settings → HTTP port → 8080**. Sites are then at `h
 | Symptom | Fix |
 |---|---|
 | "Port 3306 is already in use by mysqld.exe / mariadbd.exe" | Another MySQL or MariaDB (an old XAMPP, or a MySQL service) is running. Stop it (`services.msc`), or set WebHut's MySQL port to 3307. |
-| MariaDB won't start after a power cut or crash (`mariadb.err` mentions corruption or a failed recovery) | WebHut offers **Rebuild from backup** right away (or use **Database… → Rebuild from backup…**, or `whut rebuild-db`). The damaged folder is kept as `data\mariadb-damaged-<date>`. If you need changes newer than the last backup, see [11](11-databases.md#when-xampps-mysql-is-the-one-that-crashed): the same recovery modes apply to `data\mariadb-damaged-*`. |
+| MariaDB won't start after a power cut or crash (`mariadb.err` mentions corruption or a failed recovery) | WebHut offers **Rebuild from backup** right away (or use **Database tools → Rebuild from backup…**, or `whut rebuild-db`). The damaged folder is kept as `data\mariadb-damaged-<date>`. If you need changes newer than the last backup, see [11](11-databases.md#when-xampps-mysql-is-the-one-that-crashed): the same recovery modes apply to `data\mariadb-damaged-*`. |
 | "Access denied for user 'root'" when stopping | `mysqlRootPassword` in `webhut.json` doesn't match the real password. Fix it there; WebHut falls back to ending the process in the meantime. |
 | XAMPP import: "XAMPP's MySQL is running" | Stop MySQL in the XAMPP Control Panel first. Both would use the same files. |
 | XAMPP import: "XAMPP's MySQL didn't start" | Tick **XAMPP's MySQL is damaged** and scan again ([11](11-databases.md#when-xampps-mysql-is-the-one-that-crashed)) |

@@ -46,11 +46,11 @@ Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistribut
 | | |
 |---|---|
 | Your PHP sites | Create `C:\webhut\www\blog`, click **Refresh sites**, then open `http://blog.localhost` |
-| Your Node apps | **Node apps… → Add**, choose the folder and command, then click **Start** and open `http://<name>.localhost` |
+| Your Node apps | **Node apps → Add**, choose the folder and command, then click **Start** and open `http://<name>.localhost` |
 | Database | `127.0.0.1:3306`, user `root`, no password by default (set one in **Settings**) |
 | phpMyAdmin | `http://localhost/phpmyadmin` |
-| Coming from XAMPP | Stop MySQL in XAMPP, then **Database… → Import from XAMPP…** ([docs/11](docs/11-databases.md#moving-from-xampp)) |
-| Backups | Automatic every 2 hours and before each stop; restore or rebuild in **Database…** |
+| Coming from XAMPP | Stop MySQL in XAMPP, then **Database tools → Import from XAMPP…** ([docs/11](docs/11-databases.md#moving-from-xampp)) |
+| Backups | Automatic every 2 hours and before each stop; restore or rebuild in **Database tools** |
 | Terminal | **Shell** opens a console with `php`, `node`, `npm`, `npx`, `composer` and `mariadb` on `PATH` |
 | Command line | `whut status`, `whut start`, `whut php 8.4` and more ([docs/06](docs/06-control-panel.md#whut)) |
 

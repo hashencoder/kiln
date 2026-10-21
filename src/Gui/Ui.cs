@@ -20,12 +20,53 @@ namespace WebHut
         public static readonly Color Amber = Color.FromArgb(217, 119, 6);
         public static readonly Color Red = Color.FromArgb(220, 38, 38);
         public static readonly Color Grey = Color.FromArgb(168, 162, 158);
+        public static readonly Color Sidebar = Color.FromArgb(252, 246, 240);
+        public static readonly Color Hover = Color.FromArgb(247, 240, 233);
+        public static readonly Color TileHover = Color.FromArgb(255, 250, 246);
+        public static readonly Color AccentSoft = Color.FromArgb(254, 232, 216);
+        public static readonly Color AccentSoftLine = Color.FromArgb(251, 191, 150);
+        public static readonly Color GreenSoft = Color.FromArgb(220, 252, 231);
+        public static readonly Color AmberSoft = Color.FromArgb(254, 243, 199);
+        public static readonly Color RedSoft = Color.FromArgb(254, 226, 226);
+        public static readonly Color GreySoft = Color.FromArgb(241, 238, 234);
+        public static readonly Color NavInk = Color.FromArgb(87, 83, 78);
+        public static readonly Color HeadBg = Color.FromArgb(250, 247, 243);
+        public static readonly Color LogBg = Color.FromArgb(28, 27, 31);
+        public static readonly Color LogInk = Color.FromArgb(228, 228, 231);
+        public static readonly Color LogTime = Color.FromArgb(150, 147, 160);
+        public static readonly Color LogGreen = Color.FromArgb(74, 222, 128);
+        public static readonly Color LogAmber = Color.FromArgb(251, 191, 36);
+        public static readonly Color LogRed = Color.FromArgb(248, 113, 113);
 
         public static readonly Font Base = new Font("Segoe UI", 9.75f);
         public static readonly Font Bold = new Font("Segoe UI Semibold", 9.75f);
         public static readonly Font Small = new Font("Segoe UI", 8.75f);
         public static readonly Font Title = new Font("Segoe UI Semibold", 17f);
         public static readonly Font Mono = new Font("Consolas", 9f);
+        public static readonly Font H1 = new Font("Segoe UI Semibold", 24f);
+        public static readonly Font H2 = new Font("Segoe UI Semibold", 13f);
+        public static readonly Font Brand = new Font("Segoe UI Semibold", 15f);
+        public static readonly Font Nav = new Font("Segoe UI", 10.5f);
+        public static readonly Font NavBold = new Font("Segoe UI Semibold", 10.5f);
+        public static readonly Font Caps = new Font("Segoe UI Semibold", 8.25f);
+        public static readonly Font LogFont = new Font("Consolas", 10f);
+
+        static float _dpi;
+        /// <summary>Screen DPI (the process is DPI-aware, so this is the real value).</summary>
+        public static float Dpi
+        {
+            get
+            {
+                if (_dpi <= 0)
+                {
+                    try { using (var g = Graphics.FromHwnd(IntPtr.Zero)) _dpi = g.DpiX; } catch { }
+                    if (_dpi <= 0) _dpi = 96;
+                }
+                return _dpi;
+            }
+        }
+        /// <summary>A 96-dpi length in physical pixels.</summary>
+        public static int Px(float v) { return (int)Math.Round(v * Dpi / 96f); }
 
         static Icon _icon;
         public static Icon AppIcon
@@ -144,6 +185,30 @@ namespace WebHut
             box.SelectionColor = Ink;
             if (box.Lines.Length > 2000) { box.Select(0, box.GetFirstCharIndexFromLine(500)); box.SelectedText = ""; }
             box.ScrollToCaret();
+        }
+
+        /// <summary>Append to the dark activity log: grey [time], then the message coloured by kind.</summary>
+        public static void AppendDarkLog(RichTextBox box, string line, bool scroll)
+        {
+            if (box.IsDisposed) return;
+            if (box.InvokeRequired) { try { box.BeginInvoke(new Action(() => AppendDarkLog(box, line, scroll))); } catch { } return; }
+            string time = line.Length > 8 && line[2] == ':' && line[5] == ':' ? line.Substring(0, 8) : null;
+            string msg = time != null ? line.Substring(8).TrimStart() : line;
+            Color c = LogInk;
+            if (msg.StartsWith("ERROR:")) c = LogRed;
+            else if (msg.StartsWith("WARN:")) c = LogAmber;
+            else if (msg.Contains(" is running") || msg.StartsWith("Setup complete") || msg.StartsWith("WebHut ") || msg.Contains(" stopped") || msg.StartsWith("Installed ") || msg.Contains("Backup saved")) c = LogGreen;
+            box.SelectionStart = box.TextLength;
+            box.SelectionLength = 0;
+            if (time != null)
+            {
+                box.SelectionColor = LogTime;
+                box.AppendText("[" + time + "]  ");
+            }
+            box.SelectionColor = c;
+            box.AppendText(msg + Environment.NewLine);
+            if (box.Lines.Length > 2000) { box.Select(0, box.GetFirstCharIndexFromLine(500)); box.SelectedText = ""; }
+            if (scroll) { box.SelectionStart = box.TextLength; box.ScrollToCaret(); }
         }
 
         public static RichTextBox LogBox()

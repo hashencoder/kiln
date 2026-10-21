@@ -49,7 +49,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | `minimizeToTray` | Closing the window hides WebHut to the tray instead of exiting |
 | `lastRoot` | Where the folder was last time; used to fix `php.ini` paths after a move. Don't edit. |
 | `lanAccess` | Let devices on your local network open the sites ([08](08-security.md#opening-webhut-to-your-lan-for-testing-on-a-phone)). Set in **Settings → Network**. |
-| `autoBackup`, `backupEveryHours`, `backupKeep` | Automatic database backups ([11](11-databases.md#backups)). Set in **Database…** |
+| `autoBackup`, `backupEveryHours`, `backupKeep` | Automatic database backups ([11](11-databases.md#backups)). Set in **Database tools** |
 | `manifestUrl` | Optional URL of a `versions.json` that pins component versions (below). Empty means the maintainer default. |
 
 ## node-apps.json

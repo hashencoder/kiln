@@ -15,11 +15,11 @@ WEBHUT - portable Apache + PHP + MariaDB + Node.js for Windows
 
 Your projects:   put them in www\<name>  ->  http://<name>.localhost
                  (click "Refresh sites" after adding a folder)
-Node apps:       WebHut -> Node apps... -> Add
+Node apps:       WebHut -> Node apps -> Add
 Database:        127.0.0.1:3306, user root, empty password by default
 Backups:         automatic every 2 hours and before stopping (data\backups);
-                 WebHut -> Database... to restore or rebuild after a crash
-From XAMPP:      stop MySQL in XAMPP, then WebHut -> Database... -> Import from XAMPP
+                 WebHut -> Database tools to restore or rebuild after a crash
+From XAMPP:      stop MySQL in XAMPP, then WebHut -> Database tools -> Import from XAMPP
 phpMyAdmin:      http://localhost/phpmyadmin
 Terminal:        WebHut -> Shell (php, node, npm, composer, mariadb on PATH)
 Command line:    whut status | start | stop | restart | sites | php 8.4
