@@ -16,7 +16,7 @@ namespace WebHut
     public static class K
     {
         public const string AppName = "WebHut";
-        public const string AppVersion = "1.0.0";
+        public const string AppVersion = "1.0.1";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
         // repo so every WebHut install can pick up pinned versions you publish,
@@ -475,8 +475,16 @@ namespace WebHut
 
         public static void EnableModernTls()
         {
-            try { ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12; } catch { }
-            try { ServicePointManager.SecurityProtocol |= (SecurityProtocolType)12288; } catch { } // TLS 1.3 where the OS supports it
+            // WebHutPanel.exe.config opts into SystemDefault (0): Windows then picks TLS 1.2/1.3 itself.
+            // Never force TLS 1.3: on Windows 10 SChannel has no TLS 1.3 client, and naming it
+            // explicitly makes every HTTPS request fail ("The function requested is not supported").
+            try
+            {
+                var p = ServicePointManager.SecurityProtocol;
+                if (p != 0 && (p & SecurityProtocolType.Tls12) == 0)
+                    ServicePointManager.SecurityProtocol = p | SecurityProtocolType.Tls12;
+            }
+            catch { }
         }
 
         /// <summary>Best-effort Windows time zone -> IANA name for php.ini.</summary>

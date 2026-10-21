@@ -29,7 +29,11 @@ namespace WebHut
                 catch (Exception e) { return new Component { Name = "?", Error = e.Message }; }
             })).ToArray();
             Task.WaitAll(tasks);
-            return tasks.Select(t => t.Result).ToList();
+            var list = tasks.Select(t => t.Result).ToList();
+            foreach (var c in list)
+                if (c.Error != null) Log.Warn("Setup lookup - " + c.Name + ": " + c.Error);
+                else Log.Info("Setup lookup - " + c.Name + " " + c.Version + " (" + c.Url + ")");
+            return list;
         }
 
         /// <summary>Install the selected components, write config, initialise MariaDB.</summary>

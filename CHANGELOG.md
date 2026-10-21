@@ -4,6 +4,14 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-10-21
+
+### Fixed
+- Setup couldn't find any components on Windows 10: WebHut forced TLS 1.3, which Windows 10 doesn't support, so every download lookup failed. WebHut now lets Windows choose the TLS version.
+
+### Changed
+- Setup writes each component lookup (version found, or the reason it failed) to `logs\webhut.log`.
+
 ## [1.0.0] - 2026-10-21
 
 ### Added
