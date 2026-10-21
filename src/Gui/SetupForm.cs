@@ -149,7 +149,7 @@ namespace WebHut
                 if (IsDisposed) return;
                 _bar.Style = ProgressBarStyle.Continuous;
                 _retryBtn.Enabled = true;
-                if (t.IsFaulted) { _status.Text = "Lookup failed: " + t.Exception.GetBaseException().Message; return; }
+                if (t.IsFaulted) { Log.Error("Setup lookup failed: " + t.Exception.GetBaseException()); _status.Text = "Lookup failed: " + t.Exception.GetBaseException().Message; return; }
                 _components = t.Result;
                 foreach (var c in _components)
                 {
