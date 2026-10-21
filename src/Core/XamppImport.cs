@@ -7,15 +7,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Kiln
+namespace WebHut
 {
     /// <summary>
-    /// Copies databases (and optionally htdocs projects) from an XAMPP install into Kiln.
+    /// Copies databases (and optionally htdocs projects) from an XAMPP install into WebHut.
     ///
     /// How: XAMPP's own mysqld is started temporarily on a private port with --skip-grant-tables
-    /// (so XAMPP's root password doesn't matter), its databases are dumped with Kiln's mariadb-dump,
-    /// the temporary server is stopped, and the dump is loaded into Kiln's MariaDB. This is a logical
-    /// copy, so it works across MariaDB versions (XAMPP ships 10.4; Kiln 12.x). XAMPP's files are only
+    /// (so XAMPP's root password doesn't matter), its databases are dumped with WebHut's mariadb-dump,
+    /// the temporary server is stopped, and the dump is loaded into WebHut's MariaDB. This is a logical
+    /// copy, so it works across MariaDB versions (XAMPP ships 10.4; WebHut 12.x). XAMPP's files are only
     /// opened by XAMPP's own server, exactly as XAMPP itself would; nothing is moved or deleted.
     /// </summary>
     public class XamppImport : IDisposable
@@ -155,7 +155,7 @@ namespace Kiln
         Sys.RunResult Client(string exeNames, string args, int timeoutMs)
         {
             var exe = Installer.MariaExe(exeNames.Split('|'));
-            if (exe == null) throw new FileNotFoundException("Kiln's MariaDB client tools are missing. Install MariaDB first.");
+            if (exe == null) throw new FileNotFoundException("WebHut's MariaDB client tools are missing. Install MariaDB first.");
             var env = Services.Env();
             env["MYSQL_PWD"] = "";
             return Sys.Run(exe, "--protocol=TCP -h 127.0.0.1 -P " + _port + " -u root " + args, env, timeoutMs, K.MariaDbBin);
@@ -202,21 +202,21 @@ namespace Kiln
 
         public void Dispose() { StopServer(); }
 
-        // ------------------------------------------------------------------ into Kiln
+        // ------------------------------------------------------------------ into WebHut
 
-        /// <summary>Load a dump into Kiln's MariaDB (which must be running).</summary>
-        public void ImportIntoKiln(KilnConfig cfg, string dumpFile)
+        /// <summary>Load a dump into WebHut's MariaDB (which must be running).</summary>
+        public void ImportIntoWebHut(WebHutConfig cfg, string dumpFile)
         {
             if (!Services.MariaDb.IsRunning) Services.MariaDb.Start();
-            // Safety net: back up Kiln's current databases before overwriting anything.
+            // Safety net: back up WebHut's current databases before overwriting anything.
             try { Backup.Create(cfg, "before XAMPP import"); } catch (Exception e) { Log.Warn("Pre-import backup skipped: " + e.Message); }
-            Report("Loading databases into Kiln...");
+            Report("Loading databases into WebHut...");
             var exe = Installer.MariaExe("mariadb.exe", "mysql.exe");
             var env = Services.Env();
             env["MYSQL_PWD"] = cfg.MysqlRootPassword ?? "";
             var r = Sys.Run(exe, "--protocol=TCP -h 127.0.0.1 -P " + cfg.MysqlPort + " -u root --default-character-set=utf8mb4 -e \"source " + K.Fwd(dumpFile) + "\"",
                 env, 2 * 60 * 60 * 1000, K.MariaDbBin);
-            if (r.ExitCode != 0) throw new Exception("Loading into Kiln failed:\n" + r.Output.Trim());
+            if (r.ExitCode != 0) throw new Exception("Loading into WebHut failed:\n" + r.Output.Trim());
         }
 
         /// <summary>Copy htdocs projects into www\. Existing folders in www\ are skipped, never overwritten.</summary>
@@ -244,8 +244,8 @@ namespace Kiln
             foreach (var d in Directory.GetDirectories(src)) CopyDir(d, Path.Combine(dest, Path.GetFileName(d)));
         }
 
-        /// <summary>Whole import in one call (used by kilnctl and the import window).</summary>
-        public void Run(KilnConfig cfg, List<string> dbs, bool allowRecovery, IEnumerable<string> projects)
+        /// <summary>Whole import in one call (used by webhut and the import window).</summary>
+        public void Run(WebHutConfig cfg, List<string> dbs, bool allowRecovery, IEnumerable<string> projects)
         {
             if (dbs != null && dbs.Count > 0)
             {
@@ -253,7 +253,7 @@ namespace Kiln
                 StartServerWithRecovery(allowRecovery);
                 try { dump = Dump(dbs); }
                 finally { StopServer(); }
-                try { ImportIntoKiln(cfg, dump); }
+                try { ImportIntoWebHut(cfg, dump); }
                 finally { try { File.Delete(dump); } catch { } }
                 Report("Imported databases: " + string.Join(", ", dbs));
             }

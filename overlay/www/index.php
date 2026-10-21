@@ -1,6 +1,6 @@
 <?php
 /**
- * Kiln dashboard - shown at http://localhost
+ * WebHut dashboard - shown at http://localhost
  * Lists your sites (folders in www\) and Node apps. Safe to replace.
  */
 declare(strict_types=1);
@@ -10,7 +10,7 @@ if (isset($_GET['phpinfo'])) {
     exit;
 }
 
-$root = $_SERVER['KILN_ROOT'] ?? dirname(__DIR__);
+$root = $_SERVER['WEBHUT_ROOT'] ?? dirname(__DIR__);
 $port = (int)($_SERVER['SERVER_PORT'] ?? 80);
 $suffix = $port === 80 ? '' : ':' . $port;
 
@@ -33,8 +33,8 @@ foreach (scandir(__DIR__) ?: [] as $entry) {
 }
 
 // Network access (Settings -> "Allow access from other devices on my network")
-$lanOn = isset($_SERVER['KILN_LAN_IPS']);
-$lanIps = array_values(array_filter(explode(',', (string)($_SERVER['KILN_LAN_IPS'] ?? '')),
+$lanOn = isset($_SERVER['WEBHUT_LAN_IPS']);
+$lanIps = array_values(array_filter(explode(',', (string)($_SERVER['WEBHUT_LAN_IPS'] ?? '')),
     fn($ip) => (bool)filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)));
 
 $nodeApps = [];
@@ -46,7 +46,7 @@ if (is_file($appsFile)) {
 
 $db = 'not reachable';
 try {
-    $mysqli = @new mysqli('127.0.0.1', 'root', '', '', (int)($_SERVER['KILN_MYSQL_PORT'] ?? 3306));
+    $mysqli = @new mysqli('127.0.0.1', 'root', '', '', (int)($_SERVER['WEBHUT_MYSQL_PORT'] ?? 3306));
     $db = 'MariaDB ' . $mysqli->server_info;
     $mysqli->close();
 } catch (Throwable $e) {
@@ -60,7 +60,7 @@ try {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kiln</title>
+<title>WebHut</title>
 <style>
   :root { --bg:#faf8f5; --card:#fff; --ink:#1f1d1a; --muted:#6b655d; --line:#e7e1d8; --accent:#c2410c; }
   @media (prefers-color-scheme: dark) {
@@ -87,7 +87,7 @@ try {
 </head>
 <body>
 <main>
-  <h1><span>Kiln</span> is running</h1>
+  <h1><span>WebHut</span> is running</h1>
   <p class="sub">Local development stack for Windows</p>
 
   <div class="grid">
@@ -112,7 +112,7 @@ try {
 
   <h2>Sites in www\</h2>
   <?php if (!$sites): ?>
-    <p class="muted">No sites yet. Create a folder such as <code>www\blog</code>, click "Refresh sites" in Kiln, then open <code>http://blog.localhost<?= h($suffix) ?></code>.</p>
+    <p class="muted">No sites yet. Create a folder such as <code>www\blog</code>, click "Refresh sites" in WebHut, then open <code>http://blog.localhost<?= h($suffix) ?></code>.</p>
   <?php else: ?>
     <ul>
     <?php foreach ($sites as $s): ?>
@@ -131,7 +131,7 @@ try {
 
   <h2>Node apps</h2>
   <?php if (!$nodeApps): ?>
-    <p class="muted">No Node apps registered. Add one from Kiln → Node apps.</p>
+    <p class="muted">No Node apps registered. Add one from WebHut → Node apps.</p>
   <?php else: ?>
     <ul>
     <?php foreach ($nodeApps as $app): $name = (string)($app['name'] ?? ''); ?>

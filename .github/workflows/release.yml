@@ -1,4 +1,4 @@
-# Builds Kiln on Windows and attaches the zip to a GitHub release.
+# Builds WebHut on Windows and attaches the zip to a GitHub release.
 # Trigger either way:
 #   - push a tag like v1.0.0  (git tag v1.0.0 && git push origin v1.0.0), or
 #   - publish a release on GitHub (Releases > Draft a new release, tag v1.0.0)
@@ -32,24 +32,24 @@ jobs:
         shell: pwsh
         run: ./build/build.ps1 -Package -Version ${{ steps.ver.outputs.version }}
 
-      - name: Smoke test kilnctl
+      - name: Smoke test webhut
         shell: pwsh
         run: |
-          ./dist/kilnctl.exe version
-          ./dist/kilnctl.exe help
+          ./dist/webhut.exe version
+          ./dist/webhut.exe help
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Kiln-${{ steps.ver.outputs.version }}-win64
+          name: WebHut-${{ steps.ver.outputs.version }}-win64
           path: |
-            dist/Kiln-*-win64.zip
-            dist/Kiln-*-win64.zip.sha256
+            dist/WebHut-*-win64.zip
+            dist/WebHut-*-win64.zip.sha256
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/Kiln-*-win64.zip
-            dist/Kiln-*-win64.zip.sha256
+            dist/WebHut-*-win64.zip
+            dist/WebHut-*-win64.zip.sha256
           generate_release_notes: true

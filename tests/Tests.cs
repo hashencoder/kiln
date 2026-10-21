@@ -1,4 +1,4 @@
-// Logic tests for Kiln's platform-independent parts. Run with Mono:
+// Logic tests for WebHut's platform-independent parts. Run with Mono:
 //   ./tests/run.sh
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading;
-using Kiln;
+using WebHut;
 
 static class Tests
 {
@@ -25,13 +25,13 @@ static class Tests
 
         // ---------------------------------------------------------------- JSON + config
         Console.WriteLine("JSON / config");
-        var cfg = new KilnConfig { Php = "8.5", Node = "24", HttpPort = 8080, MysqlPort = 3307, MysqlRootPassword = "p\"w", StartOnLaunch = true };
+        var cfg = new WebHutConfig { Php = "8.5", Node = "24", HttpPort = 8080, MysqlPort = 3307, MysqlRootPassword = "p\"w", StartOnLaunch = true };
         cfg.Save();
-        var loaded = KilnConfig.Load();
+        var loaded = WebHutConfig.Load();
         Check(loaded.HttpPort == 8080 && loaded.MysqlPort == 3307, "config ports round-trip");
         Check(loaded.MysqlRootPassword == "p\"w", "config password with quote round-trips");
         Check(loaded.StartOnLaunch && loaded.MinimizeToTray, "config booleans round-trip");
-        Check(File.ReadAllText(K.ConfigFile).Contains("\n  \"httpPort\": 8080"), "kiln.json is pretty-printed");
+        Check(File.ReadAllText(K.ConfigFile).Contains("\n  \"httpPort\": 8080"), "webhut.json is pretty-printed");
 
         var apps = new List<NodeApp>
         {
@@ -45,9 +45,9 @@ static class Tests
         Check(!NodeApp.NameRule.IsMatch("My App") && !NodeApp.NameRule.IsMatch("-x") && NodeApp.NameRule.IsMatch("my-app2"), "app name rule");
 
         // ---------------------------------------------------------------- versions
-        Check(KilnConfig.VersionKey("2.4.68 (VS18)") == new Version(2, 4, 68), "VersionKey parses Apache label");
-        Check(KilnConfig.VersionKey("8.5.11") > KilnConfig.VersionKey("8.5.9"), "VersionKey orders patch numbers numerically");
-        Check(KilnConfig.VersionKey("24") == new Version(24, 0), "VersionKey handles a bare major");
+        Check(WebHutConfig.VersionKey("2.4.68 (VS18)") == new Version(2, 4, 68), "VersionKey parses Apache label");
+        Check(WebHutConfig.VersionKey("8.5.11") > WebHutConfig.VersionKey("8.5.9"), "VersionKey orders patch numbers numerically");
+        Check(WebHutConfig.VersionKey("24") == new Version(24, 0), "VersionKey handles a bare major");
 
         // ---------------------------------------------------------------- config files
         Console.WriteLine("Config files");
@@ -55,7 +55,7 @@ static class Tests
         inst.CreateFolders();
         inst.WriteConfigFiles(true);
         string httpd = File.ReadAllText(K.HttpdConf);
-        Check(httpd.Contains("Listen 127.0.0.1:${KILN_HTTP_PORT}"), "httpd.conf written from embedded overlay");
+        Check(httpd.Contains("Listen 127.0.0.1:${WEBHUT_HTTP_PORT}"), "httpd.conf written from embedded overlay");
         Check(httpd.Contains("\r\n"), "config files use Windows line endings");
         Check(File.Exists(K.MyIni) && File.Exists(Path.Combine(K.ApacheConf, "php-mod.conf")), "my.ini and php-mod.conf written");
         Check(File.Exists(Path.Combine(K.Www, "index.php")), "dashboard written to empty www");
@@ -101,8 +101,8 @@ static class Tests
         File.WriteAllText(Path.Combine(K.ApacheConf, "custom", "legacy.conf"), "# custom");
         Vhosts.Write(loaded);
         string sites = File.ReadAllText(Path.Combine(K.ApacheConf, "generated", "sites.conf"));
-        Check(sites.Contains("ServerName blog.localhost") && sites.Contains("${KILN_ROOT}/www/blog/public\""), "site with public/ uses it as DocumentRoot");
-        Check(sites.Contains("ServerName shop.localhost") && sites.Contains("${KILN_ROOT}/www/Shop\""), "uppercase folder -> lowercase host, real path kept");
+        Check(sites.Contains("ServerName blog.localhost") && sites.Contains("${WEBHUT_ROOT}/www/blog/public\""), "site with public/ uses it as DocumentRoot");
+        Check(sites.Contains("ServerName shop.localhost") && sites.Contains("${WEBHUT_ROOT}/www/Shop\""), "uppercase folder -> lowercase host, real path kept");
         Check(!sites.Contains("my site"), "folder with a space is skipped");
         Check(!sites.Contains("ServerName api.localhost"), "folder named like a Node app is left to the Node vhost");
         Check(!sites.Contains("legacy.localhost"), "folder with custom/<name>.conf is not generated");
@@ -113,17 +113,17 @@ static class Tests
         Services.Cfg = loaded;
         loaded.Php = "8.5"; loaded.HttpPort = 8080;
         string a = Services.Apache.Args();
-        Check(a.Contains("-C \"Define KILN_ROOT " + K.RootFwd + "\"") && a.Contains("Define PHP_DIR " + K.Fwd(phpDir)) && a.Contains("Define KILN_HTTP_PORT 8080"),
+        Check(a.Contains("-C \"Define WEBHUT_ROOT " + K.RootFwd + "\"") && a.Contains("Define PHP_DIR " + K.Fwd(phpDir)) && a.Contains("Define WEBHUT_HTTP_PORT 8080"),
               "Apache command line defines root, PHP dir and port", a);
-        Check(!a.Contains("KILN_LAN"), "network access is off by default");
+        Check(!a.Contains("WEBHUT_LAN"), "network access is off by default");
         loaded.LanAccess = true;
         string lanArgs = Services.Apache.Args();
-        Check(lanArgs.Contains("-C \"Define KILN_LAN 1\"") && lanArgs.Contains("Define KILN_LAN_IPS "), "network access passes KILN_LAN and the PC's addresses", lanArgs);
+        Check(lanArgs.Contains("-C \"Define WEBHUT_LAN 1\"") && lanArgs.Contains("Define WEBHUT_LAN_IPS "), "network access passes WEBHUT_LAN and the PC's addresses", lanArgs);
         loaded.LanAccess = false;
-        Check(nodeConf.Contains("ServerAlias api.test api.*.nip.io") && nodeConf.Contains("<IfDefine KILN_LAN>") && nodeConf.Contains("Require local"),
+        Check(nodeConf.Contains("ServerAlias api.test api.*.nip.io") && nodeConf.Contains("<IfDefine WEBHUT_LAN>") && nodeConf.Contains("Require local"),
               "vhosts carry nip.io aliases and both access rules");
         var env = Services.Env();
-        Check(env["KILN_ROOT"] == K.RootFwd && env["PATH"].StartsWith(phpDir), "child environment puts PHP first on PATH");
+        Check(env["WEBHUT_ROOT"] == K.RootFwd && env["PATH"].StartsWith(phpDir), "child environment puts PHP first on PATH");
 
         // ---------------------------------------------------------------- zips
         Console.WriteLine("Unpacking");
@@ -148,16 +148,16 @@ static class Tests
         Check(File.Exists(Path.Combine(t3, "bin", "httpd.exe")), "Apache24 folder picked out of the Apache Lounge zip");
 
         // ---------------------------------------------------------------- relocation
-        loaded.LastRoot = "D:/old/kiln";
-        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  kiln-root: d:/OLD/kiln\nerror_log = \"D:/old/kiln/logs/php_errors.log\"");
+        loaded.LastRoot = "D:/old/webhut";
+        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  webhut-root: d:/OLD/webhut\nerror_log = \"D:/old/webhut/logs/php_errors.log\"");
         File.WriteAllText(Path.Combine(phpDir, "php.exe"), "");
         inst.RelocateIfMoved();
         string moved = File.ReadAllText(Path.Combine(phpDir, "php.ini"));
         Check(moved.Contains(K.RootFwd + "/logs/php_errors.log") && !moved.ToLowerInvariant().Contains("d:/old"), "moving the folder rewrites php.ini paths (case-insensitive)", moved);
-        Check(KilnConfig.Load().LastRoot == K.RootFwd, "new root remembered");
-        // Bundle case: no lastRoot in kiln.json, only the php.ini marker
+        Check(WebHutConfig.Load().LastRoot == K.RootFwd, "new root remembered");
+        // Bundle case: no lastRoot in webhut.json, only the php.ini marker
         loaded.LastRoot = "";
-        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  kiln-root: E:/bundle/kiln\nextension_dir = \"E:/bundle/kiln/php/8.5/ext\"");
+        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  webhut-root: E:/bundle/webhut\nextension_dir = \"E:/bundle/webhut/php/8.5/ext\"");
         inst.RelocateIfMoved();
         Check(File.ReadAllText(Path.Combine(phpDir, "php.ini")).Contains(K.RootFwd + "/php/8.5/ext"), "relocation works from the php.ini marker alone");
 
@@ -233,10 +233,10 @@ static class Tests
         File.WriteAllText(plain, string.Join("\n", Enumerable.Range(0, 2000).Select(i => "INSERT INTO t VALUES (" + i + ");")));
         Backup.Gzip(plain, packed); Backup.Gunzip(packed, back);
         Check(File.ReadAllText(back) == File.ReadAllText(plain) && new FileInfo(packed).Length < new FileInfo(plain).Length / 3, "gzip round-trip and compression");
-        var cfgB = KilnConfig.Load();
+        var cfgB = WebHutConfig.Load();
         Check(cfgB.AutoBackup && cfgB.BackupEveryHours == 2 && cfgB.BackupKeep == 10, "backup settings default on (2 h, keep 10)");
         cfgB.AutoBackup = false; cfgB.BackupEveryHours = 6; cfgB.Save();
-        var cfgB2 = KilnConfig.Load();
+        var cfgB2 = WebHutConfig.Load();
         Check(!cfgB2.AutoBackup && cfgB2.BackupEveryHours == 6, "backup settings round-trip");
         cfgB2.AutoBackup = true; cfgB2.BackupEveryHours = 2; cfgB2.Save();
         string myIni = File.ReadAllText(K.MyIni);
@@ -281,7 +281,7 @@ static class Tests
             var c2 = new Component { Id = "php", Name = "PHP", Branch = "8.3", Version = "8.3.30", Url = good.Url, FileName = "payload.zip", Sha256 = good.Sha256 };
             inst.Install(c2, CancellationToken.None);
             Check(File.Exists(Path.Combine(K.PhpDir("8.3"), "php.exe")) && File.Exists(Path.Combine(K.PhpDir("8.3"), "php.ini")) &&
-                  KilnConfig.FullVersion(K.PhpDir("8.3")) == "8.3.30", "Install(php) end to end: unpack, php.ini, version file");
+                  WebHutConfig.FullVersion(K.PhpDir("8.3")) == "8.3.30", "Install(php) end to end: unpack, php.ini, version file");
         }
 
         Console.WriteLine();

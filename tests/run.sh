@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Runs Kiln's logic tests under Mono in a throwaway folder.
+# Runs WebHut's logic tests under Mono in a throwaway folder.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-WORK="${TMPDIR:-/tmp}/kiln-test-$$"
+WORK="${TMPDIR:-/tmp}/webhut-test-$$"
 mkdir -p "$WORK/served"
-cp dist/kilnctl.exe "$WORK/"
-mcs -langversion:7.2 -target:exe -out:"$WORK/Tests.exe" -r:"$WORK/kilnctl.exe" \
+cp dist/webhut.exe "$WORK/"
+mcs -langversion:7.2 -target:exe -out:"$WORK/Tests.exe" -r:"$WORK/webhut.exe" \
     -r:System.IO.Compression.dll -r:System.IO.Compression.FileSystem.dll tests/Tests.cs
 
 # A fake PHP zip served over HTTP for the download tests
@@ -18,7 +18,7 @@ SERVER=$!
 trap 'kill $SERVER 2>/dev/null; rm -rf "$WORK"' EXIT
 sleep 1
 
-echo "== kilnctl smoke test"
-( cd "$WORK" && mono kilnctl.exe version && mono kilnctl.exe help | head -3 )
+echo "== webhut smoke test"
+( cd "$WORK" && mono webhut.exe version && mono webhut.exe help | head -3 )
 echo "== logic tests"
 NO_PROXY=127.0.0.1 no_proxy=127.0.0.1 mono "$WORK/Tests.exe" "$PORT"

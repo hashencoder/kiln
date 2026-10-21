@@ -3,33 +3,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace Kiln
+namespace WebHut
 {
-    /// <summary>kilnctl.exe - command-line control for scripts and terminals.</summary>
+    /// <summary>webhut.exe - command-line control for scripts and terminals.</summary>
     public static class CliProgram
     {
-        const string Help = @"kilnctl - control your Kiln stack from the command line
+        const string Help = @"webhut - control your WebHut stack from the command line
 
 Usage:
-  kilnctl status                      Show every service
-  kilnctl start   [all|apache|mariadb|<node-app>]
-  kilnctl stop    [all|apache|mariadb|<node-app>]
-  kilnctl restart [all|apache|mariadb|<node-app>]
-  kilnctl sites                       Regenerate vhosts for folders in www\ and Node apps
-  kilnctl php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
-  kilnctl setup                       Download and install everything (first run)
-  kilnctl backup                      Back up all databases now (data\backups)
-  kilnctl backups                     List backups
-  kilnctl restore [<file>|latest]     Load a backup into the running MariaDB
-  kilnctl rebuild-db [<file>|latest]  MariaDB won't start after a crash: set the damaged
+  webhut status                      Show every service
+  webhut start   [all|apache|mariadb|<node-app>]
+  webhut stop    [all|apache|mariadb|<node-app>]
+  webhut restart [all|apache|mariadb|<node-app>]
+  webhut sites                       Regenerate vhosts for folders in www\ and Node apps
+  webhut php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
+  webhut setup                       Download and install everything (first run)
+  webhut backup                      Back up all databases now (data\backups)
+  webhut backups                     List backups
+  webhut restore [<file>|latest]     Load a backup into the running MariaDB
+  webhut rebuild-db [<file>|latest]  MariaDB won't start after a crash: set the damaged
                                       data folder aside and rebuild it from a backup
-  kilnctl import-xampp [<folder>] [--recover] [--projects]
+  webhut import-xampp [<folder>] [--recover] [--projects]
                                       Copy databases (and with --projects, htdocs folders)
                                       from XAMPP. Stop XAMPP's MySQL first.
-  kilnctl shell                       Open a console with php, node, npm and composer on PATH
-  kilnctl version
+  webhut shell                       Open a console with php, node, npm and composer on PATH
+  webhut version
 
-Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
+Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.json.";
 
         public static int Main(string[] args)
         {
@@ -52,7 +52,7 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
                     case "restart": return Each(target, s => s.Restart(), false);
                     case "sites":
                         Vhosts.Write(Services.Cfg);
-                        Console.WriteLine("Vhosts regenerated. Restart Apache to apply: kilnctl restart apache");
+                        Console.WriteLine("Vhosts regenerated. Restart Apache to apply: webhut restart apache");
                         return 0;
                     case "php": return Php(args.Length > 1 ? args[1] : null);
                     case "setup": return RunSetup();
@@ -75,7 +75,7 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
                             return 0;
                         }
                     case "import-xampp": return ImportXampp(args);
-                    case "version": Console.WriteLine("Kiln " + K.AppVersion); return 0;
+                    case "version": Console.WriteLine("WebHut " + K.AppVersion); return 0;
                     default: Console.WriteLine(Help); return cmd == "help" || cmd == "-h" || cmd == "--help" ? 0 : 1;
                 }
             }
@@ -129,7 +129,7 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
             bool recover = rest.Remove("--recover");
             bool projects = rest.Remove("--projects");
             string root = rest.FirstOrDefault() ?? XamppImport.Find();
-            if (root == null || !XamppImport.IsXampp(root)) { Console.Error.WriteLine("XAMPP not found. Pass its folder: kilnctl import-xampp C:\\xampp"); return 1; }
+            if (root == null || !XamppImport.IsXampp(root)) { Console.Error.WriteLine("XAMPP not found. Pass its folder: webhut import-xampp C:\\xampp"); return 1; }
             using (var x = new XamppImport(root))
             {
                 var level = x.StartServerWithRecovery(recover);
@@ -148,7 +148,7 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
 
         static int Php(string branch)
         {
-            var installed = KilnConfig.InstalledPhp();
+            var installed = WebHutConfig.InstalledPhp();
             if (branch == null)
             {
                 Console.WriteLine("Active PHP: " + Services.Cfg.Php);
@@ -179,7 +179,7 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
             {
                 Console.Error.WriteLine("Some components couldn't be resolved. Download them by hand from:");
                 foreach (var c in bad) Console.Error.WriteLine("  " + c.Name + ": " + c.Homepage);
-                Console.Error.WriteLine("then use the setup wizard in Kiln.exe ('Use a zip I downloaded').");
+                Console.Error.WriteLine("then use the setup wizard in WebHutPanel.exe ('Use a zip I downloaded').");
                 return 1;
             }
             if (!Installer.VcRedistOk())
@@ -188,7 +188,7 @@ Default target is 'all'. Node apps are managed in Kiln.exe or node-apps.json.";
             int last = -10;
             inst.Progress += (m, p) => { if (p < 0 || p >= last + 10 || p == 100) { last = p; Console.WriteLine("  " + m); } };
             Setup.Run(inst, comps, CancellationToken.None);
-            Console.WriteLine("Done. Start everything with: kilnctl start");
+            Console.WriteLine("Done. Start everything with: webhut start");
             return 0;
         }
     }

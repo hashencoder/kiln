@@ -8,6 +8,6 @@ labels: enhancement
 <!-- What are you trying to do, and what gets in the way today? -->
 
 **Your idea**
-<!-- How should Kiln help? -->
+<!-- How should WebHut help? -->
 
 **Alternatives you've tried**

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Builds Kiln.exe and kilnctl.exe on Windows with the C# compiler that ships
+  Builds WebHutPanel.exe and webhut.exe on Windows with the C# compiler that ships
   with the .NET Framework 4.8 (no Visual Studio or SDK needed).
 
 .EXAMPLE
@@ -8,7 +8,7 @@
   powershell -ExecutionPolicy Bypass -File build\build.ps1 -Package -Version 1.0.0
 #>
 param(
-    [switch]$Package,          # also create dist\Kiln-<version>-win64.zip
+    [switch]$Package,          # also create dist\WebHut-<version>-win64.zip
     [string]$Version = "1.0.0"
 )
 $ErrorActionPreference = "Stop"
@@ -32,13 +32,13 @@ $refs = @("System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows
           "System.Web.Extensions.dll", "System.IO.Compression.dll", "System.IO.Compression.FileSystem.dll",
           "System.Net.Http.dll") | ForEach-Object { "/reference:`"$(Join-Path $fw $_)`"" }
 
-$common = @("/nologo", "/optimize+", "/debug-", "/platform:anycpu", "/warn:4", "/win32icon:`"$(Join-Path $repo 'assets\kiln.ico')`"") + $refs + $resources
+$common = @("/nologo", "/optimize+", "/debug-", "/platform:anycpu", "/warn:4", "/win32icon:`"$(Join-Path $repo 'assets\webhut.ico')`"") + $refs + $resources
 $core = Get-ChildItem (Join-Path $repo "src\Core\*.cs") | ForEach-Object { "`"$($_.FullName)`"" }
 $gui  = Get-ChildItem (Join-Path $repo "src\Gui\*.cs")  | ForEach-Object { "`"$($_.FullName)`"" }
 $cli  = Get-ChildItem (Join-Path $repo "src\Cli\*.cs")  | ForEach-Object { "`"$($_.FullName)`"" }
 
 function Invoke-Csc([string[]]$csArgs) {
-    $rsp = Join-Path $env:TEMP ("kiln-build-" + [guid]::NewGuid() + ".rsp")
+    $rsp = Join-Path $env:TEMP ("webhut-build-" + [guid]::NewGuid() + ".rsp")
     [System.IO.File]::WriteAllLines($rsp, [string[]]$csArgs)  # UTF-8 without BOM
     try {
         & $csc "@$rsp"
@@ -46,22 +46,22 @@ function Invoke-Csc([string[]]$csArgs) {
     } finally { Remove-Item $rsp -ErrorAction SilentlyContinue }
 }
 
-Write-Host "Building Kiln.exe..."
-Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\Kiln.exe`"", "/main:Kiln.Program") + $core + $gui)
-Write-Host "Building kilnctl.exe..."
-Invoke-Csc ($common + @("/target:exe", "/out:`"$out\kilnctl.exe`"", "/main:Kiln.CliProgram") + $core + $cli)
+Write-Host "Building WebHutPanel.exe..."
+Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\WebHutPanel.exe`"", "/main:WebHut.Program") + $core + $gui)
+Write-Host "Building webhut.exe..."
+Invoke-Csc ($common + @("/target:exe", "/out:`"$out\webhut.exe`"", "/main:WebHut.CliProgram") + $core + $cli)
 
-Copy-Item (Join-Path $repo "build\Kiln.exe.config") (Join-Path $out "Kiln.exe.config") -Force
-Copy-Item (Join-Path $repo "build\Kiln.exe.config") (Join-Path $out "kilnctl.exe.config") -Force
+Copy-Item (Join-Path $repo "build\WebHutPanel.exe.config") (Join-Path $out "WebHutPanel.exe.config") -Force
+Copy-Item (Join-Path $repo "build\WebHutPanel.exe.config") (Join-Path $out "webhut.exe.config") -Force
 
 if ($Package) {
-    $stage = Join-Path $out "Kiln"
+    $stage = Join-Path $out "WebHut"
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path $stage | Out-Null
-    Copy-Item "$out\Kiln.exe", "$out\Kiln.exe.config", "$out\kilnctl.exe", "$out\kilnctl.exe.config" $stage
+    Copy-Item "$out\WebHutPanel.exe", "$out\WebHutPanel.exe.config", "$out\webhut.exe", "$out\webhut.exe.config" $stage
     Copy-Item (Join-Path $repo "LICENSE") $stage
     Copy-Item (Join-Path $repo "dist-readme.txt") (Join-Path $stage "README.txt")
-    $zip = Join-Path $out "Kiln-$Version-win64.zip"
+    $zip = Join-Path $out "WebHut-$Version-win64.zip"
     if (Test-Path $zip) { Remove-Item $zip }
     Compress-Archive -Path $stage -DestinationPath $zip
     $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()

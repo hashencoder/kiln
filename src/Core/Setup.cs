@@ -5,13 +5,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Kiln
+namespace WebHut
 {
-    /// <summary>First-run setup shared by the wizard and kilnctl.</summary>
+    /// <summary>First-run setup shared by the wizard and webhut.</summary>
     public static class Setup
     {
         /// <summary>Resolve every component in parallel (network calls).</summary>
-        public static List<Component> ResolveAll(KilnConfig cfg)
+        public static List<Component> ResolveAll(WebHutConfig cfg)
         {
             var jobs = new List<Func<Component>>
             {
@@ -50,7 +50,7 @@ namespace Kiln
             if (!File.Exists(K.NodeAppsFile)) NodeApp.SaveAll(new List<NodeApp>());
             Vhosts.Write(cfg);
             Services.Cfg = cfg;
-            Log.Info("Setup complete. Kiln lives in " + K.Root);
+            Log.Info("Setup complete. WebHut lives in " + K.Root);
         }
     }
 }

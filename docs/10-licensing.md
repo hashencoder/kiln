@@ -2,11 +2,11 @@
 
 > This page is a practical summary, not legal advice. If you plan a commercial distribution or are unsure about an obligation, ask a lawyer.
 
-## Kiln itself
+## WebHut itself
 
-Kiln's source code, config templates (`overlay/`) and documentation are released under the **MIT License** ([LICENSE](../LICENSE)). Anyone can use, modify and redistribute them, including commercially, as long as the copyright notice and license text are kept.
+WebHut's source code, config templates (`overlay/`) and documentation are released under the **MIT License** ([LICENSE](../LICENSE)). Anyone can use, modify and redistribute them, including commercially, as long as the copyright notice and license text are kept.
 
-## The components Kiln downloads
+## The components WebHut downloads
 
 | Component | License | Notes |
 |---|---|---|
@@ -17,17 +17,17 @@ Kiln's source code, config templates (`overlay/`) and documentation are released
 | Node.js | MIT | Bundles V8 (BSD), npm (Artistic 2.0), OpenSSL, ICU and others. See `node\<major>\LICENSE`. |
 | Composer | MIT | |
 | Mozilla CA bundle (`cacert.pem`, via curl.se) | Mozilla Public License 2.0 | |
-| Microsoft Visual C++ Redistributable | Microsoft software license | Kiln launches Microsoft's own installer from Microsoft's site; it never redistributes the runtime. |
+| Microsoft Visual C++ Redistributable | Microsoft software license | WebHut launches Microsoft's own installer from Microsoft's site; it never redistributes the runtime. |
 
 Each component keeps its license file inside its folder after installation.
 
 ## Why the default distribution model is simple
 
-**Kiln releases contain only Kiln.** The setup window downloads each component from its official publisher onto the user's machine. Kiln therefore doesn't *distribute* Apache, PHP, MariaDB, phpMyAdmin or Node.js; each user obtains them from the source under that component's license, the same as visiting the download pages by hand.
+**WebHut releases contain only WebHut.** The setup window downloads each component from its official publisher onto the user's machine. WebHut therefore doesn't *distribute* Apache, PHP, MariaDB, phpMyAdmin or Node.js; each user obtains them from the source under that component's license, the same as visiting the download pages by hand.
 
 So for the standard release zip, you only need to:
 
-- keep Kiln's MIT `LICENSE` in the zip (the build script does), and
+- keep WebHut's MIT `LICENSE` in the zip (the build script does), and
 - not misrepresent the components (the README's "not affiliated" statement covers this).
 
 ## If you redistribute binaries
@@ -42,14 +42,14 @@ If you publish an **offline bundle** (a zip that already contains Apache, PHP, M
 
    phpMyAdmin is written in PHP, so its "source" is the shipped files, but linking to the official source release keeps things clear. Pointing only at the upstream project's website isn't the safe option for binaries you distribute yourself; ship or offer the source.
 4. **MPL 2.0 (CA bundle):** keep the file's license header (it's in the file), and make it clear where the file came from.
-5. **Don't bundle the Visual C++ Redistributable** unless you've checked Microsoft's redistribution terms. Linking users to Microsoft's download (as Kiln does) avoids the question.
+5. **Don't bundle the Visual C++ Redistributable** unless you've checked Microsoft's redistribution terms. Linking users to Microsoft's download (as WebHut does) avoids the question.
 
-Bundling these programs together doesn't make Kiln itself subject to the GPL. Kiln runs MariaDB and phpMyAdmin as separate programs, which the GPL treats as "mere aggregation", not as a combined work.
+Bundling these programs together doesn't make WebHut itself subject to the GPL. WebHut runs MariaDB and phpMyAdmin as separate programs, which the GPL treats as "mere aggregation", not as a combined work.
 
 ## Trademarks
 
-"Apache", "PHP", "MariaDB", "phpMyAdmin", "Node.js" and "XAMPP" are trademarks of their respective owners. Using the names to say what Kiln contains or works with is fine ("includes Apache and PHP", "an XAMPP alternative"). Don't use them in a way that suggests endorsement, and don't use their logos as Kiln's branding. Naming the project "XAMPP-something" or using the XAMPP logo is not OK.
+"Apache", "PHP", "MariaDB", "phpMyAdmin", "Node.js" and "XAMPP" are trademarks of their respective owners. Using the names to say what WebHut contains or works with is fine ("includes Apache and PHP", "an XAMPP alternative"). Don't use them in a way that suggests endorsement, and don't use their logos as WebHut's branding. Naming the project "XAMPP-something" or using the XAMPP logo is not OK.
 
 ## Contributions
 
-By contributing to Kiln, contributors agree their contributions are licensed under the MIT License (stated in [CONTRIBUTING.md](../CONTRIBUTING.md)). No CLA is required.
+By contributing to WebHut, contributors agree their contributions are licensed under the MIT License (stated in [CONTRIBUTING.md](../CONTRIBUTING.md)). No CLA is required.

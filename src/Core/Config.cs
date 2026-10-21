@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Kiln
+namespace WebHut
 {
-    /// <summary>kiln.json - user settings.</summary>
-    public class KilnConfig
+    /// <summary>webhut.json - user settings.</summary>
+    public class WebHutConfig
     {
         public string Php = "";
         public string Node = "";
@@ -23,9 +23,9 @@ namespace Kiln
         public int BackupEveryHours = 2;
         public int BackupKeep = 10;
 
-        public static KilnConfig Load()
+        public static WebHutConfig Load()
         {
-            var c = new KilnConfig();
+            var c = new WebHutConfig();
             try
             {
                 if (File.Exists(K.ConfigFile))
@@ -46,7 +46,7 @@ namespace Kiln
                     c.BackupKeep = Math.Max(1, ToInt(Json.Get(o, "backupKeep"), 10));
                 }
             }
-            catch (Exception e) { Log.Error("Couldn't read kiln.json, using defaults: " + e.Message); }
+            catch (Exception e) { Log.Error("Couldn't read webhut.json, using defaults: " + e.Message); }
 
             // Fall back to whatever is actually installed.
             var phps = InstalledPhp();
@@ -107,7 +107,7 @@ namespace Kiln
         {
             try
             {
-                var f = Path.Combine(dir, ".kiln-version");
+                var f = Path.Combine(dir, ".webhut-version");
                 if (File.Exists(f)) return File.ReadAllText(f).Trim();
             }
             catch { }
@@ -115,7 +115,7 @@ namespace Kiln
         }
     }
 
-    /// <summary>One Node.js app managed by Kiln (node-apps.json).</summary>
+    /// <summary>One Node.js app managed by WebHut (node-apps.json).</summary>
     public class NodeApp
     {
         public string Name = "";
@@ -127,7 +127,7 @@ namespace Kiln
 
         public static readonly Regex NameRule = new Regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$");
 
-        /// <summary>Dir may be relative to the Kiln root ("www/api") or absolute.</summary>
+        /// <summary>Dir may be relative to the WebHut root ("www/api") or absolute.</summary>
         public string FullDir
         {
             get
