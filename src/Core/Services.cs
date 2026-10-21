@@ -99,17 +99,20 @@ namespace WebHut
         }
 
         /// <summary>Open a console with php, node, npm, composer and mariadb on PATH.</summary>
-        public static void OpenShell()
+        public static void OpenShell() { OpenShell(null); }
+
+        /// <summary>Same, starting in <paramref name="dir"/> (default: www).</summary>
+        public static void OpenShell(string dir)
         {
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) { dir = K.Www; Directory.CreateDirectory(K.Www); }
             var psi = new ProcessStartInfo("cmd.exe",
                 "/k \"title WebHut shell && echo WebHut shell - php, node, npm, npx, composer and mariadb are on PATH. && echo.\"")
             {
                 UseShellExecute = false,
                 CreateNoWindow = false,
-                WorkingDirectory = K.Www
+                WorkingDirectory = dir
             };
             ApplyEnv(psi);
-            Directory.CreateDirectory(K.Www);
             Process.Start(psi);
         }
     }

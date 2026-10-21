@@ -46,9 +46,9 @@ When `apache\` or a PHP version is missing, WebHut opens the setup window instea
 
 | Item | What it does |
 |---|---|
-| **Sites** | A menu of your sites (`http://localhost`, `http://<folder>.localhost`, Node apps), plus **Open www folder** and **Refresh sites**. Links are disabled while Apache is stopped. |
-| **Databases** | **Open phpMyAdmin** (needs Apache and MariaDB running), **Backups, restore and XAMPP import…** ([11](11-databases.md)), and MariaDB's `my.ini` |
-| **Node apps** | Add, edit and remove Node apps ([04](04-node-integration.md)) |
+| **Sites** (page) | Every site with its address, folder and type (PHP, PHP with `public\`, Node app), each with **Open**. **www folder** and **Refresh sites** at the top. Right-click the sidebar item for quick actions. |
+| **Databases** (page) | MariaDB status, your databases with table counts and sizes (each opens in phpMyAdmin), recent backups with **Restore…**, **Back up now**, and ⋯ for restore/rebuild, XAMPP import, `my.ini` and the backups folder ([11](11-databases.md)). Right-click the sidebar item for quick actions. |
+| **Node apps** | A process manager for Node apps ([04](04-node-integration.md)): each app shows its address, port, command, status (**Running**, **No response** when the process runs but nothing answers on its port, **Failed**, **Stopped**), auto-start and PID, with **Start/Stop**, **Open** and a ⋯ menu (Restart, View logs, Open folder, Open terminal here, Edit, Remove). Ports are checked before starting, and an app that exits on its own is reported. |
 | **Logs** | Apache error log, MariaDB log, WebHut log, or the `logs\` folder |
 | **Settings** | See below |
 | **Dark mode** switch | Light or dark theme (see Appearance below) |
@@ -73,6 +73,8 @@ If MariaDB fails to start and backups exist, WebHut offers to rebuild it from th
 Only one panel can run per WebHut folder. Separate WebHut folders can run side by side on different ports.
 
 ### Settings
+
+Settings has five pages: **General** (start servers on open, keep running in the tray, appearance), **Runtime** (PHP and Node.js versions), **Services** (HTTP and MySQL ports, root password), **Security** (network access; phpMyAdmin and MariaDB always stay local) and **Maintenance** (component updates, Visual C++ runtime). The footer shows unsaved changes and which servers saving will restart.
 
 | Setting | Notes |
 |---|---|

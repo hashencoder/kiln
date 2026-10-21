@@ -100,6 +100,7 @@ namespace WebHut
         {
             foreach (Control c in root.Controls)
             {
+                if (c.Parent is NumberField) continue;
                 if (c is TextBoxBase || c is ListView || c is ListBox || c is ComboBox || c is NumericUpDown || c is DataGridView)
                 {
                     if (c is RichTextBox && c.BackColor == LogBg) { }
@@ -128,6 +129,7 @@ namespace WebHut
         public static readonly Font Detail = Fonts.Make("Inter", Fonts.Px(13));                    // service versions 13/400
         public static readonly Font BtnSmall = Fonts.Make("Inter SemiBold", Fonts.Px(13));          // table buttons 13/600
         public static readonly Font SmallBold = Fonts.Make("Inter SemiBold", Fonts.Px(12));
+        public static readonly Font SectionTitle = Fonts.Make("Inter SemiBold", Fonts.Px(16));     // settings section titles
         public static readonly Font Caps = Fonts.Make("Inter SemiBold", Fonts.Px(11));              // table headers 11/600
         public static readonly Font LogFont = Fonts.Make("JetBrains Mono", Fonts.Px(12));           // activity log 12/400
 

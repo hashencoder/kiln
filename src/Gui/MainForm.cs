@@ -74,7 +74,9 @@ namespace WebHut
             _cards.Clear();
             BackColor = Ui.Bg;
             ForeColor = Ui.Ink;
-            var main = new Panel { Dock = DockStyle.Fill, BackColor = Ui.Bg, Padding = new Padding(Px(28), Px(22), Px(28), Px(20)), AutoScroll = true };
+            _pageNavs.Clear();
+            var main = PageHost();
+            main.Visible = true;
             var stack = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 1, RowCount = 4, BackColor = Ui.Bg };
             stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             for (int i = 0; i < 4; i++) stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -84,9 +86,17 @@ namespace WebHut
             stack.Controls.Add(BuildActivity(), 0, 3);
             main.Controls.Add(stack);
             main.Resize += (s, e) => Relayout();
+            _pageDash = main;
+            _pageSites = BuildSitesPage();
+            _pageDb = BuildDbPage();
+            _pageSites.Resize += (s, e) => FitCards();
+            _pageDb.Resize += (s, e) => FitCards();
 
+            Controls.Add(_pageDb);
+            Controls.Add(_pageSites);
             Controls.Add(main);
             Controls.Add(BuildSidebar());
+            ShowPage(_page);
         }
 
         /// <summary>Switch light/dark: rebuild the window with the new palette, keeping the log.</summary>
@@ -149,10 +159,14 @@ namespace WebHut
 
             // Places, not actions: the everyday actions live in Quick Actions on the dashboard.
             var nav = new FlowLayoutPanel { Dock = DockStyle.Top, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, BackColor = Ui.Sidebar, Padding = new Padding(0, Px(16), 0, 0) };
-            var dash = Nav(nav, w, "Dashboard", "home", null); dash.Active = true;
+            // Pages on left-click; Sites and Databases also have a quick menu on right-click.
+            _pageNavs.Add(PageNav(nav, w, "Dashboard", "home", 0, null));
             NavItem sites = null, dbs = null, logs = null;
-            sites = Nav(nav, w, "Sites", "globe", () => ShowSitesMenu(sites));
-            dbs = Nav(nav, w, "Databases", "database", () => ShowDatabaseMenu(dbs));
+            sites = PageNav(nav, w, "Sites", "globe", 1, () => ShowSitesMenu(sites));
+            dbs = PageNav(nav, w, "Databases", "database", 2, () => ShowDatabaseMenu(dbs));
+            _pageNavs.Add(sites); _pageNavs.Add(dbs);
+            _tips.SetToolTip(sites, "Right-click for quick actions");
+            _tips.SetToolTip(dbs, "Right-click for quick actions");
             Nav(nav, w, "Node apps", "cube", ShowNodeApps);
             logs = Nav(nav, w, "Logs", "logs", () => ShowLogsMenu(logs));
             Nav(nav, w, "Settings", "gear", ShowSettings);
@@ -192,6 +206,18 @@ namespace WebHut
             return row;
         }
 
+        NavItem PageNav(FlowLayoutPanel host, int width, string text, string icon, int page, Action quick)
+        {
+            var n = new NavItem(text, icon) { Width = width };
+            n.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left) ShowPage(page);
+                else if (e.Button == MouseButtons.Right && quick != null) quick();
+            };
+            host.Controls.Add(n);
+            return n;
+        }
+
         NavItem Nav(FlowLayoutPanel host, int width, string text, string icon, Action act)
         {
             var n = new NavItem(text, icon) { Width = width };
@@ -200,40 +226,351 @@ namespace WebHut
             return n;
         }
 
+        // ------------------------------------------------------------------ quick menus (right-click a sidebar item)
+
         void ShowSitesMenu(Control anchor)
         {
-            var m = Ui.Menu();
             bool up = Services.Apache.IsRunning;
-            List<Vhosts.Site> sites;
-            try { sites = Vhosts.Sites(NodeApp.LoadAll()); } catch { sites = new List<Vhosts.Site>(); }
-            Ui.Item(m, "http://localhost", () => Sys.OpenUrl(Services.Apache.Url), up);
-            foreach (var s in sites.Take(20)) { var name = s.Name; Ui.Item(m, "http://" + name + ".localhost", () => Sys.OpenUrl("http://" + name + ".localhost" + (Cfg.HttpPort == 80 ? "" : ":" + Cfg.HttpPort) + "/"), up); }
-            if (!up) Ui.Item(m, "Start Apache to open sites", null, false);
-            m.Items.Add(new ToolStripSeparator());
-            Ui.Item(m, "Open www folder", () => Sys.OpenFolder(K.Www));
-            Ui.Item(m, "Refresh sites", RefreshSites);
-            m.Show(anchor, new Point(anchor.Width, 0));
+            PopupMenu.Show(anchor, PopupMenu.Side.Right, "Sites", new List<PopupItem>
+            {
+                new PopupItem { Title = "Open localhost", Description = up ? "http://localhost in your browser" : "Start Apache first", Icon = "globe", Enabled = up, Act = () => Sys.OpenUrl(Services.Apache.Url) },
+                new PopupItem { Title = "www folder", Description = "Open in Explorer", Icon = "folder", Act = () => Sys.OpenFolder(K.Www) },
+                PopupItem.Line(),
+                new PopupItem { Title = "Refresh sites", Description = "Rescan www and reload Apache", Icon = "refresh", Act = RefreshSites }
+            });
         }
 
         void ShowDatabaseMenu(Control anchor)
         {
-            var m = Ui.Menu();
-            Ui.Item(m, "Open phpMyAdmin", () => Sys.OpenUrl(Services.MariaDb.Url), Services.Apache.IsRunning && Services.MariaDb.IsRunning);
-            Ui.Item(m, "Backups, restore and XAMPP import…", () => { using (var d = new DatabaseForm()) d.ShowDialog(this); });
-            m.Items.Add(new ToolStripSeparator());
-            Ui.Item(m, "MariaDB config (my.ini)", () => Sys.OpenInEditor(Services.MariaDb.ConfigFile));
-            m.Show(anchor, new Point(anchor.Width, 0));
+            bool pma = Services.Apache.IsRunning && Services.MariaDb.IsRunning;
+            PopupMenu.Show(anchor, PopupMenu.Side.Right, "Databases", new List<PopupItem>
+            {
+                new PopupItem { Title = "Open phpMyAdmin", Description = pma ? "Manage databases in your browser" : "Start Apache and MariaDB first", Icon = "database", Enabled = pma, Act = () => Sys.OpenUrl(Services.MariaDb.Url) },
+                new PopupItem { Title = "Backup & restore", Description = "Back up, restore, or rebuild after a crash", Icon = "server", Act = () => { using (var d = new DatabaseForm()) d.ShowDialog(this); RefreshDbPage(); } },
+                new PopupItem { Title = "Import from XAMPP", Description = "Copy XAMPP databases and projects", Icon = "copy", Act = () => { using (var f = new XamppImportForm()) f.ShowDialog(this); RefreshDbPage(); } },
+                PopupItem.Line(),
+                new PopupItem { Title = "MariaDB configuration", Description = "Edit my.ini", Icon = "gear", Act = () => Sys.OpenInEditor(Services.MariaDb.ConfigFile) }
+            });
         }
 
         void ShowLogsMenu(Control anchor)
         {
-            var m = Ui.Menu();
-            Ui.Item(m, "Apache error log", () => Sys.OpenInEditor(Services.Apache.LogFile));
-            Ui.Item(m, "MariaDB log", () => Sys.OpenInEditor(Services.MariaDb.LogFile));
-            Ui.Item(m, "WebHut log", () => Sys.OpenInEditor(Path.Combine(K.Logs, "webhut.log")));
-            m.Items.Add(new ToolStripSeparator());
-            Ui.Item(m, "Open logs folder", () => Sys.OpenFolder(K.Logs));
-            m.Show(anchor, new Point(anchor.Width, 0));
+            PopupMenu.Show(anchor, PopupMenu.Side.Right, "Logs", new List<PopupItem>
+            {
+                new PopupItem { Title = "Apache error log", Icon = "file", Act = () => Sys.OpenInEditor(Services.Apache.LogFile) },
+                new PopupItem { Title = "MariaDB log", Icon = "file", Act = () => Sys.OpenInEditor(Services.MariaDb.LogFile) },
+                new PopupItem { Title = "WebHut log", Icon = "file", Act = () => Sys.OpenInEditor(Path.Combine(K.Logs, "webhut.log")) },
+                PopupItem.Line(),
+                new PopupItem { Title = "Open logs folder", Icon = "folder", Act = () => Sys.OpenFolder(K.Logs) }
+            }, Px(250));
+        }
+
+        // ------------------------------------------------------------------ pages
+
+        Panel _pageDash, _pageSites, _pageDb;
+        int _page;
+        readonly List<NavItem> _pageNavs = new List<NavItem>();
+        TableLayoutPanel _sitesGrid, _dbGrid, _backupGrid;
+        Label _dbSub, _dbNote;
+        Pill _dbStatus;
+        IconButton _pmaBtn, _backupBtn;
+        bool _dbLoading;
+
+        Panel PageHost()
+        {
+            return new Panel { Dock = DockStyle.Fill, BackColor = Ui.Bg, Padding = new Padding(Px(28), Px(22), Px(28), Px(20)), AutoScroll = true, Visible = false };
+        }
+
+        static TableLayoutPanel Stack()
+        {
+            var stack = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 1, BackColor = Ui.Bg };
+            stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            return stack;
+        }
+
+        static void Push(TableLayoutPanel stack, Control c)
+        {
+            int i = stack.RowCount++;
+            stack.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            stack.Controls.Add(c, 0, i);
+        }
+
+        /// <summary>Page title on the left, actions on the right.</summary>
+        static Control PageHeader(string title, Label sub, params Control[] actions)
+        {
+            var t = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2, BackColor = Ui.Bg, Margin = new Padding(0, 0, 0, Px(16)) };
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            t.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var titles = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(0), BackColor = Ui.Bg };
+            titles.Controls.Add(new Label { Text = title, Font = Ui.H1, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
+            sub.Margin = new Padding(Px(2), Px(2), 0, 0);
+            titles.Controls.Add(sub);
+            var right = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Ui.Bg, Anchor = AnchorStyles.Right, Margin = new Padding(0, Px(8), 0, 0) };
+            foreach (var a in actions) right.Controls.Add(a);
+            t.Controls.Add(titles, 0, 0);
+            t.Controls.Add(right, 1, 0);
+            return t;
+        }
+
+        IconButton PageButton(string text, string icon, ButtonKind kind, Action act)
+        {
+            var b = new IconButton(text, icon, kind) { Margin = new Padding(Px(10), 0, 0, 0) };
+            b.SetMin(0, Px(42));
+            b.Click += (s, e) => act();
+            return b;
+        }
+
+        /// <summary>A table inside a rounded frame with a header band, like the Services table.</summary>
+        TableLayoutPanel TableIn(Card frame, params int[] widths)
+        {
+            var grid = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, BackColor = Color.Transparent, ColumnCount = widths.Length, Padding = new Padding(Px(16), 0, Px(12), 0) };
+            foreach (var w in widths)
+                grid.ColumnStyles.Add(w < 0 ? new ColumnStyle(SizeType.Percent, 100) : w == 0 ? new ColumnStyle(SizeType.AutoSize) : new ColumnStyle(SizeType.Absolute, Px(w)));
+            grid.CellPaint += (s, e) =>
+            {
+                if (e.Row < grid.RowCount - 1)
+                    using (var p = new Pen(Ui.Line))
+                        e.Graphics.DrawLine(p, e.CellBounds.Left - (e.Column == 0 ? Px(16) : 0), e.CellBounds.Bottom - 1,
+                            e.CellBounds.Right + (e.Column == grid.ColumnCount - 1 ? Px(12) : 0), e.CellBounds.Bottom - 1);
+            };
+            frame.Paint += (s, e) =>
+            {
+                var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias;
+                var hs = grid.GetRowHeights();
+                int head = hs.Length > 0 ? hs[0] : Px(38);
+                using (var path = Ui.Rounded(new RectangleF(0.5f, 0.5f, frame.Width - 1.5f, frame.Height - 1.5f), Px(10)))
+                {
+                    g.SetClip(path);
+                    using (var b = new SolidBrush(Ui.HeadBg)) g.FillRectangle(b, 0, 0, frame.Width, head + 1);
+                    g.ResetClip();
+                    using (var pen = new Pen(Ui.Line)) g.DrawPath(pen, path);
+                }
+            };
+            frame.Controls.Add(grid);
+            return grid;
+        }
+
+        static void HeadRow(TableLayoutPanel grid, params string[] heads)
+        {
+            int i = grid.RowCount++;
+            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, Px(38)));
+            for (int c = 0; c < heads.Length; c++)
+                grid.Controls.Add(new Label { Text = heads[c], Font = Ui.Caps, ForeColor = Ui.Muted, AutoSize = true, BackColor = Color.Transparent, Anchor = AnchorStyles.Left, Margin = new Padding(0, 0, Px(8), 0) }, c, i);
+        }
+
+        static void ClearGrid(TableLayoutPanel grid)
+        {
+            grid.SuspendLayout();
+            foreach (Control c in grid.Controls.Cast<Control>().ToList()) c.Dispose();
+            grid.Controls.Clear();
+            grid.RowStyles.Clear();
+            grid.RowCount = 0;
+        }
+
+        static Label Cell(string text, Font font, Color color)
+        {
+            return new Label { Text = text, Font = font, ForeColor = color, AutoSize = true, AutoEllipsis = true, BackColor = Color.Transparent, Anchor = AnchorStyles.Left, Margin = new Padding(0, Px(14), Px(8), Px(14)) };
+        }
+
+        Card TableCard(string icon, string title, Control right, out TableLayoutPanel grid, params int[] widths)
+        {
+            var card = SectionCard();
+            var frame = new Card { Dock = DockStyle.Top, AutoSize = false, Radius = Px(10), BackColor = Ui.Card, Padding = new Padding(1) };
+            var g = TableIn(frame, widths);
+            grid = g;
+            return Assemble(card, CardHeader(icon, title, right), frame, w => g.GetPreferredSize(new Size(w - 2, 0)).Height + 2);
+        }
+
+        Panel BuildSitesPage()
+        {
+            var page = PageHost();
+            var stack = Stack();
+            var sub = new Label { Text = "Every folder in www becomes a site at http://<folder>.localhost. Node apps appear here too.", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true };
+            Push(stack, PageHeader("Sites", sub,
+                PageButton("www folder", "folder", ButtonKind.Outline, () => Sys.OpenFolder(K.Www)),
+                PageButton("Refresh sites", "refresh", ButtonKind.Primary, () => { RefreshSites(); RefreshSitesPage(); })));
+            TableLayoutPanel g;
+            Push(stack, TableCard("globe", "Your sites", null, out g, 180, -1, 220, 110, 0));
+            _sitesGrid = g;
+            page.Controls.Add(stack);
+            return page;
+        }
+
+        void RefreshSitesPage()
+        {
+            if (_sitesGrid == null) return;
+            ClearGrid(_sitesGrid);
+            HeadRow(_sitesGrid, "SITE", "ADDRESS", "FOLDER", "TYPE", "");
+            bool up = Services.Apache.IsRunning;
+            string port = Cfg.HttpPort == 80 ? "" : ":" + Cfg.HttpPort;
+            var apps = NodeApp.LoadAll();
+            List<Vhosts.Site> sites;
+            try { sites = Vhosts.Sites(apps); } catch { sites = new List<Vhosts.Site>(); }
+            Action<string, string, string, string> add = (name, url, folder, type) =>
+            {
+                int i = _sitesGrid.RowCount++;
+                _sitesGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                _sitesGrid.Controls.Add(Cell(name, Ui.ServiceName, Ui.Ink), 0, i);
+                _sitesGrid.Controls.Add(Cell(url, Ui.Mono, Ui.Muted), 1, i);
+                _sitesGrid.Controls.Add(Cell(folder, Ui.Detail, Ui.Muted), 2, i);
+                _sitesGrid.Controls.Add(Cell(type, Ui.Small, Ui.Muted), 3, i);
+                var open = new IconButton("Open", "external", ButtonKind.Outline) { Font = Ui.BtnSmall, IconColor = Ui.NavInk, Enabled = up, Anchor = AnchorStyles.Left, Margin = new Padding(0, Px(8), 0, Px(8)) };
+                open.Click += (s, e) => Sys.OpenUrl(url);
+                _tips.SetToolTip(open, up ? "Open " + url : "Start Apache first");
+                _sitesGrid.Controls.Add(open, 4, i);
+            };
+            add("localhost", "http://localhost" + port + "/", "www", "Dashboard");
+            foreach (var s in sites) add(s.Name, "http://" + s.Name + ".localhost" + port + "/", "www\\" + s.Folder, s.DocRoot.EndsWith("/public") ? "PHP · public\\" : "PHP");
+            foreach (var a in apps) add(a.Name, "http://" + a.Host + port + "/", a.Dir.Replace('/', '\\'), "Node app · :" + a.Port);
+            _sitesGrid.ResumeLayout();
+            FitCards();
+        }
+
+        Panel BuildDbPage()
+        {
+            var page = PageHost();
+            var stack = Stack();
+            _dbSub = new Label { Text = "", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true };
+            _pmaBtn = PageButton("Open phpMyAdmin", "database", ButtonKind.Primary, () => Sys.OpenUrl(Services.MariaDb.Url));
+            _backupBtn = PageButton("Back up now", "copy", ButtonKind.Outline, BackupNow);
+            IconButton more = null;
+            more = PageButton("", "more", ButtonKind.Outline, () => PopupMenu.Show(more, PopupMenu.Side.BelowRight, null, new List<PopupItem>
+            {
+                new PopupItem { Title = "Restore or rebuild…", Description = "Pick a backup, or rebuild after a crash", Icon = "refresh", Act = () => { using (var d = new DatabaseForm()) d.ShowDialog(this); RefreshDbPage(); } },
+                new PopupItem { Title = "Import from XAMPP", Description = "Copy XAMPP databases and projects", Icon = "copy", Act = () => { using (var f = new XamppImportForm()) f.ShowDialog(this); RefreshDbPage(); } },
+                PopupItem.Line(),
+                new PopupItem { Title = "MariaDB configuration", Description = "Edit my.ini", Icon = "gear", Act = () => Sys.OpenInEditor(Services.MariaDb.ConfigFile) },
+                new PopupItem { Title = "Backups folder", Description = "data\\backups", Icon = "folder", Act = () => Sys.OpenFolder(K.Backups) }
+            }));
+            _tips.SetToolTip(more, "More database tools");
+            Push(stack, PageHeader("Databases", _dbSub, _backupBtn, more, _pmaBtn));
+
+            _dbStatus = new Pill { Fit = true, Height = Px(30), Margin = new Padding(0, 0, Px(10), 0), Anchor = AnchorStyles.Left };
+            _dbStatus.Set(PillState.Stopped, "Stopped");
+            TableLayoutPanel g;
+            Push(stack, TableCard("database", "Databases", _dbStatus, out g, -1, 90, 110, 0));
+            _dbGrid = g;
+            _dbNote = new Label { Text = "", Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, BackColor = Ui.Card };
+            Push(stack, TableCard("copy", "Recent backups", _dbNote, out g, -1, 120, 0));
+            _backupGrid = g;
+            page.Controls.Add(stack);
+            return page;
+        }
+
+        void RefreshDbPage()
+        {
+            if (_dbGrid == null || _dbLoading) return;
+            bool up = Services.MariaDb.IsRunning;
+            _dbSub.Text = "MariaDB " + WebHutConfig.FullVersion(K.MariaDb) + " on 127.0.0.1:" + Cfg.MysqlPort + "  ·  only this PC can connect  ·  root " + (string.IsNullOrEmpty(Cfg.MysqlRootPassword) ? "has no password" : "password set");
+            _dbStatus.Set(up ? PillState.Running : PillState.Stopped, up ? "MariaDB running" : "MariaDB stopped");
+            _pmaBtn.Enabled = up && Services.Apache.IsRunning;
+            _tips.SetToolTip(_pmaBtn, _pmaBtn.Enabled ? "Open http://localhost/phpmyadmin" : "Start Apache and MariaDB first");
+            _backupBtn.Enabled = up;
+
+            // backups (local files, instant)
+            ClearGrid(_backupGrid);
+            HeadRow(_backupGrid, "WHEN", "SIZE", "");
+            var backups = Backup.List();
+            _dbNote.Text = Cfg.AutoBackup ? "Automatic every " + Cfg.BackupEveryHours + " h · newest " + Cfg.BackupKeep + " kept" : "Automatic backups are off";
+            foreach (var b in backups.Take(5))
+            {
+                var bk = b;
+                int i = _backupGrid.RowCount++;
+                _backupGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                _backupGrid.Controls.Add(Cell(b.Time.ToString("ddd d MMM yyyy, HH:mm"), Ui.Base, Ui.Ink), 0, i);
+                _backupGrid.Controls.Add(Cell(b.Size < 1048576 ? (b.Size / 1024.0).ToString("0") + " KB" : (b.Size / 1048576.0).ToString("0.0") + " MB", Ui.Mono, Ui.Muted), 1, i);
+                var restore = new IconButton("Restore…", "refresh", ButtonKind.Outline) { Font = Ui.BtnSmall, IconColor = Ui.NavInk, Enabled = up, Anchor = AnchorStyles.Left, Margin = new Padding(0, Px(8), 0, Px(8)) };
+                restore.Click += (s, e) => RestoreBackup(bk);
+                _tips.SetToolTip(restore, up ? "Load this backup into MariaDB" : "Start MariaDB first");
+                _backupGrid.Controls.Add(restore, 2, i);
+            }
+            if (backups.Count == 0) { int i = _backupGrid.RowCount++; _backupGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize)); var l = Cell("No backups yet. Click Back up now, or wait for the automatic one.", Ui.Base, Ui.Muted); _backupGrid.Controls.Add(l, 0, i); _backupGrid.SetColumnSpan(l, 3); }
+            _backupGrid.ResumeLayout();
+
+            // databases (needs a query; runs in the background)
+            ClearGrid(_dbGrid);
+            HeadRow(_dbGrid, "DATABASE", "TABLES", "SIZE", "");
+            if (!up)
+            {
+                int i = _dbGrid.RowCount++; _dbGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                var l = Cell("Start MariaDB to see your databases.", Ui.Base, Ui.Muted); _dbGrid.Controls.Add(l, 0, i); _dbGrid.SetColumnSpan(l, 4);
+                _dbGrid.ResumeLayout(); FitCards(); return;
+            }
+            _dbGrid.ResumeLayout();
+            _dbLoading = true;
+            var cfg = Cfg;
+            Task.Run(() => Backup.Stats(cfg)).ContinueWith(t =>
+            {
+                _dbLoading = false;
+                if (IsDisposed || _dbGrid.IsDisposed) return;
+                ClearGrid(_dbGrid);
+                HeadRow(_dbGrid, "DATABASE", "TABLES", "SIZE", "");
+                bool pma = Services.Apache.IsRunning;
+                if (t.IsFaulted || t.Result.Count == 0)
+                {
+                    int i = _dbGrid.RowCount++; _dbGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                    var l = Cell(t.IsFaulted ? "Couldn't list databases: " + t.Exception.GetBaseException().Message : "No databases yet. Create one in phpMyAdmin, or import from XAMPP.", Ui.Base, Ui.Muted);
+                    _dbGrid.Controls.Add(l, 0, i); _dbGrid.SetColumnSpan(l, 4);
+                }
+                else foreach (var d in t.Result)
+                {
+                    var db = d.Name;
+                    int i = _dbGrid.RowCount++;
+                    _dbGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                    _dbGrid.Controls.Add(Cell(d.Name, Ui.ServiceName, Ui.Ink), 0, i);
+                    _dbGrid.Controls.Add(Cell(d.Tables.ToString(), Ui.Mono, Ui.Muted), 1, i);
+                    _dbGrid.Controls.Add(Cell(d.Bytes < 1048576 ? (d.Bytes / 1024.0).ToString("0") + " KB" : (d.Bytes / 1048576.0).ToString("0.0") + " MB", Ui.Mono, Ui.Muted), 2, i);
+                    var open = new IconButton("phpMyAdmin", "external", ButtonKind.Outline) { Font = Ui.BtnSmall, IconColor = Ui.NavInk, Enabled = pma, Anchor = AnchorStyles.Left, Margin = new Padding(0, Px(8), 0, Px(8)) };
+                    open.Click += (s, e) => Sys.OpenUrl(Services.MariaDb.Url.TrimEnd('/') + "/index.php?route=/database/structure&db=" + Uri.EscapeDataString(db));
+                    _tips.SetToolTip(open, pma ? "Open " + db + " in phpMyAdmin" : "Start Apache first");
+                    _dbGrid.Controls.Add(open, 3, i);
+                }
+                _dbGrid.ResumeLayout();
+                FitCards();
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+            FitCards();
+        }
+
+        void BackupNow()
+        {
+            _backupBtn.Enabled = false;
+            var cfg = Cfg;
+            Task.Run(() => Backup.Create(cfg, "manual")).ContinueWith(t =>
+            {
+                if (IsDisposed) return;
+                if (t.IsFaulted) { Log.Error("Backup failed: " + t.Exception.GetBaseException().Message); Toast.Show(this, "Backup failed. See Activity.", ToastKind.Error); }
+                else Toast.Show(this, t.Result == null ? "Nothing to back up yet." : "Backup saved.", t.Result == null ? ToastKind.Info : ToastKind.Success);
+                RefreshDbPage();
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        void RestoreBackup(Backup.Info b)
+        {
+            if (MessageBox.Show(this, "Restore the backup from " + b.Time.ToString("g") + "?\n\nTables in the backup replace the current tables with the same name. Other tables are not touched.",
+                "Restore backup", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK) return;
+            var cfg = Cfg;
+            Toast.Show(this, "Restoring backup…", ToastKind.Info);
+            Task.Run(() => Backup.Restore(cfg, b.Path)).ContinueWith(t =>
+            {
+                if (IsDisposed) return;
+                if (t.IsFaulted) { Log.Error("Restore failed: " + t.Exception.GetBaseException().Message); Ui.Error(this, "Restore", t.Exception.GetBaseException().Message); }
+                else { Log.Info("Restored backup from " + b.Time.ToString("g") + "."); Toast.Show(this, "Backup restored."); }
+                RefreshDbPage();
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        void ShowPage(int page)
+        {
+            _page = page;
+            SuspendLayout();
+            _pageDash.Visible = page == 0;
+            _pageSites.Visible = page == 1;
+            _pageDb.Visible = page == 2;
+            for (int i = 0; i < _pageNavs.Count; i++) { _pageNavs[i].Active = i == page; _pageNavs[i].Invalidate(); }
+            ResumeLayout(true);
+            if (page == 1) RefreshSitesPage();
+            if (page == 2) RefreshDbPage();
+            Relayout();
         }
 
         Control BuildHeader()
@@ -491,7 +828,7 @@ namespace WebHut
             List<string> lines;
             lock (_lines) lines = _lines.Where(PassesFilter).ToList();
             if (lines.Count == 0) return;
-            try { Clipboard.SetText(string.Join(Environment.NewLine, lines)); Log.Info("Copied " + lines.Count + " log line(s) to the clipboard."); }
+            try { Clipboard.SetText(string.Join(Environment.NewLine, lines)); Toast.Show(this, "Copied " + lines.Count + (lines.Count == 1 ? " line" : " lines") + " to the clipboard.", ToastKind.Info); }
             catch (Exception e) { Log.Warn("Couldn't copy: " + e.Message); }
         }
 
@@ -716,7 +1053,13 @@ namespace WebHut
                     if (Visible) Ui.Error(this, svc.Title, msg);
                     if (svc == Services.MariaDb && busyText.StartsWith("Start") && Visible) OfferRebuild();
                 }
+                else
+                {
+                    string what = busyText.StartsWith("Start") ? " started" : busyText.StartsWith("Stop") ? " stopped" : busyText.StartsWith("Restart") ? " restarted" : busyText.StartsWith("Rebuild") ? " rebuilt from backup" : null;
+                    if (what != null) Toast.Show(this, svc.Title + what + ".");
+                }
                 RefreshStatus();
+                if (_page == 2) RefreshDbPage();
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
@@ -776,7 +1119,12 @@ namespace WebHut
             {
                 _sequenceRunning = false;
                 if (_trayAll != null) _trayAll.Enabled = true;
+                bool anyFailed = _rows.Any(r => r.Failed);
+                Toast.Show(this, anyFailed ? (starting ? "Some services failed to start. See Activity." : "Some services failed to stop. See Activity.")
+                                          : starting ? "All services started." : "All services stopped.", anyFailed ? ToastKind.Warning : ToastKind.Success);
                 RefreshStatus();
+                if (_page == 1) RefreshSitesPage();
+                if (_page == 2) RefreshDbPage();
                 if (starting && dbFailed && Visible) OfferRebuild();
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
@@ -788,6 +1136,7 @@ namespace WebHut
                 Vhosts.Write(Cfg);
                 var sites = Vhosts.Sites(NodeApp.LoadAll());
                 Log.Info("Sites: " + (sites.Count == 0 ? "none (create a folder in www\\)" : string.Join(", ", sites.Select(s => s.Name + ".localhost"))));
+                Toast.Show(this, sites.Count == 0 ? "No sites yet: create a folder in www." : "Sites refreshed: " + sites.Count + " found.", ToastKind.Info);
                 if (Services.Apache.IsRunning) Run(Services.Apache, Services.Apache.Restart, "Restarting…");
             }
             catch (Exception e) { Log.Error(e.Message); }
@@ -812,6 +1161,7 @@ namespace WebHut
             using (var f = new SettingsForm())
             {
                 f.ShowDialog(this);
+                if (f.Saved) Toast.Show(this, "Settings saved." + (f.RestartApache || f.RestartMariaDb ? " Restarting affected servers…" : ""));
                 if (Ui.WantsDark(Cfg.Theme) != Ui.IsDark) ApplyTheme(!Ui.IsDark);
                 UpdateSubtitle();
                 BuildRows();

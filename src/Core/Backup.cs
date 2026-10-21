@@ -88,6 +88,27 @@ namespace WebHut
             return UserDatabases(r.Output);
         }
 
+        public class DbStat { public string Name; public int Tables; public long Bytes; }
+
+        /// <summary>User databases with their table count and size (data + indexes).</summary>
+        public static List<DbStat> Stats(WebHutConfig cfg)
+        {
+            var names = Databases(cfg);
+            var r = Client(cfg, "mariadb.exe|mysql.exe",
+                "-N -B -e \"SELECT table_schema, COUNT(*), COALESCE(SUM(data_length + index_length), 0) FROM information_schema.tables GROUP BY table_schema\"", 30000);
+            var map = new Dictionary<string, DbStat>(StringComparer.OrdinalIgnoreCase);
+            if (r.ExitCode == 0)
+                foreach (var line in r.Output.Split('\n'))
+                {
+                    var f = line.Trim().Split('\t');
+                    if (f.Length < 3) continue;
+                    int t; long b;
+                    int.TryParse(f[1], out t); long.TryParse(f[2], out b);
+                    map[f[0]] = new DbStat { Name = f[0], Tables = t, Bytes = b };
+                }
+            return names.Select(n => { DbStat d; return map.TryGetValue(n, out d) ? d : new DbStat { Name = n }; }).ToList();
+        }
+
         /// <summary>Dump every user database to a new .sql.gz. Returns its path, or null if there was nothing to back up.</summary>
         public static string Create(WebHutConfig cfg, string reason)
         {
