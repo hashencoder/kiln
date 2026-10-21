@@ -1,4 +1,4 @@
-"""Draws the Kiln icon (flame in a rounded square) as a multi-size .ico."""
+"""Draws the WebHut icon (flame in a rounded square) as a multi-size .ico."""
 import sys
 from PIL import Image, ImageDraw
 

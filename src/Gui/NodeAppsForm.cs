@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace Kiln
+namespace WebHut
 {
     public class NodeAppsForm : Form
     {
@@ -83,7 +83,7 @@ namespace Kiln
             var app = Selected;
             if (app == null) return;
             var svc = new NodeService(app);
-            if (svc.IsRunning) { MessageBox.Show(this, "Stop " + app.Name + " before editing it.", "Kiln"); return; }
+            if (svc.IsRunning) { MessageBox.Show(this, "Stop " + app.Name + " before editing it.", "WebHut"); return; }
             string oldName = app.Name;
             using (var f = new NodeAppEditor(app, _apps, oldName))
             {
@@ -99,10 +99,10 @@ namespace Kiln
             var svc = new NodeService(app);
             if (svc.IsRunning)
             {
-                if (MessageBox.Show(this, app.Name + " is running. Stop and remove it?", "Kiln", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+                if (MessageBox.Show(this, app.Name + " is running. Stop and remove it?", "WebHut", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
                 try { svc.Stop(); } catch (Exception e) { Log.Error(e.Message); }
             }
-            else if (MessageBox.Show(this, "Remove " + app.Name + " from Kiln? Its files are not touched.", "Kiln", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            else if (MessageBox.Show(this, "Remove " + app.Name + " from WebHut? Its files are not touched.", "WebHut", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
             _apps.Remove(app);
             Save();
         }
@@ -152,7 +152,7 @@ namespace Kiln
 
             Row(t, "Name", _name, "Lowercase letters, digits, hyphens. URL: http://<name>.localhost");
             Row(t, "Folder", dirRow, "Inside www\\ is easiest; any folder works.");
-            Row(t, "Command", _cmd, "Run in that folder. Kiln sets PORT, so the app should listen on process.env.PORT.");
+            Row(t, "Command", _cmd, "Run in that folder. WebHut sets PORT, so the app should listen on process.env.PORT.");
             Row(t, "Port", _port, null);
             Row(t, "", _auto, null);
             Row(t, "Environment", _env, "Optional, one KEY=value per line.");
@@ -193,7 +193,7 @@ namespace Kiln
             {
                 if (d.ShowDialog(this) != DialogResult.OK) return;
                 string p = d.SelectedPath;
-                // Store paths inside Kiln as relative, so the folder stays portable.
+                // Store paths inside WebHut as relative, so the folder stays portable.
                 if (p.StartsWith(K.Root + "\\", StringComparison.OrdinalIgnoreCase)) p = p.Substring(K.Root.Length + 1).Replace('\\', '/');
                 _dir.Text = p;
                 if (string.IsNullOrWhiteSpace(_name.Text))

@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace Kiln
+namespace WebHut
 {
     public static class Program
     {
@@ -18,17 +18,17 @@ namespace Kiln
             var problem = K.RootProblem();
             if (problem != null)
             {
-                MessageBox.Show(problem, "Kiln", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(problem, "WebHut", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return 2;
             }
 
-            // One panel per Kiln folder.
+            // One panel per WebHut folder.
             bool created;
-            using (var mutex = new Mutex(true, "Kiln-" + K.Root.ToLowerInvariant().GetHashCode().ToString("x"), out created))
+            using (var mutex = new Mutex(true, "WebHut-" + K.Root.ToLowerInvariant().GetHashCode().ToString("x"), out created))
             {
                 if (!created)
                 {
-                    MessageBox.Show("Kiln is already running for this folder. Look for its icon in the system tray.", "Kiln",
+                    MessageBox.Show("WebHut is already running for this folder. Look for its icon in the system tray.", "WebHut",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return 0;
                 }
@@ -50,7 +50,7 @@ namespace Kiln
         {
             if (e == null) return;
             Log.Error("Unexpected error: " + e);
-            MessageBox.Show(e.Message + "\n\nDetails were written to logs\\kiln.log.", "Kiln - unexpected error",
+            MessageBox.Show(e.Message + "\n\nDetails were written to logs\\webhut.log.", "WebHut - unexpected error",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }

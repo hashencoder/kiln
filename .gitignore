@@ -2,7 +2,7 @@
 dist/
 build/obj/
 
-# A Kiln install created while testing inside the repo
+# A WebHut install created while testing inside the repo
 /apache/
 /php/
 /mariadb/
@@ -15,7 +15,7 @@ build/obj/
 /apps/
 /www/
 /config/
-/kiln.json
+/webhut.json
 /node-apps.json
 
 # OS / editor

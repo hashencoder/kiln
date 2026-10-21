@@ -1,14 +1,14 @@
-# Contributing to Kiln
+# Contributing to WebHut
 
-Thanks for helping. Kiln aims to stay small, dependable and easy to understand, so please read this before opening a large pull request.
+Thanks for helping. WebHut aims to stay small, dependable and easy to understand, so please read this before opening a large pull request.
 
 ## Ground rules
 
-- **Local development only.** Features that make Kiln act like a production server are out of scope.
-- **Official binaries, unmodified.** Kiln downloads and configures upstream builds; it doesn't patch or rebuild them.
+- **Local development only.** Features that make WebHut act like a production server are out of scope.
+- **Official binaries, unmodified.** WebHut downloads and configures upstream builds; it doesn't patch or rebuild them.
 - **No new dependencies.** The code uses only what ships with .NET Framework 4.8 and compiles as C# 5, so anyone on Windows can build it with the built-in `csc.exe`. No NuGet packages.
 - **Never overwrite user files.** Config, `php.ini`, custom vhosts, databases and sites must survive every operation and upgrade.
-- **Everything the GUI does should be possible from `kilnctl`** (or by editing a documented file).
+- **Everything the GUI does should be possible from `webhut`** (or by editing a documented file).
 
 ## Getting started
 
@@ -45,7 +45,7 @@ This is the most likely breakage. To fix it:
 
 ## Reporting bugs
 
-Include `kilnctl status`, the last 50 lines of `logs\kiln.log`, the relevant server log, your Windows version, and the steps to reproduce. Remove passwords first.
+Include `webhut status`, the last 50 lines of `logs\webhut.log`, the relevant server log, your Windows version, and the steps to reproduce. Remove passwords first.
 
 ## License
 

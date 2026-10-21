@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Kiln
+namespace WebHut
 {
     public class MainForm : Form
     {
@@ -27,12 +27,12 @@ namespace Kiln
         Label _sub;
         bool _exiting, _refreshing, _trayHintShown;
 
-        KilnConfig Cfg { get { return Services.Cfg; } }
+        WebHutConfig Cfg { get { return Services.Cfg; } }
 
         public MainForm()
         {
             Ui.Style(this);
-            Text = "Kiln";
+            Text = "WebHut";
             ClientSize = new Size(940, 620);
             MinimumSize = new Size(780, 520);
             StartPosition = FormStartPosition.CenterScreen;
@@ -76,7 +76,7 @@ namespace Kiln
 
             var logo = new PictureBox { Image = Ui.DrawLogo(40), Size = new Size(40, 40), Margin = new Padding(0, 2, 12, 0) };
             var titles = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(0) };
-            var title = Ui.Lbl("Kiln", Ui.Title); title.Margin = new Padding(0, 0, 0, 0);
+            var title = Ui.Lbl("WebHut", Ui.Title); title.Margin = new Padding(0, 0, 0, 0);
             _sub = Ui.Lbl("", Ui.Small, Ui.Muted); _sub.Margin = new Padding(2, 0, 0, 0);
             titles.Controls.Add(title);
             titles.Controls.Add(_sub);
@@ -184,7 +184,7 @@ namespace Kiln
 
         void OnLoad(object sender, EventArgs e)
         {
-            Log.Info("Kiln " + K.AppVersion + " · " + K.Root);
+            Log.Info("WebHut " + K.AppVersion + " · " + K.Root);
             try { new Installer(Cfg).RelocateIfMoved(); } catch (Exception ex) { Log.Error(ex.Message); }
             UpdateSubtitle();
             BuildRows();
@@ -198,8 +198,8 @@ namespace Kiln
 
         void UpdateSubtitle()
         {
-            _sub.Text = K.Root + "   ·   PHP " + (string.IsNullOrEmpty(Cfg.Php) ? "-" : KilnConfig.FullVersion(Cfg.PhpDir)) +
-                        "   ·   Node " + (Cfg.NodeDir == null ? "-" : KilnConfig.FullVersion(Cfg.NodeDir));
+            _sub.Text = K.Root + "   ·   PHP " + (string.IsNullOrEmpty(Cfg.Php) ? "-" : WebHutConfig.FullVersion(Cfg.PhpDir)) +
+                        "   ·   Node " + (Cfg.NodeDir == null ? "-" : WebHutConfig.FullVersion(Cfg.NodeDir));
             if (Cfg.LanAccess)
             {
                 var ips = Sys.LanAddresses();
@@ -237,7 +237,7 @@ namespace Kiln
                         r.Toggle.FlatAppearance.BorderColor = running ? Ui.Line : Ui.Accent;
                     }
                     int up = t.Result.Count(x => x.pid > 0);
-                    _tray.Text = "Kiln - " + up + " of " + t.Result.Count + " running";
+                    _tray.Text = "WebHut - " + up + " of " + t.Result.Count + " running";
                 }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
@@ -374,10 +374,10 @@ namespace Kiln
         void BuildTray()
         {
             _tray.Icon = Ui.AppIcon;
-            _tray.Text = "Kiln";
+            _tray.Text = "WebHut";
             _tray.Visible = true;
             var menu = new ContextMenuStrip();
-            menu.Items.Add("Open Kiln", null, (s, e) => ShowFromTray());
+            menu.Items.Add("Open WebHut", null, (s, e) => ShowFromTray());
             menu.Items.Add("Start all", null, (s, e) => StartAll());
             menu.Items.Add("Stop all", null, (s, e) => StopAll());
             menu.Items.Add("Open localhost", null, (s, e) => Sys.OpenUrl(Services.Apache.Url));
@@ -407,7 +407,7 @@ namespace Kiln
                 {
                     if (Services.MariaDb.IsRunning)
                     {
-                        Native.BlockShutdown(Handle, "Kiln is stopping the database safely...");
+                        Native.BlockShutdown(Handle, "WebHut is stopping the database safely...");
                         Services.MariaDb.StopForShutdown();
                     }
                 }
@@ -422,7 +422,7 @@ namespace Kiln
                 if (!_trayHintShown)
                 {
                     _trayHintShown = true;
-                    _tray.ShowBalloonTip(3000, "Kiln is still running", "Your servers keep running. Right-click the tray icon to exit.", ToolTipIcon.Info);
+                    _tray.ShowBalloonTip(3000, "WebHut is still running", "Your servers keep running. Right-click the tray icon to exit.", ToolTipIcon.Info);
                 }
                 return;
             }
@@ -436,7 +436,7 @@ namespace Kiln
             if (anyRunning)
             {
                 var answer = MessageBox.Show(this, "Stop all servers before exiting?\n\nYes - stop them\nNo - leave them running in the background",
-                    "Exit Kiln", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    "Exit WebHut", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                 if (answer == DialogResult.Cancel) return;
                 if (answer == DialogResult.Yes)
                 {

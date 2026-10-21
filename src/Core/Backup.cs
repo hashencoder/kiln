@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Kiln
+namespace WebHut
 {
     /// <summary>
     /// Automatic and manual database backups (data\backups\mariadb-YYYYMMDD-HHmmss.sql.gz),
@@ -71,7 +71,7 @@ namespace Kiln
             return n;
         }
 
-        static Sys.RunResult Client(KilnConfig cfg, string exeNames, string args, int timeoutMs)
+        static Sys.RunResult Client(WebHutConfig cfg, string exeNames, string args, int timeoutMs)
         {
             var names = exeNames.Split('|');
             var exe = Installer.MariaExe(names);
@@ -81,7 +81,7 @@ namespace Kiln
             return Sys.Run(exe, "--protocol=TCP -h 127.0.0.1 -P " + cfg.MysqlPort + " -u root " + args, env, timeoutMs, K.MariaDbBin);
         }
 
-        public static List<string> Databases(KilnConfig cfg)
+        public static List<string> Databases(WebHutConfig cfg)
         {
             var r = Client(cfg, "mariadb.exe|mysql.exe", "-N -e \"SHOW DATABASES\"", 30000);
             if (r.ExitCode != 0) throw new Exception("Couldn't list databases:\n" + r.Output.Trim());
@@ -89,7 +89,7 @@ namespace Kiln
         }
 
         /// <summary>Dump every user database to a new .sql.gz. Returns its path, or null if there was nothing to back up.</summary>
-        public static string Create(KilnConfig cfg, string reason)
+        public static string Create(WebHutConfig cfg, string reason)
         {
             lock (Gate)
             {
@@ -120,7 +120,7 @@ namespace Kiln
         }
 
         /// <summary>Run a backup if automatic backups are on and the last one is older than `minAge`.</summary>
-        public static void CreateIfDue(KilnConfig cfg, TimeSpan minAge, string reason)
+        public static void CreateIfDue(WebHutConfig cfg, TimeSpan minAge, string reason)
         {
             if (!cfg.AutoBackup) return;
             var last = LastBackupTime();
@@ -130,7 +130,7 @@ namespace Kiln
         }
 
         /// <summary>Load a backup into the running server. Tables in the backup replace current ones of the same name.</summary>
-        public static void Restore(KilnConfig cfg, string gzFile)
+        public static void Restore(WebHutConfig cfg, string gzFile)
         {
             lock (Gate)
             {
@@ -153,7 +153,7 @@ namespace Kiln
         /// For a data folder MariaDB can no longer start from: keep it aside as data\mariadb-damaged-*,
         /// create a fresh one, start, and load the newest backup. Nothing is deleted.
         /// </summary>
-        public static string Rebuild(KilnConfig cfg, string gzFile)
+        public static string Rebuild(WebHutConfig cfg, string gzFile)
         {
             if (gzFile == null)
             {

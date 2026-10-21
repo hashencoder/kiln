@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 
 [assembly: AssemblyDescription("Portable Apache + PHP + MariaDB + Node.js stack for Windows")]
-[assembly: AssemblyProduct("Kiln")]
+[assembly: AssemblyProduct("WebHut")]
 [assembly: AssemblyCopyright("MIT License")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]

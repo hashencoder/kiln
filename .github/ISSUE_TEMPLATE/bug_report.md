@@ -1,18 +1,18 @@
 ---
 name: Bug report
-about: Something in Kiln doesn't work
+about: Something in WebHut doesn't work
 labels: bug
 ---
 
 **What happened**
 <!-- What you clicked or ran, what you expected, what you got instead -->
 
-**kilnctl status**
+**webhut status**
 ```
-paste output of: kilnctl status
+paste output of: webhut status
 ```
 
-**Last lines of logs\kiln.log**
+**Last lines of logs\webhut.log**
 ```
 paste here (remove passwords)
 ```
@@ -23,7 +23,7 @@ paste here
 ```
 
 **Environment**
-- Kiln version (`kilnctl version`):
+- WebHut version (`webhut version`):
 - Windows version (`winver`):
-- Kiln folder path:
+- WebHut folder path:
 - Antivirus / proxy software, if any:

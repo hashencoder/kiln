@@ -10,17 +10,17 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
 
-namespace Kiln
+namespace WebHut
 {
-    /// <summary>Well-known paths. Everything is relative to the folder Kiln.exe lives in.</summary>
+    /// <summary>Well-known paths. Everything is relative to the folder WebHutPanel.exe lives in.</summary>
     public static class K
     {
-        public const string AppName = "Kiln";
+        public const string AppName = "WebHut";
         public const string AppVersion = "1.0.0";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
-        // repo so every Kiln install can pick up pinned versions you publish,
-        // e.g. https://raw.githubusercontent.com/<you>/kiln/main/versions.json
+        // repo so every WebHut install can pick up pinned versions you publish,
+        // e.g. https://raw.githubusercontent.com/<you>/webhut/main/versions.json
         public const string DefaultManifestUrl = "";
 
         public static readonly string Root = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
@@ -50,29 +50,29 @@ namespace Kiln
         public static string Ssl { get { return Path.Combine(Root, "ssl"); } }
         public static string Tools { get { return Path.Combine(Root, "tools"); } }
         public static string Backups { get { return Path.Combine(Data, "backups"); } }
-        public static string ConfigFile { get { return Path.Combine(Root, "kiln.json"); } }
+        public static string ConfigFile { get { return Path.Combine(Root, "webhut.json"); } }
         public static string NodeAppsFile { get { return Path.Combine(Root, "node-apps.json"); } }
 
         public static string Fwd(string p) { return p.Replace('\\', '/').TrimEnd('/'); }
 
-        /// <summary>Kiln refuses to run from paths Apache/PHP handle badly.</summary>
+        /// <summary>WebHut refuses to run from paths Apache/PHP handle badly.</summary>
         public static string RootProblem()
         {
             if (Root.Contains(" "))
-                return "The Kiln folder path contains a space (" + Root + "). Apache and PHP config paths break on spaces. Move Kiln to a path like C:\\kiln.";
+                return "The WebHut folder path contains a space (" + Root + "). Apache and PHP config paths break on spaces. Move WebHut to a path like C:\\webhut.";
             string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
             if ((pf.Length > 0 && Root.StartsWith(pf, StringComparison.OrdinalIgnoreCase)) ||
                 (pf86.Length > 0 && Root.StartsWith(pf86, StringComparison.OrdinalIgnoreCase)))
-                return "Kiln is inside Program Files, where it can't write its own files without admin rights. Move it to a path like C:\\kiln.";
+                return "WebHut is inside Program Files, where it can't write its own files without admin rights. Move it to a path like C:\\webhut.";
             return null;
         }
 
-        /// <summary>Non-blocking advice about the Kiln folder location.</summary>
+        /// <summary>Non-blocking advice about the WebHut folder location.</summary>
         public static string RootWarning()
         {
             if (Root.Length > 60)
-                return "The Kiln folder path is long (" + Root.Length + " characters). Deep node_modules folders can hit Windows' 260-character path limit; a short path like C:\\kiln avoids that.";
+                return "The WebHut folder path is long (" + Root.Length + " characters). Deep node_modules folders can hit Windows' 260-character path limit; a short path like C:\\webhut avoids that.";
             return null;
         }
     }
@@ -95,7 +95,7 @@ namespace Kiln
                 try
                 {
                     Directory.CreateDirectory(K.Logs);
-                    File.AppendAllText(Path.Combine(K.Logs, "kiln.log"),
+                    File.AppendAllText(Path.Combine(K.Logs, "webhut.log"),
                         DateTime.Now.ToString("yyyy-MM-dd ") + line + Environment.NewLine);
                 }
                 catch { }
@@ -139,7 +139,7 @@ namespace Kiln
             return v == null ? null : Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        /// <summary>Pretty-printed JSON so kiln.json stays hand-editable.</summary>
+        /// <summary>Pretty-printed JSON so webhut.json stays hand-editable.</summary>
         public static string Pretty(object value)
         {
             var sb = new StringBuilder();
@@ -207,7 +207,7 @@ namespace Kiln
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern bool ShutdownBlockReasonDestroy(IntPtr hwnd);
 
-        /// <summary>Show "Kiln: stopping the database safely" on the Windows shutdown screen while we work.</summary>
+        /// <summary>Show "WebHut: stopping the database safely" on the Windows shutdown screen while we work.</summary>
         public static void BlockShutdown(IntPtr hwnd, string reason) { try { ShutdownBlockReasonCreate(hwnd, reason); } catch { } }
         public static void UnblockShutdown(IntPtr hwnd) { try { ShutdownBlockReasonDestroy(hwnd); } catch { } }
 
@@ -225,7 +225,7 @@ namespace Kiln
 
         /// <summary>
         /// Stop servers we launch from inheriting our stdin/stdout/stderr. Otherwise a caller that
-        /// captures kilnctl's output (PowerShell, CI) would wait forever for Apache to close the pipe.
+        /// captures webhut's output (PowerShell, CI) would wait forever for Apache to close the pipe.
         /// </summary>
         public static void DontInheritStdHandles()
         {

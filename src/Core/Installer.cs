@@ -10,16 +10,16 @@ using System.Text;
 using System.Threading;
 using Microsoft.Win32;
 
-namespace Kiln
+namespace WebHut
 {
     /// <summary>Downloads, verifies, unpacks and configures components.</summary>
     public class Installer
     {
-        public KilnConfig Cfg;
+        public WebHutConfig Cfg;
         /// <summary>(message, percent 0-100 or -1 when unknown)</summary>
         public event Action<string, int> Progress;
 
-        public Installer(KilnConfig cfg) { Cfg = cfg; }
+        public Installer(WebHutConfig cfg) { Cfg = cfg; }
 
         void Report(string msg, int pct) { var h = Progress; if (h != null) h(msg, pct); }
 
@@ -27,7 +27,7 @@ namespace Kiln
 
         public static bool IsInstalled()
         {
-            return File.Exists(K.Httpd) && KilnConfig.InstalledPhp().Count > 0;
+            return File.Exists(K.Httpd) && WebHutConfig.InstalledPhp().Count > 0;
         }
 
         public void CreateFolders()
@@ -105,7 +105,7 @@ namespace Kiln
 
         static void WriteVersion(string dir, string version)
         {
-            try { File.WriteAllText(Path.Combine(dir, ".kiln-version"), version ?? ""); } catch { }
+            try { File.WriteAllText(Path.Combine(dir, ".webhut-version"), version ?? ""); } catch { }
         }
 
         // ------------------------------------------------------------------ download
@@ -127,7 +127,7 @@ namespace Kiln
             Log.Info("Downloading " + c.Url);
 
             var req = (HttpWebRequest)WebRequest.Create(c.Url);
-            req.UserAgent = "Kiln/" + K.AppVersion + " (portable dev stack for Windows)";
+            req.UserAgent = "WebHut/" + K.AppVersion + " (portable dev stack for Windows)";
             req.Timeout = 60000;
             req.ReadWriteTimeout = 60000;
             req.AllowAutoRedirect = true;
@@ -258,7 +258,7 @@ namespace Kiln
             File.WriteAllText(path, text.Replace("\r\n", "\n").Replace("\n", "\r\n"), new UTF8Encoding(false));
         }
 
-        /// <summary>Write Kiln's config files. Existing files are kept unless overwrite is true.</summary>
+        /// <summary>Write WebHut's config files. Existing files are kept unless overwrite is true.</summary>
         public void WriteConfigFiles(bool overwrite)
         {
             var files = new[]
@@ -288,7 +288,7 @@ namespace Kiln
             if (File.Exists(Path.Combine(ext, "php_opcache.dll"))) lines.Add("zend_extension = opcache");
 
             string ini = Resource("php/php.ini.template")
-                .Replace("{{KILN_ROOT}}", K.RootFwd)
+                .Replace("{{WEBHUT_ROOT}}", K.RootFwd)
                 .Replace("{{PHP_DIR}}", K.Fwd(phpDir))
                 .Replace("{{TIMEZONE}}", Sys.IanaTimeZone())
                 .Replace("{{EXTENSIONS}}", string.Join("\n", lines));
@@ -352,22 +352,22 @@ namespace Kiln
 
         // ------------------------------------------------------------------ relocation
 
-        /// <summary>If the Kiln folder was moved or copied, fix the absolute root path stored in php.ini files.</summary>
+        /// <summary>If the WebHut folder was moved or copied, fix the absolute root path stored in php.ini files.</summary>
         public void RelocateIfMoved()
         {
             string now = K.RootFwd;
-            foreach (var v in KilnConfig.InstalledPhp())
+            foreach (var v in WebHutConfig.InstalledPhp())
             {
                 var ini = Path.Combine(K.PhpDir(v), "php.ini");
                 if (!File.Exists(ini)) continue;
                 var text = File.ReadAllText(ini);
-                // Prefer the root recorded in kiln.json; fall back to the marker line in php.ini
-                // (covers bundles shipped without kiln.json).
+                // Prefer the root recorded in webhut.json; fall back to the marker line in php.ini
+                // (covers bundles shipped without webhut.json).
                 string old = Cfg.LastRoot;
-                var marker = System.Text.RegularExpressions.Regex.Match(text, @";\s*kiln-root:\s*(\S+)");
+                var marker = System.Text.RegularExpressions.Regex.Match(text, @";\s*webhut-root:\s*(\S+)");
                 if (marker.Success) old = marker.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(old) || old.Equals(now, StringComparison.OrdinalIgnoreCase)) continue;
-                Log.Info("Kiln folder moved from " + old + " to " + now + " - updating " + ini);
+                Log.Info("WebHut folder moved from " + old + " to " + now + " - updating " + ini);
                 var fixedText = System.Text.RegularExpressions.Regex.Replace(text,
                     System.Text.RegularExpressions.Regex.Escape(old), now.Replace("$", "$$"),
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase);

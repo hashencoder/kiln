@@ -1,10 +1,10 @@
-KILN - portable Apache + PHP + MariaDB + Node.js for Windows
+WEBHUT - portable Apache + PHP + MariaDB + Node.js for Windows
 =============================================================
 
-1. Put this "Kiln" folder somewhere short with no spaces, e.g. C:\kiln
+1. Put this "WebHut" folder somewhere short with no spaces, e.g. C:\webhut
    (not inside Program Files).
 
-2. Double-click Kiln.exe.
+2. Double-click WebHutPanel.exe.
    The first time, a setup window downloads the official Windows builds of
    Apache, PHP, MariaDB, phpMyAdmin, Node.js, Composer and the CA
    certificate bundle into this folder, then configures them.
@@ -13,19 +13,19 @@ KILN - portable Apache + PHP + MariaDB + Node.js for Windows
 
 Your projects:   put them in www\<name>  ->  http://<name>.localhost
                  (click "Refresh sites" after adding a folder)
-Node apps:       Kiln -> Node apps... -> Add
+Node apps:       WebHut -> Node apps... -> Add
 Database:        127.0.0.1:3306, user root, empty password by default
 Backups:         automatic every 2 hours and before stopping (data\backups);
-                 Kiln -> Database... to restore or rebuild after a crash
-From XAMPP:      stop MySQL in XAMPP, then Kiln -> Database... -> Import from XAMPP
+                 WebHut -> Database... to restore or rebuild after a crash
+From XAMPP:      stop MySQL in XAMPP, then WebHut -> Database... -> Import from XAMPP
 phpMyAdmin:      http://localhost/phpmyadmin
-Terminal:        Kiln -> Shell (php, node, npm, composer, mariadb on PATH)
-Command line:    kilnctl status | start | stop | restart | sites | php 8.4
+Terminal:        WebHut -> Shell (php, node, npm, composer, mariadb on PATH)
+Command line:    webhut status | start | stop | restart | sites | php 8.4
 
 Windows may show a SmartScreen warning the first time because the program
 is new and not code-signed: click "More info" -> "Run anyway".
 
-Kiln needs the Microsoft Visual C++ Redistributable 2017-2026 (x64). The
+WebHut needs the Microsoft Visual C++ Redistributable 2017-2026 (x64). The
 setup window checks for it and can install it for you.
 
 LOCAL DEVELOPMENT ONLY. Everything listens on 127.0.0.1 and is not hardened

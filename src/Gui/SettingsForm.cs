@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Kiln
+namespace WebHut
 {
     public class SettingsForm : Form
     {
@@ -16,20 +16,20 @@ namespace Kiln
         readonly ComboBox _node = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 120 };
         readonly NumericUpDown _http = new NumericUpDown { Minimum = 1, Maximum = 65535, Width = 90 };
         readonly NumericUpDown _mysql = new NumericUpDown { Minimum = 1, Maximum = 65535, Width = 90 };
-        readonly CheckBox _startOnLaunch = new CheckBox { Text = "Start Apache, MariaDB and auto-start Node apps when Kiln opens", AutoSize = true };
-        readonly CheckBox _tray = new CheckBox { Text = "Closing the window keeps Kiln in the system tray", AutoSize = true };
+        readonly CheckBox _startOnLaunch = new CheckBox { Text = "Start Apache, MariaDB and auto-start Node apps when WebHut opens", AutoSize = true };
+        readonly CheckBox _tray = new CheckBox { Text = "Closing the window keeps WebHut in the system tray", AutoSize = true };
         readonly CheckBox _lan = new CheckBox { Text = "Allow access from other devices on my network (phones, other PCs)", AutoSize = true };
         readonly Label _status = Ui.Lbl("", Ui.Small, Ui.Muted);
         readonly Label _pwState = Ui.Lbl("", Ui.Small, Ui.Muted);
         Button _addPhp, _addNode, _updates, _vc, _pwBtn;
         bool _busy;
 
-        KilnConfig Cfg { get { return Services.Cfg; } }
+        WebHutConfig Cfg { get { return Services.Cfg; } }
 
         public SettingsForm()
         {
             Ui.Style(this);
-            Text = "Kiln settings";
+            Text = "WebHut settings";
             ClientSize = new Size(660, 560);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false;
@@ -90,11 +90,11 @@ namespace Kiln
         void Populate()
         {
             _php.Items.Clear();
-            foreach (var v in KilnConfig.InstalledPhp()) _php.Items.Add(v);
+            foreach (var v in WebHutConfig.InstalledPhp()) _php.Items.Add(v);
             _php.SelectedItem = Cfg.Php;
             if (_php.SelectedIndex < 0 && _php.Items.Count > 0) _php.SelectedIndex = 0;
             _node.Items.Clear();
-            foreach (var v in KilnConfig.InstalledNode()) _node.Items.Add(v);
+            foreach (var v in WebHutConfig.InstalledNode()) _node.Items.Add(v);
             _node.SelectedItem = Cfg.Node;
             if (_node.SelectedIndex < 0 && _node.Items.Count > 0) _node.SelectedIndex = 0;
             _http.Value = Cfg.HttpPort;
@@ -158,7 +158,7 @@ namespace Kiln
                     return;
                 }
                 SetBusy(false, t.IsFaulted ? "Failed: " + t.Exception.GetBaseException().Message : "Done.");
-                if (t.IsFaulted) Ui.Error(this, "Kiln", t.Exception.GetBaseException().Message);
+                if (t.IsFaulted) Ui.Error(this, "WebHut", t.Exception.GetBaseException().Message);
                 Populate();
                 if (!t.IsFaulted && done != null) done();
             }, TaskScheduler.FromCurrentSynchronizationContext());
@@ -178,10 +178,10 @@ namespace Kiln
             {
                 if (IsDisposed) return;
                 SetBusy(false, "");
-                if (t.IsFaulted) { Ui.Error(this, "Kiln", "Couldn't reach windows.php.net: " + t.Exception.GetBaseException().Message); return; }
-                var installed = KilnConfig.InstalledPhp();
+                if (t.IsFaulted) { Ui.Error(this, "WebHut", "Couldn't reach windows.php.net: " + t.Exception.GetBaseException().Message); return; }
+                var installed = WebHutConfig.InstalledPhp();
                 var choices = t.Result.Where(b => !installed.Contains(b)).ToList();
-                if (choices.Count == 0) { MessageBox.Show(this, "Every supported PHP version is already installed.", "Kiln"); return; }
+                if (choices.Count == 0) { MessageBox.Show(this, "Every supported PHP version is already installed.", "WebHut"); return; }
                 string branch = Choose("Install PHP", "PHP version to install:", choices);
                 if (branch == null) return;
                 RunBg("Installing PHP " + branch + "…", () =>
@@ -197,7 +197,7 @@ namespace Kiln
             RunBg("Installing the latest Node.js LTS…", () =>
             {
                 var c = Resolver.Node(Cfg, null);
-                if (KilnConfig.InstalledNode().Contains(c.Branch) && KilnConfig.FullVersion(K.NodeDir(c.Branch)) == c.Version)
+                if (WebHutConfig.InstalledNode().Contains(c.Branch) && WebHutConfig.FullVersion(K.NodeDir(c.Branch)) == c.Version)
                 {
                     Log.Info("Node.js " + c.Version + " is already installed.");
                     return;
@@ -296,7 +296,7 @@ namespace Kiln
             Task.Run(() =>
             {
                 var items = new List<Item>();
-                Func<string, string> inst = dir => System.IO.Directory.Exists(dir) ? KilnConfig.FullVersion(dir) : null;
+                Func<string, string> inst = dir => System.IO.Directory.Exists(dir) ? WebHutConfig.FullVersion(dir) : null;
                 items.Add(new Item { C = Resolver.Apache(cfg), Installed = inst(K.Apache), Owner = Services.Apache });
                 if (!string.IsNullOrEmpty(cfg.Php))
                     items.Add(new Item { C = Resolver.Php(cfg, cfg.Php), Installed = inst(cfg.PhpDir), Owner = Services.Apache });
@@ -314,10 +314,10 @@ namespace Kiln
                 {
                     string note = "";
                     bool missing = it.C.Ready && it.Installed == null;
-                    bool newer = it.C.Ready && (missing || KilnConfig.VersionKey(it.C.Version) > KilnConfig.VersionKey(it.Installed));
+                    bool newer = it.C.Ready && (missing || WebHutConfig.VersionKey(it.C.Version) > WebHutConfig.VersionKey(it.Installed));
                     if (it.C.Id == "mariadb" && newer && !missing)
                     {
-                        var a = KilnConfig.VersionKey(it.C.Version); var b = KilnConfig.VersionKey(it.Installed);
+                        var a = WebHutConfig.VersionKey(it.C.Version); var b = WebHutConfig.VersionKey(it.Installed);
                         if (a.Major != b.Major || a.Minor != b.Minor) { newer = false; note = "New LTS series: upgrade by hand (see docs)"; }
                     }
                     if (!it.C.Ready) note = "Lookup failed";

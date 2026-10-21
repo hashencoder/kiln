@@ -4,7 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace Kiln
+namespace WebHut
 {
     /// <summary>Shared look and feel.</summary>
     public static class Ui
@@ -41,7 +41,7 @@ namespace Kiln
             }
         }
 
-        /// <summary>The Kiln mark: a flame in a rounded square.</summary>
+        /// <summary>The WebHut mark: a flame in a rounded square.</summary>
         public static Bitmap DrawLogo(int size)
         {
             var bmp = new Bitmap(size, size);

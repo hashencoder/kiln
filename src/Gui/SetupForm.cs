@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Kiln
+namespace WebHut
 {
     /// <summary>First-run wizard: pick components, download, install, configure.</summary>
     public class SetupForm : Form
@@ -31,7 +31,7 @@ namespace Kiln
         public SetupForm()
         {
             Ui.Style(this);
-            Text = "Set up Kiln";
+            Text = "Set up WebHut";
             ClientSize = new Size(820, 660);
             MinimumSize = new Size(720, 600);
             StartPosition = FormStartPosition.CenterScreen;
@@ -41,8 +41,8 @@ namespace Kiln
             Controls.Add(root);
             _status.MaximumSize = new Size(760, 0);
 
-            var title = Ui.Lbl("Set up Kiln", Ui.Title);
-            var intro = Ui.Lbl("Kiln downloads the official Windows builds below into " + K.Root + ".\nNothing is installed system-wide; delete the folder to remove everything.", Ui.Base, Ui.Muted);
+            var title = Ui.Lbl("Set up WebHut", Ui.Title);
+            var intro = Ui.Lbl("WebHut downloads the official Windows builds below into " + K.Root + ".\nNothing is installed system-wide; delete the folder to remove everything.", Ui.Base, Ui.Muted);
             intro.Margin = new Padding(0, 4, 0, 12);
             root.Controls.Add(title);
             root.Controls.Add(intro);
@@ -189,7 +189,7 @@ namespace Kiln
         void PickZip()
         {
             var c = Selected();
-            if (c == null) { MessageBox.Show(this, "Select a component in the list first.", "Kiln"); return; }
+            if (c == null) { MessageBox.Show(this, "Select a component in the list first.", "WebHut"); return; }
             using (var d = new OpenFileDialog { Title = "Choose the " + c.Name + " download", Filter = c.Id == "composer" ? "PHAR|*.phar" : c.Id == "cacert" ? "PEM|*.pem" : "Zip archives|*.zip" })
             {
                 if (d.ShowDialog(this) != DialogResult.OK) return;
@@ -234,14 +234,14 @@ namespace Kiln
             var notReady = selected.Where(c => !c.Ready).ToList();
             if (notReady.Count > 0)
             {
-                Ui.Error(this, "Kiln", "These still need a zip or must be unticked:\n" + string.Join("\n", notReady.Select(c => "• " + c.Name)));
+                Ui.Error(this, "WebHut", "These still need a zip or must be unticked:\n" + string.Join("\n", notReady.Select(c => "• " + c.Name)));
                 return;
             }
-            if ((int)_http.Value == (int)_mysql.Value) { Ui.Error(this, "Kiln", "HTTP and MySQL ports must differ."); return; }
+            if ((int)_http.Value == (int)_mysql.Value) { Ui.Error(this, "WebHut", "HTTP and MySQL ports must differ."); return; }
             if (!Installer.VcRedistOk())
             {
                 var a = MessageBox.Show(this, "The Visual C++ Redistributable is missing or old, so Apache probably won't start.\n\nContinue anyway? (You can install it later from Settings.)",
-                    "Kiln", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    "WebHut", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 if (a != DialogResult.Yes) return;
             }
 
@@ -275,7 +275,7 @@ namespace Kiln
                 }
                 _bar.Value = 100;
                 _status.Text = "Done!";
-                MessageBox.Show(this, "Kiln is ready.\n\nClick \"Start all\" in the next window, then open http://localhost.", "Kiln", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "WebHut is ready.\n\nClick \"Start all\" in the next window, then open http://localhost.", "WebHut", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 DialogResult = DialogResult.OK;
                 Close();
             }, TaskScheduler.FromCurrentSynchronizationContext());

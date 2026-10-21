@@ -1,26 +1,26 @@
 # 04 – Node.js integration
 
-Kiln treats Node apps as first-class services next to Apache and MariaDB. Each one gets a row in the panel with Start/Stop, a log file, and a hostname.
+WebHut treats Node apps as first-class services next to Apache and MariaDB. Each one gets a row in the panel with Start/Stop, a log file, and a hostname.
 
 ## How it works
 
 ```mermaid
 sequenceDiagram
     participant U as You
-    participant K as Kiln
+    participant K as WebHut
     participant C as cmd.exe
     participant N as Your app
     participant A as Apache
     U->>K: Start "api"
     K->>C: cmd /c "npm run dev >> logs\node-api.log 2>&1" (PORT=3000)
     C->>N: npm runs your dev script
-    N-->>K: listening on :3000 (Kiln polls the port)
+    N-->>K: listening on :3000 (WebHut polls the port)
     U->>A: GET http://api.localhost/users
     A->>N: proxy to http://localhost:3000/users (websockets too)
     N-->>U: response
 ```
 
-1. Kiln runs your **command** with `cmd.exe` in the app's folder. `PATH` contains the active Node (`node`, `npm`, `npx`), PHP, Composer and the MariaDB client.
+1. WebHut runs your **command** with `cmd.exe` in the app's folder. `PATH` contains the active Node (`node`, `npm`, `npx`), PHP, Composer and the MariaDB client.
 2. `PORT` is set to the app's port. Most frameworks and `express` examples read `process.env.PORT`; for those that don't, put the port in the command (see recipes).
 3. Output goes to `logs\node-<name>.log` (the **Logs** button opens it). Chained commands such as `npm install && npm run dev` are logged in full.
 4. Apache's generated vhost forwards `http://<name>.localhost` to `http://localhost:<port>`, with `upgrade=websocket` so hot reload and Socket.IO work.
@@ -35,15 +35,15 @@ The app is also reachable directly at `http://localhost:<port>`. The Apache host
 | Field | Example | Notes |
 |---|---|---|
 | Name | `api` | Becomes `http://api.localhost` |
-| Folder | `www/api` | Where `package.json` is. Folders inside Kiln are stored relative, so the Kiln folder stays portable. |
+| Folder | `www/api` | Where `package.json` is. Folders inside WebHut are stored relative, so the WebHut folder stays portable. |
 | Command | `npm run dev` | Anything you'd type in a terminal in that folder |
-| Port | `3000` | Kiln suggests the next free one |
-| Start with "Start all" | ✓ | Include in **Start all** / `kilnctl start` |
+| Port | `3000` | WebHut suggests the next free one |
+| Start with "Start all" | ✓ | Include in **Start all** / `webhut start` |
 | Environment | `DATABASE_URL=mysql://root@127.0.0.1:3306/api` | One `KEY=value` per line |
 
-Run `npm install` first: open **Shell**, `cd` into the folder, and run `npm install`. Kiln doesn't install dependencies by itself.
+Run `npm install` first: open **Shell**, `cd` into the folder, and run `npm install`. WebHut doesn't install dependencies by itself.
 
-After you add, edit or remove an app, Kiln regenerates the vhosts and restarts Apache if it's running.
+After you add, edit or remove an app, WebHut regenerates the vhosts and restarts Apache if it's running.
 
 ## Framework recipes
 
@@ -69,7 +69,7 @@ export default {
   server: {
     port: 5173,
     strictPort: true,
-    hmr: { clientPort: 80 },   // the Kiln HTTP port
+    hmr: { clientPort: 80 },   // the WebHut HTTP port
   },
 }
 ```
@@ -93,18 +93,18 @@ For **Laravel + Vite** (where Vite only serves assets), don't register a Node ap
 
 ## IPv6 and "localhost"
 
-Some dev servers listen only on `::1` (IPv6 loopback) when told to use `localhost`. Kiln's proxy targets `http://localhost:<port>`, and Apache tries each address `localhost` resolves to, so both IPv4-only and IPv6-only servers work. Kiln's "is it listening?" check also looks at both.
+Some dev servers listen only on `::1` (IPv6 loopback) when told to use `localhost`. WebHut's proxy targets `http://localhost:<port>`, and Apache tries each address `localhost` resolves to, so both IPv4-only and IPv6-only servers work. WebHut's "is it listening?" check also looks at both.
 
-If an app shows **running** but Kiln logs "nothing is listening on port N", the app ignored `PORT` and picked its own port. Check `logs\node-<name>.log` for the port it chose, then either set that port in Kiln or pass the port in the command.
+If an app shows **running** but WebHut logs "nothing is listening on port N", the app ignored `PORT` and picked its own port. Check `logs\node-<name>.log` for the port it chose, then either set that port in WebHut or pass the port in the command.
 
 ## npm, npx and global packages
 
-The Kiln shell and every Node app use:
+The WebHut shell and every Node app use:
 
-- `NPM_CONFIG_PREFIX = node\<major>\global`, so `npm i -g pnpm` installs inside Kiln, not in `%AppData%`.
+- `NPM_CONFIG_PREFIX = node\<major>\global`, so `npm i -g pnpm` installs inside WebHut, not in `%AppData%`.
 - `NPM_CONFIG_CACHE = tmp\npm-cache`.
 
-To use **pnpm** or **yarn**, install them globally from the Kiln shell (`npm i -g pnpm`), then use `pnpm dev` as the app's command.
+To use **pnpm** or **yarn**, install them globally from the WebHut shell (`npm i -g pnpm`), then use `pnpm dev` as the app's command.
 
 ## Switching Node versions
 
@@ -123,8 +123,8 @@ For any other hostname, add a vhost in `config\apache\custom\` (see [03](03-conf
 
 ## Testing on a phone
 
-Turn on **Settings → Network → Allow access from other devices on my network**. Then, from a phone on the same Wi-Fi, open `http://<name>.<your-ip>.nip.io/`, for example `http://web.192.168.1.5.nip.io/`. Apache proxies it to the app like any other request. For Vite, also add `.nip.io` to `server.allowedHosts`. Details and safety notes are in [08](08-security.md#opening-kiln-to-your-lan-for-testing-on-a-phone).
+Turn on **Settings → Network → Allow access from other devices on my network**. Then, from a phone on the same Wi-Fi, open `http://<name>.<your-ip>.nip.io/`, for example `http://web.192.168.1.5.nip.io/`. Apache proxies it to the app like any other request. For Vite, also add `.nip.io` to `server.allowedHosts`. Details and safety notes are in [08](08-security.md#opening-webhut-to-your-lan-for-testing-on-a-phone).
 
-## Running Node outside Kiln
+## Running Node outside WebHut
 
-Node apps don't have to be registered. Anything you start from the **Shell** uses Kiln's Node and works as usual. Registering an app just adds the panel controls, the log file, autostart and the `.localhost` hostname.
+Node apps don't have to be registered. Anything you start from the **Shell** uses WebHut's Node and works as usual. Registering an app just adds the panel controls, the log file, autostart and the `.localhost` hostname.
