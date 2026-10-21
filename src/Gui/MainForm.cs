@@ -36,7 +36,6 @@ namespace WebHut
         bool _logExpanded, _autoScrollOn = true;
         FlowLayoutPanel _tiles;
         IconButton _allBtn;
-        ToolStripMenuItem _trayAll;
         Switch _autoScroll;
         bool _exiting, _refreshing, _trayHintShown;
         bool _anyRunning, _sequenceRunning;
@@ -92,9 +91,9 @@ namespace WebHut
             _pageSites.Resize += (s, e) => FitCards();
             _pageDb.Resize += (s, e) => FitCards();
 
-            Controls.Add(_pageDb);
-            Controls.Add(_pageSites);
-            Controls.Add(main);
+            Controls.Add(ScrollHost.Wrap(_pageDb));
+            Controls.Add(ScrollHost.Wrap(_pageSites));
+            Controls.Add(ScrollHost.Wrap(main));
             Controls.Add(BuildSidebar());
             ShowPage(_page);
         }
@@ -175,13 +174,18 @@ namespace WebHut
             var bottom = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, BackColor = Ui.Sidebar };
             bottom.Controls.Add(new Panel { Height = 1, Width = w, BackColor = Ui.Line, Margin = new Padding(0, 0, 0, Px(8)) });
             bottom.Controls.Add(ThemeRow(w));
-            var minor = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Ui.Sidebar, Margin = new Padding(Px(4), Px(4), 0, 0) };
-            var about = new IconButton("About", "info", ButtonKind.Ghost) { IconColor = Ui.Faint, Font = Ui.Small, ForeColor = Ui.Muted, Margin = new Padding(0, 0, Px(4), 0) };
-            about.Click += (s, e) => ShowAbout();
-            var quit = new IconButton("Quit WebHut", "power", ButtonKind.Ghost) { IconColor = Ui.Faint, Font = Ui.Small, Margin = new Padding(0) };
+            // Quit on the left, About as an icon on the right: both always fit the sidebar width, hover included.
+            var minor = new TableLayoutPanel { Width = w, Height = Px(40), ColumnCount = 2, RowCount = 1, BackColor = Ui.Sidebar, Margin = new Padding(0, Px(4), 0, 0) };
+            minor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            minor.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var quit = new IconButton("Quit WebHut", "power", ButtonKind.Ghost) { IconColor = Ui.Faint, Font = Ui.Small, Margin = new Padding(0), Anchor = AnchorStyles.Left };
             quit.Click += (s, e) => ExitApp();
             _tips.SetToolTip(quit, "Close WebHut completely (asks whether to stop running servers)");
-            minor.Controls.Add(about); minor.Controls.Add(quit);
+            var about = new IconButton("", "info", ButtonKind.Ghost) { IconColor = Ui.Faint, Margin = new Padding(0), Anchor = AnchorStyles.Right };
+            about.SetMin(Px(36), Px(34));
+            about.Click += (s, e) => ShowAbout();
+            _tips.SetToolTip(about, "About WebHut");
+            minor.Controls.Add(quit, 0, 0); minor.Controls.Add(about, 1, 0);
             bottom.Controls.Add(minor);
 
             side.Controls.Add(nav);
@@ -553,13 +557,16 @@ namespace WebHut
             }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
+        /// <summary>The themed scroll host around a page (pages live inside one).</summary>
+        static Control Host(Control page) { return page.Parent as ScrollHost ?? (Control)page; }
+
         void ShowPage(int page)
         {
             _page = page;
             SuspendLayout();
-            _pageDash.Visible = page == 0;
-            _pageSites.Visible = page == 1;
-            _pageDb.Visible = page == 2;
+            Host(_pageDash).Visible = page == 0;
+            Host(_pageSites).Visible = page == 1;
+            Host(_pageDb).Visible = page == 2;
             for (int i = 0; i < _pageNavs.Count; i++) { _pageNavs[i].Active = i == page; _pageNavs[i].Invalidate(); }
             ResumeLayout(true);
             if (page == 1) RefreshSitesPage();
@@ -769,6 +776,7 @@ namespace WebHut
             _log.DetectUrls = false;
             _log.WordWrap = true;
             _log.ScrollBars = RichTextBoxScrollBars.Vertical;
+            Ui.ThemeScrollBars(_log, true);   // the activity console is dark in both themes
             dark.Controls.Add(_log);
             return Assemble(card, CardHeader("file", "Activity", right), dark, w => Px(_logExpanded ? 380 : 150));
         }
@@ -1075,7 +1083,6 @@ namespace WebHut
             _allBtn.Enabled = true;
             if (_anyRunning) _allBtn.Set("Stop all", "stop", ButtonKind.Outline);
             else _allBtn.Set("Start all", "play", ButtonKind.Primary);
-            if (_trayAll != null) _trayAll.Text = _allBtn.Text;
         }
 
         void StartAll()
@@ -1096,7 +1103,6 @@ namespace WebHut
             if (_sequenceRunning) return;
             _sequenceRunning = true;
             if (_allBtn != null) { _allBtn.Enabled = false; _allBtn.Text = starting ? "Starting…" : "Stopping…"; }
-            if (_trayAll != null) _trayAll.Enabled = false;
             foreach (var s in list) s.Busy = true;
             foreach (var r in _rows.Where(r => list.Contains(r.Svc))) { r.Failed = false; r.Toggle.Enabled = false; r.Open.Enabled = false; r.Status.Set(PillState.Busy, starting ? "Starting…" : "Stopping…"); }
             if (_health != null) _health.Set(PillState.Busy, starting ? "Starting services…" : "Stopping services…");
@@ -1117,7 +1123,6 @@ namespace WebHut
             }).ContinueWith(t =>
             {
                 _sequenceRunning = false;
-                if (_trayAll != null) _trayAll.Enabled = true;
                 bool anyFailed = _rows.Any(r => r.Failed);
                 Toast.Show(this, anyFailed ? (starting ? "Some services failed to start. See Activity." : "Some services failed to stop. See Activity.")
                                           : starting ? "All services started." : "All services stopped.", anyFailed ? ToastKind.Warning : ToastKind.Success);
@@ -1190,14 +1195,30 @@ namespace WebHut
             _tray.Icon = Ui.AppIcon;
             _tray.Text = "WebHut";
             _tray.Visible = true;
-            var menu = new ContextMenuStrip();
-            menu.Items.Add("Open WebHut", null, (s, e) => ShowFromTray());
-            _trayAll = (ToolStripMenuItem)menu.Items.Add("Start all", null, (s, e) => ToggleAll());
-            menu.Items.Add("Open localhost", null, (s, e) => Sys.OpenUrl(Services.Apache.Url));
-            menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Quit WebHut", null, (s, e) => ExitApp());
-            _tray.ContextMenuStrip = menu;
+            // WebHut's own menu (same look as the rest of the app) instead of the plain Windows one.
+            _tray.MouseUp += (s, e) => { if (e.Button == MouseButtons.Right) ShowTrayMenu(); };
             _tray.DoubleClick += (s, e) => ShowFromTray();
+        }
+
+        void ShowTrayMenu()
+        {
+            var svcs = new List<Service> { Services.Apache, Services.MariaDb };
+            int running = svcs.Count(x => x.IsRunning);
+            bool busy = _sequenceRunning || svcs.Any(x => x.Busy);
+            string state = busy ? "Working…" : running == 0 ? "All services stopped" : running == svcs.Count ? "All services running" : running + " of " + svcs.Count + " services running";
+            bool pma = Services.Apache.IsRunning && Services.MariaDb.IsRunning;
+            PopupMenu.ShowAt(Cursor.Position, "WebHut  ·  " + state, new List<PopupItem>
+            {
+                new PopupItem { Title = "Open WebHut", Description = "Show the control panel", Icon = "home", Act = ShowFromTray },
+                new PopupItem { Title = _anyRunning ? "Stop all" : "Start all", Description = _anyRunning ? "Apache, MariaDB and Node apps" : "Apache, MariaDB and auto-start apps",
+                                Icon = _anyRunning ? "stop" : "play", Enabled = !busy, Act = ToggleAll },
+                PopupItem.Line(),
+                new PopupItem { Title = "Open localhost", Description = Services.Apache.IsRunning ? Services.Apache.Url : "Start Apache first", Icon = "external", Enabled = Services.Apache.IsRunning, Act = () => Sys.OpenUrl(Services.Apache.Url) },
+                new PopupItem { Title = "phpMyAdmin", Description = pma ? "Manage databases in your browser" : "Start Apache and MariaDB first", Icon = "database", Enabled = pma, Act = () => Sys.OpenUrl(Services.MariaDb.Url) },
+                new PopupItem { Title = "www folder", Description = "Open your sites in Explorer", Icon = "folder", Act = () => Sys.OpenFolder(K.Www) },
+                PopupItem.Line(),
+                new PopupItem { Title = "Quit WebHut", Description = "Close WebHut completely", Icon = "power", Danger = true, Act = ExitApp }
+            }, Px(290));
         }
 
         void ShowFromTray()

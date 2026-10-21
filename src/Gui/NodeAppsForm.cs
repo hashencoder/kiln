@@ -85,7 +85,7 @@ namespace WebHut
             footer.Controls.Add(help, 0, 0);
             footer.Controls.Add(close, 1, 0);
 
-            Controls.Add(_listHost);
+            Controls.Add(ScrollHost.Wrap(_listHost));
             Controls.Add(head);
             Controls.Add(footer);
             CancelButton = close;

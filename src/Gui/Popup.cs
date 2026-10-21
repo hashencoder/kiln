@@ -173,6 +173,28 @@ namespace WebHut
 
         public enum Side { Right, Below, BelowRight }
 
+        [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        /// <summary>
+        /// Show at a screen point (the system tray): opens above and to the left of the cursor, like Windows' own
+        /// tray menus, and takes the foreground so a click anywhere else closes it.
+        /// </summary>
+        public static void ShowAt(Point screenPt, string header, List<PopupItem> items, int width = 0)
+        {
+            var m = new PopupMenu(header, items, width > 0 ? width : Px(280));
+            var screen = Screen.FromPoint(screenPt).WorkingArea;
+            var p = new Point(screenPt.X - m.Width + Px(8), screenPt.Y - m.Height - Px(6));
+            if (p.Y < screen.Top) p.Y = screenPt.Y + Px(6);
+            p.X = Math.Max(screen.Left + Px(4), Math.Min(p.X, screen.Right - m.Width - Px(4)));
+            p.Y = Math.Max(screen.Top + Px(4), Math.Min(p.Y, screen.Bottom - m.Height - Px(4)));
+            m.Location = p;
+            m.TopMost = true;
+            m.FormClosed += (s, e) => m.Dispose();
+            m.Show();
+            try { SetForegroundWindow(m.Handle); } catch { }
+            m.Activate();
+        }
+
         /// <summary>Show next to <paramref name="anchor"/>; flips or shifts to stay on screen.</summary>
         public static void Show(Control anchor, Side side, string header, List<PopupItem> items, int width = 0)
         {

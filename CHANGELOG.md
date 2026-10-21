@@ -4,6 +4,19 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.1] - 2026-10-22
+
+### Changed
+- **Scroll bars match the theme everywhere.** Pages, Settings, Server configuration, Node apps and Component updates have a slim rounded scroll bar in WebHut's colours. You can drag it or click the track to page, and the mouse wheel and keyboard still work. Text boxes, lists and the activity log use Windows' dark or light scroll bars to match the theme.
+- **Tray menu redesigned.** Right-clicking the tray icon opens WebHut's own menu, with icons and short descriptions:
+  - A header showing service status.
+  - Open WebHut and Start all / Stop all.
+  - Open localhost and phpMyAdmin, disabled with a reason when they can't open.
+  - www folder, and Quit WebHut.
+
+### Fixed
+- **Quit WebHut button:** its hover highlight was cut off at the sidebar's edge. Quit now sits on the left with About as an icon on the right, so both fit at any display scaling.
+
 ## [1.6.0] - 2026-10-21
 
 ### Added

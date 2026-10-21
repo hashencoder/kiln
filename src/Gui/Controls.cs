@@ -632,6 +632,162 @@ namespace WebHut
         }
     }
 
+    /// <summary>
+    /// Hosts an AutoScroll panel and replaces its Windows scroll bar with a slim, rounded one in the WebHut
+    /// colours. The panel keeps its own scrolling (mouse wheel, keyboard, ScrollControlIntoView); it is simply made
+    /// wider than the host so the native bar is clipped, and the overlay mirrors and drives its scroll position.
+    /// </summary>
+    public class ScrollHost : Panel
+    {
+        public readonly ScrollableControl Inner;
+        readonly ScrollThumb _bar;
+        readonly Timer _watch = new Timer { Interval = 100 };
+        int _lastPos = -1, _lastMax = -1;
+        bool _fitting;
+
+        public static ScrollHost Wrap(ScrollableControl inner)
+        {
+            return new ScrollHost(inner);
+        }
+
+        ScrollHost(ScrollableControl inner)
+        {
+            Inner = inner;
+            Dock = inner.Dock == DockStyle.None ? DockStyle.Fill : inner.Dock;
+            BackColor = inner.BackColor;
+            Visible = inner.Visible;
+            inner.Visible = true;
+            inner.Dock = DockStyle.None;
+            _bar = new ScrollThumb(this) { BackColor = inner.BackColor };
+            Controls.Add(inner);
+            Controls.Add(_bar);
+            _bar.BringToFront();
+            Resize += (s, e) => Fit();
+            inner.Layout += (s, e) => { if (!_fitting) BeginFit(); };
+            inner.Scroll += (s, e) => _bar.Invalidate();
+            inner.MouseWheel += (s, e) => _bar.Invalidate();
+            _watch.Tick += (s, e) => Poll();
+            VisibleChanged += (s, e) => { _watch.Enabled = Visible; if (Visible) Fit(); };
+            _watch.Enabled = Visible;
+        }
+
+        void BeginFit()
+        {
+            if (!IsHandleCreated) { Fit(); return; }
+            try { BeginInvoke(new Action(Fit)); } catch { }
+        }
+
+        public int ContentHeight { get { return Inner.DisplayRectangle.Height; } }
+        public int ViewHeight { get { return Inner.ClientSize.Height; } }
+        public int Position { get { return -Inner.AutoScrollPosition.Y; } }
+        public bool Needed { get { return Inner.VerticalScroll.Visible && ContentHeight > ViewHeight; } }
+
+        public void ScrollTo(int y)
+        {
+            int max = Math.Max(0, ContentHeight - ViewHeight);
+            Inner.AutoScrollPosition = new Point(-Inner.AutoScrollPosition.X, Math.Max(0, Math.Min(max, y)));
+            _bar.Invalidate();
+        }
+
+        void Fit()
+        {
+            if (_fitting || IsDisposed) return;
+            _fitting = true;
+            try
+            {
+                int extra = Inner.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0;
+                var want = new Rectangle(0, 0, ClientSize.Width + extra, ClientSize.Height);
+                if (Inner.Bounds != want) Inner.Bounds = want;
+                int w = S(8);
+                _bar.Bounds = new Rectangle(ClientSize.Width - w - S(3), S(3), w, Math.Max(0, ClientSize.Height - S(6)));
+                _bar.Visible = Needed;
+                _bar.Invalidate();
+            }
+            finally { _fitting = false; }
+        }
+
+        void Poll()
+        {
+            int pos = Position, max = ContentHeight;
+            bool vis = Needed;
+            if (vis != _bar.Visible || (Inner.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0) != Inner.Width - ClientSize.Width) Fit();
+            if (pos != _lastPos || max != _lastMax) { _lastPos = pos; _lastMax = max; _bar.Invalidate(); }
+        }
+
+        static int S(float v) { return Ui.Px(v); }
+
+        protected override void Dispose(bool disposing) { if (disposing) _watch.Dispose(); base.Dispose(disposing); }
+
+        /// <summary>The slim bar: transparent track, rounded thumb that darkens on hover and while dragged.</summary>
+        class ScrollThumb : Control
+        {
+            readonly ScrollHost _h;
+            bool _hover, _drag;
+            int _dragStart, _posStart;
+            public ScrollThumb(ScrollHost h)
+            {
+                _h = h;
+                SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.UserPaint, true);
+                Cursor = Cursors.Default;
+            }
+
+            Rectangle Thumb()
+            {
+                int content = Math.Max(1, _h.ContentHeight), view = _h.ViewHeight;
+                int track = Height;
+                int len = Math.Max(S(32), (int)((long)track * view / content));
+                int range = Math.Max(1, content - view);
+                int y = (int)((long)(track - len) * _h.Position / range);
+                return new Rectangle(0, Math.Max(0, Math.Min(track - len, y)), Width, len);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.Clear(BackColor);
+                if (!_h.Needed) return;
+                var t = Thumb();
+                bool strong = _hover || _drag;
+                float w = strong ? Width - 1 : Width * 0.6f;
+                var r = new RectangleF(Width - w - 0.5f, t.Y + 1, w, t.Height - 2);
+                Color c = _drag ? Ui.Muted : strong ? Ui.Faint : Ui.Mix(Ui.Faint, BackColor, 0.6f);
+                using (var p = Ui.Rounded(r, w / 2)) using (var b = new SolidBrush(c)) g.FillPath(b, p);
+            }
+
+            protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
+            protected override void OnMouseLeave(EventArgs e) { _hover = false; Invalidate(); base.OnMouseLeave(e); }
+
+            protected override void OnMouseDown(MouseEventArgs e)
+            {
+                if (e.Button != MouseButtons.Left) return;
+                var t = Thumb();
+                if (t.Contains(e.Location)) { _drag = true; _dragStart = e.Y; _posStart = _h.Position; Capture = true; }
+                else _h.ScrollTo(_h.Position + (e.Y < t.Y ? -1 : 1) * Math.Max(S(40), _h.ViewHeight - S(40)));   // page up / down
+                Invalidate();
+            }
+
+            protected override void OnMouseMove(MouseEventArgs e)
+            {
+                if (_drag)
+                {
+                    var t = Thumb();
+                    int track = Math.Max(1, Height - t.Height);
+                    int range = Math.Max(0, _h.ContentHeight - _h.ViewHeight);
+                    _h.ScrollTo(_posStart + (int)((long)(e.Y - _dragStart) * range / track));
+                }
+                base.OnMouseMove(e);
+            }
+
+            protected override void OnMouseUp(MouseEventArgs e) { _drag = false; Capture = false; Invalidate(); base.OnMouseUp(e); }
+
+            protected override void OnMouseWheel(MouseEventArgs e)
+            {
+                _h.ScrollTo(_h.Position - e.Delta * SystemInformation.MouseWheelScrollLines * S(16) / 120);
+                base.OnMouseWheel(e);
+            }
+        }
+    }
+
     /// <summary>Small icon drawn on a transparent background.</summary>
     public class IconBox : Painted
     {

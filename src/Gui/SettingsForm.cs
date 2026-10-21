@@ -150,7 +150,7 @@ namespace WebHut
             footer.Controls.Add(cancel, 1, 0);
             footer.Controls.Add(_save, 2, 0);
 
-            Controls.Add(_scroll);
+            Controls.Add(ScrollHost.Wrap(_scroll));
             Controls.Add(side);
             Controls.Add(footer);
             ShowPage(0);
