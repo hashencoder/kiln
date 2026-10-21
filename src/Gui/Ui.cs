@@ -125,6 +125,9 @@ namespace WebHut
         public static readonly Font Nav = Fonts.Make("Inter Medium", Fonts.Px(14));                 // sidebar 14/500
         public static readonly Font NavBold = Fonts.Make("Inter SemiBold", Fonts.Px(14));           // active nav 14/600
         public static readonly Font ServiceName = Fonts.Make("Inter SemiBold", Fonts.Px(15));       // service names 15/600
+        public static readonly Font Detail = Fonts.Make("Inter", Fonts.Px(13));                    // service versions 13/400
+        public static readonly Font BtnSmall = Fonts.Make("Inter SemiBold", Fonts.Px(13));          // table buttons 13/600
+        public static readonly Font SmallBold = Fonts.Make("Inter SemiBold", Fonts.Px(12));
         public static readonly Font Caps = Fonts.Make("Inter SemiBold", Fonts.Px(11));              // table headers 11/600
         public static readonly Font LogFont = Fonts.Make("JetBrains Mono", Fonts.Px(12));           // activity log 12/400
 
@@ -265,6 +268,22 @@ namespace WebHut
 
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
         public static void EnableDpi() { try { SetProcessDPIAware(); } catch { } }
+
+        /// <summary>A context menu in the WebHut theme.</summary>
+        public static ContextMenuStrip Menu()
+        {
+            var m = new ContextMenuStrip { Font = Base, BackColor = Card, ForeColor = Ink, ShowImageMargin = false, Padding = new Padding(Px(4)) };
+            m.Renderer = new ToolStripProfessionalRenderer(new ThemeMenuColors()) { RoundedEdges = false };
+            return m;
+        }
+
+        public static ToolStripMenuItem Item(ContextMenuStrip m, string text, Action act, bool enabled = true)
+        {
+            var i = new ToolStripMenuItem(text) { ForeColor = Ink, Enabled = enabled, Padding = new Padding(Px(4), Px(4), Px(4), Px(4)) };
+            if (act != null) i.Click += (s, e) => act();
+            m.Items.Add(i);
+            return i;
+        }
 
         /// <summary>Thread-safe append to a log box, with colour for warnings and errors.</summary>
         public static void AppendLog(RichTextBox box, string line)
