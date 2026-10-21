@@ -4,6 +4,14 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-10-21
+
+### Fixed
+- Double-clicking `webhut.exe` (the command-line tool) flashed a console window and closed. It now opens the control panel, `WebHutPanel.exe`.
+
+### Changed
+- The control panel logs a line when it starts, which makes it easier to diagnose problems.
+
 ## [1.0.1] - 2026-10-21
 
 ### Fixed

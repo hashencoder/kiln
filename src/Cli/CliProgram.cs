@@ -34,6 +34,17 @@ Default target is 'all'. Node apps are managed in WebHutPanel.exe or node-apps.j
         public static int Main(string[] args)
         {
             Native.DontInheritStdHandles();
+            // Double-clicked in Explorer (no arguments, console window created just for us):
+            // people expect the app, so open the control panel instead of flashing the help text.
+            if (args.Length == 0 && Native.OwnsConsoleAlone())
+            {
+                var panel = System.IO.Path.Combine(K.Root, "WebHutPanel.exe");
+                if (System.IO.File.Exists(panel))
+                {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(panel) { UseShellExecute = true, WorkingDirectory = K.Root }); return 0; }
+                    catch { }
+                }
+            }
             Log.ToConsole = true;
             Sys.EnableModernTls();
             string cmd = args.Length > 0 ? args[0].ToLowerInvariant() : "help";
