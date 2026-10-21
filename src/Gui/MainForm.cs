@@ -88,6 +88,10 @@ namespace WebHut
             // One button that flips between "Start all" and "Stop all" with the servers' state.
             _allBtn = Ui.Btn("Start all", (s, e) => ToggleAll(), true, 96);
             actions.Controls.Add(_allBtn);
+            // Like XAMPP's Quit: the close (X) button only hides WebHut to the tray.
+            var quit = Ui.Btn("Quit", (s, e) => ExitApp());
+            quit.Margin = new Padding(0);
+            actions.Controls.Add(quit);
 
             t.Controls.Add(logo, 0, 0);
             t.Controls.Add(titles, 1, 0);
