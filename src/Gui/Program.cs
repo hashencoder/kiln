@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -30,6 +31,14 @@ namespace WebHut
             {
                 MessageBox.Show(problem, "WebHut", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return 2;
+            }
+
+            // The installer runs "WebHut.exe --quit" before replacing files: the running panel closes,
+            // servers keep running.
+            if (args.Any(a => a.Equals("--quit", StringComparison.OrdinalIgnoreCase)))
+            {
+                try { using (var ev = EventWaitHandle.OpenExisting(QuitEventName)) ev.Set(); } catch { }
+                return 0;
             }
 
             // One panel per WebHut folder.
@@ -75,6 +84,9 @@ namespace WebHut
             }
             catch (Exception e) { Log.Error("Couldn't re-save webhut.json: " + e.Message); }
         }
+
+        /// <summary>Named event the running panel waits on; set by "WebHut.exe --quit" (used by the installer).</summary>
+        public static string QuitEventName { get { return "Local\\WebHut-quit-" + K.Root.ToLowerInvariant().GetHashCode().ToString("x"); } }
 
         static void RemoveOldPanel()
         {
