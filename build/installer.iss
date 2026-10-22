@@ -17,6 +17,10 @@
   #define OutDir "..\dist"
 #endif
 
+#if Ver < EncodeVer(6, 7, 0)
+  #error Inno Setup 6.7 or newer is needed (WizardBackColor, dark mode).
+#endif
+
 [Setup]
 AppId={{6E7B1F4A-2C9D-4E8B-9A51-0B3F7C2D8E14}
 AppName=WebHut
@@ -39,7 +43,13 @@ OutputBaseFilename=WebHut-Setup-{#AppVersion}
 SetupIconFile=..\assets\webhut.ico
 UninstallDisplayIcon={app}\WebHut.exe
 UninstallDisplayName=WebHut
-WizardStyle=modern
+; WebHut look: the windows11 style on WebHut's own background colours, following Windows light/dark
+; (needs Inno Setup 6.7+), an orange WebHut panel on the welcome/finish pages and the logo on every page.
+WizardStyle=modern dynamic windows11
+WizardBackColor=#F6F8FB
+WizardBackColorDynamicDark=#10151D
+WizardImageFile=installer-side.png
+WizardSmallImageFile=installer-small.png
 Compression=lzma2/ultra
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible

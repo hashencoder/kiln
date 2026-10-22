@@ -4,6 +4,21 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.4] - 2026-10-22
+
+### Changed
+- **First-run setup window redesigned** in the WebHut style:
+  - one card per component, with version, status (*Ready · verified*, *Not found*, *Downloading 45%*, *Installed*, *Failed*) and its own progress bar;
+  - links to the download page and "Use a zip I downloaded…" right on a component that wasn't found;
+  - the Visual C++ runtime as a callout with its install button;
+  - rounded port and password fields;
+  - collapsible details;
+  - a sticky footer with **Install**.
+- **The installer matches WebHut:**
+  - the Windows 11 style on WebHut's colours, following Windows light/dark;
+  - an orange WebHut panel on the welcome and finish pages;
+  - the logo on every page.
+
 ## [1.6.3] - 2026-10-22
 
 ### Changed

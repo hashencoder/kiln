@@ -31,7 +31,8 @@ jobs:
       - name: Inno Setup
         shell: pwsh
         run: |
-          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+          # 6.7+ for the WebHut-coloured, dark-mode-aware wizard
+          choco upgrade innosetup -y --no-progress
 
       - name: Build
         shell: pwsh
