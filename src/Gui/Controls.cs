@@ -590,8 +590,9 @@ namespace WebHut
             var r = new RectangleF(1f, 1f, Width - 2.5f, Height - 2.5f);
             using (var p = Ui.Rounded(r, S(5)))
             {
-                if (!Enabled) { using (var b = new SolidBrush(Ui.Surface)) g.FillPath(b, p); using (var pen = new Pen(Ui.Line)) g.DrawPath(pen, p); return; }
-                if (_on) using (var b = new SolidBrush(Ui.Accent)) g.FillPath(b, p);
+                if (!Enabled && !_on) { using (var b = new SolidBrush(Ui.Surface)) g.FillPath(b, p); using (var pen = new Pen(Ui.Line)) g.DrawPath(pen, p); return; }
+                if (!Enabled) using (var b = new SolidBrush(Ui.Mix(Ui.Accent, Ui.Card, 0.45f))) g.FillPath(b, p);   // ticked and locked (required)
+                else if (_on) using (var b = new SolidBrush(Ui.Accent)) g.FillPath(b, p);
                 else
                 {
                     using (var b = new SolidBrush(Ui.Card)) g.FillPath(b, p);

@@ -39,14 +39,25 @@ namespace WebHut
         /// <summary>Install the selected components, write config, initialise MariaDB.</summary>
         public static void Run(Installer inst, List<Component> components, CancellationToken ct)
         {
+            Run(inst, components, ct, null);
+        }
+
+        /// <summary>Same, reporting each component's stage ("start", "done", "failed") and the final "configure" step (component null).</summary>
+        public static void Run(Installer inst, List<Component> components, CancellationToken ct, Action<Component, string> stage)
+        {
+            Action<Component, string> report = (c, st) => { if (stage != null) stage(c, st); };
             var cfg = inst.Cfg;
             inst.CreateFolders();
             // CA bundle first: php.ini points at it.
             foreach (var c in components.OrderBy(c => c.Id == "cacert" ? 0 : 1))
             {
                 ct.ThrowIfCancellationRequested();
-                inst.Install(c, ct);
+                report(c, "start");
+                try { inst.Install(c, ct); }
+                catch { report(c, "failed"); throw; }
+                report(c, "done");
             }
+            report(null, "configure");
             inst.WriteConfigFiles(false);
             if (Installer.MariaExe("mariadbd.exe", "mysqld.exe") != null) inst.InitMariaDb();
             cfg.LastRoot = K.RootFwd;
