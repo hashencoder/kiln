@@ -4,6 +4,18 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.3] - 2026-10-22
+
+### Changed
+- **New localhost dashboard (`www\index.php`)** in the WebHut design, light and dark.
+  - **Status cards** for Apache, PHP, MariaDB and your projects, with versions, ports and the root-password state.
+  - **Buttons** for phpMyAdmin, PHP info and the documentation.
+  - **Site cards:** each site's type is detected (Laravel, WordPress, Symfony, CodeIgniter, Drupal, Joomla, Craft, Composer PHP, Node, static HTML), shown with its `.localhost` address. A filter box appears when you have more than six sites.
+  - **Node apps** show whether each one is running.
+  - **PHP extensions** you're likely to need are shown as on or off.
+  - Works on phones too, for network access.
+- An **unchanged** dashboard from an earlier WebHut is replaced automatically when Apache next starts. If you edited yours, it is left alone.
+
 ## [1.6.2] - 2026-10-22
 
 ### Added

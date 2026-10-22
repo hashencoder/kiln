@@ -396,6 +396,16 @@ static class Tests
         Check(plan.MariaAffected && !plan.ApacheAffected == false && !plan.MariaRestart, "server not running: no restart planned");
         Check(plan.Expect["max_connections"] == "200" && plan.Expect["long_query_time"] == "0.25", "plan records values to verify after applying");
 
+        // ---------------------------------------------------------------- dashboard upgrade
+        Console.WriteLine("Dashboard");
+        string dash = Path.Combine(K.Www, "index.php");
+        Directory.CreateDirectory(K.Www);
+        File.WriteAllText(dash, File.ReadAllText(Path.Combine(K.Root, "dashboard-old.php")).Replace("\n", "\r\n"));
+        Check(Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("webhut-dashboard: 2"), "unmodified old dashboard is replaced by the new design");
+        File.WriteAllText(dash, File.ReadAllText(Path.Combine(K.Root, "dashboard-old.php")) + "\n<!-- my change -->");
+        Check(!Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("my change"), "an edited dashboard is left alone");
+        File.Delete(dash);
+
         // ---------------------------------------------------------------- component updates
         Console.WriteLine("Component updates");
         Updates.VcRuntimeOk = () => true;

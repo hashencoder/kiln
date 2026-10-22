@@ -323,6 +323,33 @@ namespace WebHut
             var dashboard = Path.Combine(K.Www, "index.php");
             if (!File.Exists(dashboard) && !File.Exists(Path.Combine(K.Www, "index.html")))
                 WriteText(dashboard, Resource("www/index.php"));
+            else UpgradeDashboard(dashboard);
+        }
+
+        /// <summary>SHA-256 of earlier WebHut dashboards exactly as shipped (line endings normalised).</summary>
+        static readonly string[] OldDashboards =
+        {
+            "56abdca7b9ac08fafd976c1398eeab2be71d94f1600fb273c6124510624bb407",
+            "6457cb4247b3e250a57d0220c3fb2bf15cca223a911a7fe9a61065bcc5f36c89",
+            "7de87c19cbdf130470714b003235627d6ec897b6e47ff6a7a8ef08abca277dab",
+        };
+
+        /// <summary>Replace an unmodified older WebHut dashboard (www\index.php) with the current one. Edited files are left alone.</summary>
+        public static bool UpgradeDashboard(string file)
+        {
+            try
+            {
+                if (!File.Exists(file)) return false;
+                string text = File.ReadAllText(file).Replace("\r\n", "\n").Trim();
+                string hash;
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                    hash = BitConverter.ToString(sha.ComputeHash(new UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant();
+                if (!OldDashboards.Contains(hash)) return false;
+                WriteText(file, Resource("www/index.php"));
+                Log.Info("Updated the WebHut dashboard (www\\index.php) to the new design.");
+                return true;
+            }
+            catch (Exception e) { Log.Warn("Couldn't update www\\index.php: " + e.Message); return false; }
         }
 
         public void WritePhpIni(string phpDir)
