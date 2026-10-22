@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 WORK="${TMPDIR:-/tmp}/webhut-test-$$"
 mkdir -p "$WORK/served"
 cp dist/whut.exe "$WORK/"
+cp tests/fixtures/dashboard-old.php "$WORK/"
 mcs -langversion:7.2 -target:exe -out:"$WORK/Tests.exe" -r:"$WORK/whut.exe" \
     -r:System.IO.Compression.dll -r:System.IO.Compression.FileSystem.dll tests/Tests.cs
 
