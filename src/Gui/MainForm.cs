@@ -929,11 +929,7 @@ namespace WebHut
 
         void ShowAbout()
         {
-            var answer = MessageBox.Show(this,
-                "WebHut " + K.AppVersion + "\n\nA portable local development stack for Windows: Apache, PHP, MariaDB, phpMyAdmin and Node.js in one folder.\n\n" +
-                "Folder: " + K.Root + "\nFree and open source (MIT License).\n\nOpen the project page on GitHub?",
-                "About WebHut", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-            if (answer == DialogResult.Yes) Sys.OpenUrl("https://github.com/hashencoder/webhut");
+            using (var f = new AboutForm()) f.ShowDialog(this);
         }
 
         // ------------------------------------------------------------------ behaviour
