@@ -18,6 +18,12 @@ All notable changes to WebHut are listed here. The format follows
   - the Windows 11 style on WebHut's colours, following Windows light/dark;
   - an orange WebHut panel on the welcome and finish pages;
   - the logo on every page.
+- **New About window** (the ⓘ button next to Quit), replacing the plain message box:
+  - version, plus a check for a newer WebHut release with a Download button;
+  - installed component versions and their licenses;
+  - the WebHut folder with Open folder and Licenses buttons;
+  - links to GitHub, the documentation, what's new and issue reporting;
+  - **Copy system info** for bug reports (versions, ports, Windows; never passwords).
 
 ## [1.6.3] - 2026-10-22
 
