@@ -39,8 +39,9 @@ Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistribut
 
 ## Quick start
 
-1. Download `WebHut-<version>-win64.zip` from [Releases](../../releases) and extract it to a short path **without spaces**, such as `C:\webhut`.
-2. Run **`WebHut.exe`**. The setup window finds the latest versions. Click **Install**.
+1. Download **`WebHut-Setup-<version>.exe`** from [Releases](../../releases/latest) and run it. It installs to `C:\WebHut` by default (no admin rights needed) and adds Start-menu and desktop shortcuts.
+   Prefer a portable copy? Download `WebHut-<version>-win64.zip` instead and extract it to a short path **without spaces**, such as `C:\webhut`.
+2. WebHut opens with its setup window, which finds the latest Apache, PHP, MariaDB, phpMyAdmin and Node.js. Click **Install**.
 3. Click **Start all**, then **Open localhost**.
 
 | | |

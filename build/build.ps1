@@ -73,5 +73,22 @@ if ($Package) {
     Set-Content -Path "$zip.sha256" -Value "$hash  $(Split-Path $zip -Leaf)" -Encoding ASCII
     Write-Host "Packaged $zip"
     Write-Host "SHA-256  $hash"
+
+    # Installer (Inno Setup 6), when ISCC.exe is available
+    $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+              "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($iscc) {
+        $setupVersion = ($Version -replace '[^0-9.].*$', '')
+        if (-not $setupVersion) { $setupVersion = "0.0.0" }
+        & $iscc "/DAppVersion=$setupVersion" "/DStage=$stage" "/DOutDir=$out" (Join-Path $repo "build\installer.iss")
+        if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+        $setup = Join-Path $out "WebHut-Setup-$setupVersion.exe"
+        $shash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+        Set-Content -Path "$setup.sha256" -Value "$shash  $(Split-Path $setup -Leaf)" -Encoding ASCII
+        Write-Host "Installer $setup"
+        Write-Host "SHA-256  $shash"
+    } else {
+        Write-Host "Inno Setup 6 not found: skipping the installer (zip only)."
+    }
 }
 Write-Host "Done: $out"

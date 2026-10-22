@@ -28,6 +28,11 @@ jobs:
           $v = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF.Substring(11) } else { "0.0.0-dev" }
           "version=$v" >> $env:GITHUB_OUTPUT
 
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
       - name: Build
         shell: pwsh
         run: ./build/build.ps1 -Package -Version ${{ steps.ver.outputs.version }}
@@ -38,18 +43,38 @@ jobs:
           ./dist/whut.exe version
           ./dist/whut.exe help
 
+      - name: Smoke test installer (silent install, check files, silent uninstall)
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist/WebHut-Setup-*.exe | Select-Object -First 1
+          if (-not $setup) { throw "installer was not built" }
+          $dir = "C:\WebHutCI"
+          Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$dir" -Wait
+          foreach ($f in "WebHut.exe","whut.exe","README.txt") { if (-not (Test-Path "$dir\$f")) { throw "missing $f after install" } }
+          & "$dir\whut.exe" version
+          New-Item -ItemType Directory "$dir\www\keepme" -Force | Out-Null
+          Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait
+          Start-Sleep -Seconds 3
+          if (Test-Path "$dir\WebHut.exe") { throw "WebHut.exe still there after uninstall" }
+          if (-not (Test-Path "$dir\www\keepme")) { throw "uninstall deleted the user's sites" }
+          Write-Host "Installer OK: installs, runs whut, uninstalls, keeps www"
+
       - uses: actions/upload-artifact@v4
         with:
           name: WebHut-${{ steps.ver.outputs.version }}-win64
           path: |
             dist/WebHut-*-win64.zip
             dist/WebHut-*-win64.zip.sha256
+            dist/WebHut-Setup-*.exe
+            dist/WebHut-Setup-*.exe.sha256
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            dist/WebHut-Setup-*.exe
+            dist/WebHut-Setup-*.exe.sha256
             dist/WebHut-*-win64.zip
             dist/WebHut-*-win64.zip.sha256
           generate_release_notes: true

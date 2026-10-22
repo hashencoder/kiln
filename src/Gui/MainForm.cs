@@ -59,6 +59,7 @@ namespace WebHut
             BuildUi();
 
             BuildTray();
+            ListenForInstaller();
             Log.Line += line => { if (InvokeRequired) { try { BeginInvoke(new Action(() => OnLogLine(line))); } catch { } } else OnLogLine(line); };
             _timer.Tick += (s, e) => RefreshStatus();
             _backupTimer.Tick += (s, e) => ScheduledBackup();
@@ -1262,6 +1263,29 @@ namespace WebHut
             }
             e.Cancel = true;
             ExitApp();
+        }
+
+        /// <summary>Close the panel for an update or uninstall; servers keep running (no questions asked).</summary>
+        void QuitForInstaller()
+        {
+            Log.Info("WebHut was asked to close by its installer; servers keep running.");
+            _exiting = true;
+            _tray.Visible = false;
+            _tray.Dispose();
+            Application.Exit();
+        }
+
+        void ListenForInstaller()
+        {
+            System.Threading.EventWaitHandle ev;
+            try { ev = new System.Threading.EventWaitHandle(false, System.Threading.EventResetMode.AutoReset, Program.QuitEventName); }
+            catch { return; }
+            var t = new System.Threading.Thread(() =>
+            {
+                ev.WaitOne();
+                try { BeginInvoke(new Action(QuitForInstaller)); } catch { }
+            }) { IsBackground = true, Name = "installer-quit" };
+            t.Start();
         }
 
         void ExitApp()

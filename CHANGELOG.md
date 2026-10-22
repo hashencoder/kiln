@@ -4,6 +4,15 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.2] - 2026-10-22
+
+### Added
+- **Windows installer: `WebHut-Setup-<version>.exe`**, published with every release next to the zip.
+  - Installs per user to `C:\WebHut` (no admin rights), with Start-menu and optional desktop shortcuts, and opens WebHut at the end.
+  - Upgrades in place: closes the panel, keeps the servers running, and keeps settings, sites and databases.
+  - Uninstalls cleanly from Windows Settings › Apps. It stops the servers and asks before deleting your data; your data is kept by default.
+- `WebHut.exe --quit` closes a running panel without stopping the servers (used by the installer).
+
 ## [1.6.1] - 2026-10-22
 
 ### Changed

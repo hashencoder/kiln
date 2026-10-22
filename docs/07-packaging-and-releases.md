@@ -155,3 +155,19 @@ On first launch, WebHut sees `apache\` and `php\` already present and skips setu
 ## Distribution channels (optional)
 
 Once releases are stable, you can submit WebHut to **winget** (a manifest PR to `microsoft/winget-pkgs` pointing at the release zip) and **Scoop** (an `extras` bucket manifest). Both need a stable download URL and a SHA-256, which the release workflow already produces.
+
+
+## Installer
+
+`build\build.ps1 -Package` also builds **`WebHut-Setup-<version>.exe`** with [Inno Setup 6](https://jrsoftware.org/isinfo.php) when `ISCC.exe` is installed (the release workflow installs it). The script is `build\installer.iss`.
+
+- **Per-user, no admin rights.** The default folder is `C:\WebHut`. The wizard refuses folders with spaces or inside Program Files, because WebHut writes inside its own folder.
+- **Upgrades in place.**
+  - The running panel is asked to close (`WebHut.exe --quit`; versions before 1.6.2 are ended instead). Apache, MariaDB and Node apps keep running.
+  - Only the program files are replaced. Settings, `config\`, `www\` and `data\` are not touched.
+  - Installing over a folder that came from the zip works the same way.
+- **Uninstall** (Settings › Apps, or Start menu › Uninstall WebHut):
+  - Stops the servers with `whut stop all`.
+  - Removes the programs WebHut downloaded: `apache`, `php`, `mariadb`, `node`, `apps`, `tools`, `ssl`, `tmp`, `logs`.
+  - Then **asks** whether to delete your sites, databases, backups and settings. *No* is the default; a silent uninstall always keeps them.
+- **CI check.** The release workflow installs the setup silently, runs `whut version`, uninstalls it and checks that `www` survived.
