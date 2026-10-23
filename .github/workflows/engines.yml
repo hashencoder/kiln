@@ -112,13 +112,25 @@ jobs:
               $ok = $r.Content -match "Logout" -and $r.Content -match $t.expect
               if ($ok) { Write-Output "::notice title=adminer $($t.driver)::logged in, sees $($t.expect)" }
               else {
-                $text = ($r.Content -replace '<[^>]+>', ' ' -replace '\s+', ' ')
-                Write-Output "::error title=adminer $($t.driver)::login page did not show databases: $($text.Substring(0, [Math]::Min(600, $text.Length)))"; $failed++
+                $err = [regex]::Matches($r.Content, "class=['""](error|message)['""][^>]*>(.*?)</div>") | ForEach-Object { $_.Groups[2].Value -replace '<[^>]+>', ' ' }
+                Write-Output "::error title=adminer $($t.driver)::still on the login page. Adminer says: $($err -join ' / ') | status $($r.StatusCode) | cookies $($web.Cookies.Count)"; $failed++
               }
             } catch { Write-Output "::error title=adminer $($t.driver)::$($_.Exception.Message)"; $failed++ }
           }
           .\whut.exe stop all
           if ($failed) { exit 1 }
+
+      - name: Adminer hook check (diagnostic)
+        if: always()
+        continue-on-error: true
+        run: |
+          Set-Location C:\WH
+          $php = Get-ChildItem php -Directory | Select-Object -First 1
+          $code = 'function adminer_object(){ echo "HOOK-CALLED "; return null; } ob_start(); try { include "C:/WH/apps/adminer/adminer.php"; } catch (Throwable $e) { echo get_class($e); } $o = ob_get_clean(); echo (strpos($o, "HOOK-CALLED") !== false ? "hook called" : "hook NOT called"), " | classes: ", implode(",", array_filter(get_declared_classes(), function($c){ return stripos($c, "adminer") !== false; }));'
+          $out = & "$($php.FullName)\php.exe" -d display_errors=1 -r $code 2>&1 | Out-String
+          Write-Output "::notice title=adminer hook::$($out -replace "`r?`n", ' | ')"
+          $m = Select-String -Path apps\adminer\adminer.php -Pattern 'function login\(' -AllMatches | Select-Object -First 3 | ForEach-Object { $_.Line.Substring([Math]::Max(0, $_.Line.IndexOf('function login(') - 80), 260) }
+          Write-Output "::notice title=adminer login signature::$($m -join ' /// ')"
 
       - name: Logs on failure
         if: failure()
