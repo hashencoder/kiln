@@ -6,6 +6,19 @@ All notable changes to WebHut are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Optional MySQL, PostgreSQL and MongoDB** next to MariaDB, each from its official Windows download:
+  - MySQL 8.4 LTS on port 3307 (MariaDB keeps 3306), PostgreSQL (newest supported release) on 5432, MongoDB Community Server on 27017, plus mongosh.
+  - Off by default. Tick them in the setup window, add them later under **Databases → More database engines**, or run `whut install mysql postgresql mongodb adminer`.
+  - Each gets a Dashboard row with Start/Stop, log and data folder, and is included in Start all. A clean stop is used for every engine, also when Windows shuts down.
+  - Data lives in `data\mysql`, `data\postgresql` and `data\mongodb`; the first start creates it (passwordless `root` / `postgres` user, this PC only).
+  - Ports for each engine in **Settings → Services**; WebHut refuses two servers on one port.
+  - `whut start|stop|restart mysql|postgresql|mongodb`. `mysql` still means MariaDB until MySQL is installed.
+- **Adminer** at `http://localhost/adminer` (this PC only) for MySQL, PostgreSQL and MariaDB. The Open button on a MySQL or PostgreSQL row fills in the server. PHP's `pgsql` and `pdo_pgsql` drivers are switched on when PostgreSQL or Adminer is added.
+- `psql`, `mongosh` and MySQL's tools are on PATH in WebHut's Shell; `PGHOST`, `PGPORT` and `PGUSER` are set.
+- Links to pgAdmin and MongoDB Compass on the Databases page.
+- New guide: [docs/13 – MySQL, PostgreSQL and MongoDB](docs/13-more-databases.md). Backups and the update manager still cover the core components and MariaDB only.
+
 ### Fixed
 - The installer now tells Windows to refresh its icon cache, so a taskbar pin made before an upgrade shows the current WebHut icon.
 - WebHut's windows now use the full multi-size icon embedded in the app (16-256 px) instead of asking Explorer for it, so the taskbar and Alt+Tab show the right icon at every display scaling and never an old cached one.

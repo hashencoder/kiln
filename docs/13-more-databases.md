@@ -2,13 +2,13 @@
 
 MariaDB is WebHut's default database. You can add **MySQL**, **PostgreSQL** and **MongoDB** next to it, plus **Adminer**, a small web page for browsing MySQL, PostgreSQL and MariaDB databases. None of them is installed unless you choose it.
 
-| Engine | Version WebHut installs | Port | User | Downloaded from |
-|---|---|---|---|---|
-| MySQL | newest **8.4 LTS** release | **3307** (MariaDB keeps 3306) | `root`, no password | dev.mysql.com |
-| PostgreSQL | newest supported major release | 5432 | `postgres`, no password | Windows binaries from get.enterprisedb.com (the PostgreSQL project's official Windows builds) |
-| MongoDB | newest production Community Server | 27017 | no authentication | fastdl.mongodb.org (SHA-256 checked) |
-| mongosh | latest MongoDB Shell | – | – | GitHub releases of mongodb-js/mongosh |
-| Adminer | latest | – | – | GitHub releases of vrana/adminer, at `http://localhost/adminer` |
+| Engine | Version WebHut installs | Port | User | Download | From |
+|---|---|---|---|---|---|
+| MySQL | newest **8.4 LTS** release | **3307** (MariaDB keeps 3306) | `root`, no password | about 300 MB | Oracle's CDN (cdn.mysql.com) |
+| PostgreSQL | newest supported release | 5432 | `postgres`, no password | about 330 MB (includes pgAdmin's files) | Windows binaries from get.enterprisedb.com, the builds the PostgreSQL project links to |
+| MongoDB | newest production Community Server | 27017 | no authentication | about 950 MB | fastdl.mongodb.org (SHA-256 checked) |
+| mongosh | latest MongoDB Shell | – | – | about 60 MB | GitHub releases of mongodb-js/mongosh (SHA-256 checked) |
+| Adminer | latest | – | – | under 1 MB | GitHub releases of vrana/adminer (SHA-256 checked), at `http://localhost/adminer` |
 
 Like everything in WebHut, they **listen on 127.0.0.1 only**: other devices can't reach them, even when network access is on in Settings. The passwordless defaults are meant for a local development PC; set passwords if other people use your PC (see below).
 
