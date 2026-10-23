@@ -60,6 +60,9 @@ RestartApplications=no
 LicenseFile=..\LICENSE
 UsePreviousAppDir=yes
 DirExistsWarning=no
+; Ask Explorer to refresh its icon cache after install, so pinned taskbar and Start shortcuts
+; pick up a changed WebHut icon instead of showing the cached old one.
+ChangesAssociations=yes
 
 [Messages]
 SelectDirDesc=Where should WebHut be installed?
