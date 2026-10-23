@@ -493,6 +493,93 @@ static class Tests
         Check(File.ReadAllText(Path.Combine(newA, "modules", "mod_fcgid.so")) == "fcgid" && File.ReadAllText(Path.Combine(newA, "modules", "mod_rewrite.so")) == "new rewrite",
               "extra modules carried over; shipped ones not replaced");
 
+        // ---------------------------------------------------------------- optional database engines
+        Console.WriteLine("Optional engines");
+        {
+            var pc = new WebHutConfig { MySqlPort = 3317, PgPort = 5433, MongoPort = 27018 };
+            pc.Save();
+            var pl = WebHutConfig.Load();
+            Check(pl.MySqlPort == 3317 && pl.PgPort == 5433 && pl.MongoPort == 27018, "engine ports round-trip in webhut.json");
+            File.Delete(K.ConfigFile);
+            var dflt = WebHutConfig.Load();
+            Check(dflt.MySqlPort == 3307 && dflt.PgPort == 5432 && dflt.MongoPort == 27017, "engine port defaults (MySQL 3307 beside MariaDB 3306, 5432, 27017)");
+            loaded.Save();
+
+            Check(Engines.IsOptional("mysql") && Engines.IsOptional("adminer") && !Engines.IsOptional("mariadb") && !Engines.IsOptional("php"), "only the new engines are optional");
+            Check(!Engines.MySqlInstalled && Services.Find("mysql") == Services.MariaDb, "'mysql' still means MariaDB while MySQL isn't installed");
+            Check(Services.Find("postgres") == Services.Postgres && Services.Find("pg") == Services.Postgres && Services.Find("mongo") == Services.Mongo, "service names for PostgreSQL and MongoDB");
+            Check(!Services.All().Any(x => x is DbServerService), "engines that aren't installed don't appear as services");
+
+            var pg = Engines.ParsePgVersions(@"[{""major"":""13"",""latestMinor"":""22"",""supported"":false},{""major"":""17"",""latestMinor"":""6"",""supported"":true,""current"":false},{""major"":18,""latestMinor"":1,""supported"":true,""current"":true},{""major"":""16"",""latestMinor"":""10"",""supported"":true}]");
+            Check(pg.SequenceEqual(new[] { "18.1", "17.6", "16.10" }), "PostgreSQL versions.json: supported releases, newest first", string.Join(",", pg));
+            Check(Engines.PgUrl("18.1", 1) == "https://get.enterprisedb.com/postgresql/postgresql-18.1-1-windows-x64-binaries.zip", "PostgreSQL Windows binaries URL");
+
+            var mc = new Component { Name = "MongoDB" };
+            Engines.ParseMongoCurrent(@"{""versions"":[
+              {""version"":""8.2.1"",""production_release"":false,""downloads"":[{""target"":""windows"",""arch"":""x86_64"",""edition"":""base"",""archive"":{""url"":""https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-8.2.1.zip"",""sha256"":""" + new string('b', 64) + @"""}}]},
+              {""version"":""8.0.15"",""production_release"":true,""downloads"":[
+                 {""target"":""ubuntu2204"",""arch"":""x86_64"",""edition"":""targeted"",""archive"":{""url"":""https://fastdl.mongodb.org/linux/x.tgz""}},
+                 {""target"":""windows"",""arch"":""x86_64"",""edition"":""base"",""archive"":{""url"":""https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-8.0.15.zip"",""sha256"":""" + new string('A', 64) + @"""},""msi"":""https://fastdl.mongodb.org/windows/x.msi""}]},
+              {""version"":""7.0.25"",""production_release"":true,""downloads"":[{""target"":""windows"",""arch"":""x86_64"",""edition"":""base"",""archive"":{""url"":""https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.25.zip""}}]}]}", mc);
+            Check(mc.Version == "8.0.15" && mc.FileName == "mongodb-windows-x86_64-8.0.15.zip" && mc.Sha256 == new string('a', 64) && mc.Branch == "8.0",
+                  "MongoDB current.json: newest production Windows zip with its SHA-256 (rc skipped)", mc.Version + " " + mc.FileName + " " + mc.Sha256);
+
+            var ac = new Component { Name = "Adminer" };
+            Engines.ParseGitHubRelease(@"{""tag_name"":""v5.4.1"",""assets"":[{""name"":""adminer-5.4.1-en.php"",""browser_download_url"":""https://github.com/vrana/adminer/releases/download/v5.4.1/adminer-5.4.1-en.php""},{""name"":""adminer-5.4.1.php"",""browser_download_url"":""https://github.com/vrana/adminer/releases/download/v5.4.1/adminer-5.4.1.php"",""digest"":""sha256:" + new string('c', 64) + @"""}]}",
+                                       @"^adminer-[\d.]+\.php$", ac);
+            Check(ac.Version == "5.4.1" && ac.FileName == "adminer-5.4.1.php" && ac.Sha256 == new string('c', 64), "GitHub release: right asset and its SHA-256 digest", ac.FileName + " " + ac.Sha256);
+            var nc = new Component { Name = "mongosh" };
+            Engines.ParseGitHubRelease(@"{""tag_name"":""v2.5.9"",""assets"":[{""name"":""mongosh-2.5.9-linux-x64.tgz""}]}", @"^mongosh-[\d.]+-win32-x64\.zip$", nc);
+            Check(nc.Error != null && nc.Url == null, "GitHub release without a Windows asset is reported, not guessed");
+
+            var avail = new HashSet<int> { 9, 10, 11 };   // 8.4.6-8.4.8 moved to the archive; 8.4.11 is newest
+            var my = new Component { Name = "MySQL" };
+            Engines.FindMySql(my, url => avail.Any(pn => url.EndsWith("/mysql-8.4." + pn + "-winx64.zip")));
+            Check(my.Version == "8.4.11" && my.Url == "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.11-winx64.zip" && my.FileName == "mysql-8.4.11-winx64.zip",
+                  "MySQL: newest 8.4 patch found by probing", my.Version + " " + my.Url);
+            var none = new Component { Name = "MySQL" };
+            Engines.FindMySql(none, url => false);
+            Check(none.Error != null && none.Url == null, "MySQL: nothing found is an error, not a guess");
+
+            string vhost = "<VirtualHost *:80>\r\n    ServerName localhost\r\n</VirtualHost>\r\n";
+            string withA = Engines.AddAdminerBlock(vhost);
+            Check(withA.Contains("Alias /adminer") && withA.Contains("Require local") && withA.IndexOf("Alias /adminer") < withA.IndexOf("</VirtualHost>") && !withA.Replace("\r\n", "").Contains("\n"),
+                  "Adminer alias added inside the default vhost, CRLF kept");
+            Check(Engines.AddAdminerBlock(withA) == withA, "Adminer alias isn't added twice");
+            Check(File.ReadAllText(Path.Combine(K.ApacheConf, "default-vhost.conf")).Contains("<IfFile \"${WEBHUT_ROOT}/apps/adminer/index.php\">"), "new installs get the Adminer alias (only active when Adminer is installed)");
+
+            string phpd = Path.Combine(K.Root, "phptest");
+            Directory.CreateDirectory(Path.Combine(phpd, "ext"));
+            File.WriteAllText(Path.Combine(phpd, "ext", "php_pgsql.dll"), "x");
+            File.WriteAllText(Path.Combine(phpd, "ext", "php_pdo_pgsql.dll"), "x");
+            string phpIni = "[PHP]\r\nextension = curl\r\n;extension=pgsql\r\nextension = mbstring\r\n";
+            string ini2 = Engines.EnableExtensions(phpIni, phpd, "pgsql", "pdo_pgsql", "oci8");
+            Check(ini2.Contains("\r\nextension = pgsql\r\n") && !ini2.Contains(";extension=pgsql") && ini2.Contains("extension = mbstring\r\nextension = pdo_pgsql") && !ini2.Contains("oci8"),
+                  "PostgreSQL drivers enabled in php.ini (commented line switched on, missing one added, absent DLL skipped)", ini2);
+            Check(Engines.EnableExtensions(ini2, phpd, "pgsql", "pdo_pgsql") == ini2, "enabling drivers twice changes nothing");
+
+            // Install from local zips: wrapped folder unpacked into place, version written, wrong package refused.
+            var mz = MakeZip(K.Root, "mysql-8.4.11-winx64.zip", new[] { "mysql-8.4.11-winx64/bin/mysqld.exe", "mysql-8.4.11-winx64/bin/mysqladmin.exe", "mysql-8.4.11-winx64/bin/mysql.exe", "mysql-8.4.11-winx64/share/x.txt" });
+            inst.Install(new Component { Id = "mysql", Name = "MySQL", Version = "8.4.11", LocalFile = mz }, CancellationToken.None);
+            Check(Engines.MySqlInstalled && WebHutConfig.FullVersion(K.MySql) == "8.4.11" && Services.Find("mysql") == Services.MySql && Services.All().Contains(Services.MySql),
+                  "Install(mysql): unpacked to mysql\\, shows as a service, 'mysql' now means MySQL");
+            var pz = MakeZip(K.Root, "postgresql-18.1-1-windows-x64-binaries.zip", new[] { "pgsql/bin/pg_ctl.exe", "pgsql/bin/initdb.exe", "pgsql/bin/postgres.exe", "pgsql/bin/psql.exe", "pgsql/pgAdmin 4/x.txt" });
+            inst.Install(new Component { Id = "postgresql", Name = "PostgreSQL", Version = "18.1", LocalFile = pz }, CancellationToken.None);
+            Check(Engines.PostgresInstalled && File.Exists(Path.Combine(K.PgBin, "psql.exe")), "Install(postgresql): pgsql\\ unpacked to postgresql\\");
+            var bz = MakeZip(K.Root, "mongodb-bad.zip", new[] { "something/readme.txt" });
+            bool refused = false;
+            try { inst.Install(new Component { Id = "mongodb", Name = "MongoDB", Version = "8.0.15", LocalFile = bz }, CancellationToken.None); }
+            catch (InvalidDataException) { refused = true; }
+            Check(refused && !Engines.MongoInstalled, "a package without mongod.exe is refused");
+            var az = Path.Combine(K.Root, "adminer-5.4.1.php");
+            File.WriteAllText(az, "<?php // adminer");
+            inst.Install(new Component { Id = "adminer", Name = "Adminer", Version = "5.4.1", LocalFile = az }, CancellationToken.None);
+            Check(Engines.AdminerInstalled && File.ReadAllText(Path.Combine(K.Adminer, "index.php")).Contains("function adminer_object()") &&
+                  File.ReadAllText(Path.Combine(K.Adminer, "index.php")).Contains("include __DIR__ . '/adminer.php';"), "Install(adminer): adminer.php plus the local-login entry page");
+            Check(Engines.AdminerIndex.Contains("class_exists('Adminer\\\\Adminer')") && Engines.AdminerIndex.Contains("extends \\\\Adminer\\\\Adminer"), "Adminer entry page handles Adminer 5's namespace", Engines.AdminerIndex);
+            foreach (var d in new[] { K.MySql, K.PgSql, K.Adminer }) Directory.Delete(d, true);
+        }
+
         if (port != null)
         {
             Console.WriteLine("Downloads");

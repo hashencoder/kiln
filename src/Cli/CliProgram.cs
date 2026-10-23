@@ -12,12 +12,16 @@ namespace WebHut
 
 Usage:
   whut status                      Show every service
-  whut start   [all|apache|mariadb|<node-app>]
-  whut stop    [all|apache|mariadb|<node-app>]
-  whut restart [all|apache|mariadb|<node-app>]
+  whut start   [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
+  whut stop    [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
+  whut restart [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
+  whut install <mysql|postgresql|mongodb|mongosh|adminer> ...
+                                   Add optional database engines and tools
+                                      (MySQL 8.4 on port 3307, PostgreSQL on 5432,
+                                      MongoDB on 27017, Adminer at /adminer)
   whut sites                       Regenerate vhosts for folders in www\ and Node apps
   whut php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
-  whut setup                       Download and install everything (first run)
+  whut setup                       Download and install the core stack (first run)
   whut backup                      Back up all databases now (data\backups)
   whut backups                     List backups
   whut restore [<file>|latest]     Load a backup into the running MariaDB
@@ -29,7 +33,8 @@ Usage:
   whut shell                       Open a console with php, node, npm and composer on PATH
   whut version
 
-Default target is 'all'. Node apps are managed in WebHut.exe or node-apps.json.";
+Default target is 'all'. 'mysql' means MariaDB until MySQL is installed.
+Node apps are managed in WebHut.exe or node-apps.json.";
 
         public static int Main(string[] args)
         {
@@ -68,6 +73,8 @@ Default target is 'all'. Node apps are managed in WebHut.exe or node-apps.json."
                         return 0;
                     case "php": return Php(args.Length > 1 ? args[1] : null);
                     case "setup": return RunSetup();
+                    case "install": return InstallExtras(args.Skip(1).ToList());
+                    case "check-db": return CheckDb(target);
                     case "shell": Services.OpenShell(); return 0;
                     case "backup":
                         if (!Services.MariaDb.IsRunning) Services.MariaDb.Start();
@@ -96,6 +103,54 @@ Default target is 'all'. Node apps are managed in WebHut.exe or node-apps.json."
                 Console.Error.WriteLine("Error: " + e.Message);
                 return 1;
             }
+        }
+
+        /// <summary>whut install mysql postgresql mongodb mongosh adminer</summary>
+        static int InstallExtras(List<string> ids)
+        {
+            ids = ids.Select(i => i.ToLowerInvariant()).Select(i => i == "postgres" || i == "pg" ? "postgresql" : i == "mongo" ? "mongodb" : i).Distinct().ToList();
+            if (ids.Count == 0 || ids.Any(i => !Engines.IsOptional(i)))
+            {
+                Console.Error.WriteLine("Usage: whut install <" + string.Join("|", Engines.OptionalIds) + "> ...");
+                return 1;
+            }
+            if (ids.Contains("mongodb") && !ids.Contains("mongosh") && !Engines.MongoshInstalled) ids.Add("mongosh");
+            var inst = new Installer(Services.Cfg);
+            int last = -100;
+            inst.Progress += (msg, pct) =>
+            {
+                if (pct >= 0 && pct != 100 && pct != 0 && pct < last + 10) return;
+                last = pct;
+                Console.WriteLine("  " + msg);
+            };
+            inst.CreateFolders();
+            int failures = 0;
+            foreach (var id in ids)
+            {
+                var c = Engines.Resolve(Services.Cfg, id);
+                if (!c.Ready) { failures++; Log.Error(c.Name + ": " + c.Error + " Download it by hand from " + c.Homepage); continue; }
+                Console.WriteLine(c.Name + " " + c.Version + "  " + c.Url + (c.Sha256 != null ? "  (sha256 " + c.Sha256 + ")" : ""));
+                try { inst.Install(c, CancellationToken.None); }
+                catch (Exception e) { failures++; Log.Error(c.Name + ": " + e.Message); }
+            }
+            Services.Cfg.Save();
+            if (ids.Contains("adminer") && Services.Apache.IsRunning) Console.WriteLine("Restart Apache to open http://localhost/adminer: whut restart apache");
+            return failures == 0 ? 0 : 1;
+        }
+
+        /// <summary>Run a trivial query against a running engine (used by the Windows integration test).</summary>
+        static int CheckDb(string target)
+        {
+            Sys.RunResult r;
+            switch ((target ?? "").ToLowerInvariant())
+            {
+                case "mysql": r = Services.MySql.Sql("SELECT CONCAT('mysql-ok ', VERSION());"); break;
+                case "postgresql": r = Services.Postgres.Sql("SELECT 'postgresql-ok ' || version();"); break;
+                case "mongodb": r = Services.Mongo.Eval("print('mongodb-ok ' + db.version())"); break;
+                default: Console.Error.WriteLine("check-db takes mysql, postgresql or mongodb"); return 1;
+            }
+            Console.WriteLine(r.Output.Trim());
+            return r.ExitCode == 0 && r.Output.Contains("-ok ") ? 0 : 1;
         }
 
         static void Status()

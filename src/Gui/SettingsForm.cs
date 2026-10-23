@@ -17,7 +17,9 @@ namespace WebHut
         static readonly string[] ThemeIds = { "system", "light", "dark" };
 
         Dropdown _php, _node, _theme;
-        NumberField _http, _mysql;
+        NumberField _http, _mysql, _mysqlSrv, _pg, _mongo;
+        /// <summary>Optional engines (MySQL, PostgreSQL, MongoDB) whose port changed; MainForm restarts the running ones.</summary>
+        public readonly List<Service> RestartEngines = new List<Service>();
         Switch _startOnLaunch, _tray, _lan;
         Label _status, _pwState, _vcState, _dirty, _lanDetails;
         Callout _pwNote, _lanNote;
@@ -53,6 +55,9 @@ namespace WebHut
             _theme.Items.AddRange(new[] { "Match Windows", "Light", "Dark" });
             _http = new NumberField(1, 65535, Px(130));
             _mysql = new NumberField(1, 65535, Px(130));
+            _mysqlSrv = new NumberField(1, 65535, Px(130));
+            _pg = new NumberField(1, 65535, Px(130));
+            _mongo = new NumberField(1, 65535, Px(130));
             _startOnLaunch = new Switch();
             _tray = new Switch();
             _lan = new Switch();
@@ -86,6 +91,9 @@ namespace WebHut
             var server = Section(servicesPage, "server", "Ports", "Change these only if another program already uses them.");
             Row(server, "HTTP port", "Apache · default 80. Saving a change restarts Apache.", Line(_http));
             Row(server, "MySQL port", "MariaDB · default 3306. Saving a change restarts MariaDB; update your apps' database settings too.", Line(_mysql));
+            if (Engines.MySqlInstalled) Row(server, "MySQL server port", "MySQL 8.4 · default 3307 (3306 is MariaDB's). Saving a change restarts MySQL.", Line(_mysqlSrv));
+            if (Engines.PostgresInstalled) Row(server, "PostgreSQL port", "Default 5432. Saving a change restarts PostgreSQL.", Line(_pg));
+            if (Engines.MongoInstalled) Row(server, "MongoDB port", "Default 27017. Saving a change restarts MongoDB.", Line(_mongo));
             var db = Section(servicesPage, "database", "Database", "MariaDB only accepts connections from this PC (127.0.0.1).");
             Row(db, "Root password", "User root, used by phpMyAdmin and your apps.", Line(_pwState, _pwBtn));
             _pwNote = new Callout(CalloutKind.Warning, "", Px(Inner - 40));
@@ -106,7 +114,7 @@ namespace WebHut
             _lanNote = new Callout(CalloutKind.Warning, "", Px(Inner - 40));
             Full(network, _lanNote);
             var always = Section(securityPage, "key", "Always private", "These never change with the setting above.");
-            Full(always, new Callout(CalloutKind.Info, "phpMyAdmin (http://localhost/phpmyadmin) and MariaDB (port " + Cfg.MysqlPort + ") only accept connections from this PC, even when network access is on.", Px(Inner - 40)));
+            Full(always, new Callout(CalloutKind.Info, "phpMyAdmin, Adminer and every database server (MariaDB, plus MySQL, PostgreSQL and MongoDB if you added them) only accept connections from this PC, even when network access is on.", Px(Inner - 40)));
 
             var maintPage = Page("Maintenance", "Keep components current and repair the runtime.");
             var maint = Section(maintPage, "refresh", "Components", "Previous versions are kept in tmp\\backup when you update.");
@@ -290,6 +298,9 @@ namespace WebHut
             _theme.SelectedIndex = Math.Max(0, Array.IndexOf(ThemeIds, WebHutConfig.NormTheme(Cfg.Theme)));
             _http.Value = Cfg.HttpPort;
             _mysql.Value = Cfg.MysqlPort;
+            _mysqlSrv.Value = Cfg.MySqlPort;
+            _pg.Value = Cfg.PgPort;
+            _mongo.Value = Cfg.MongoPort;
             _startOnLaunch.Checked = Cfg.StartOnLaunch;
             _tray.Checked = Cfg.MinimizeToTray;
             _lan.Checked = Cfg.LanAccess;
@@ -307,6 +318,7 @@ namespace WebHut
             return (_php.SelectedItem ?? Cfg.Php) != Cfg.Php || (_node.SelectedItem ?? Cfg.Node) != Cfg.Node
                 || ThemeIds[Math.Max(0, _theme.SelectedIndex)] != WebHutConfig.NormTheme(Cfg.Theme)
                 || _http.Value != Cfg.HttpPort || _mysql.Value != Cfg.MysqlPort
+                || _mysqlSrv.Value != Cfg.MySqlPort || _pg.Value != Cfg.PgPort || _mongo.Value != Cfg.MongoPort
                 || _startOnLaunch.Checked != Cfg.StartOnLaunch || _tray.Checked != Cfg.MinimizeToTray || _lan.Checked != Cfg.LanAccess;
         }
 
@@ -317,6 +329,9 @@ namespace WebHut
             var restarts = new List<string>();
             if ((_php.SelectedItem ?? Cfg.Php) != Cfg.Php || _http.Value != Cfg.HttpPort || _mysql.Value != Cfg.MysqlPort || _lan.Checked != Cfg.LanAccess) restarts.Add("Apache");
             if (_mysql.Value != Cfg.MysqlPort) restarts.Add("MariaDB");
+            if (_mysqlSrv.Value != Cfg.MySqlPort && Engines.MySqlInstalled) restarts.Add("MySQL");
+            if (_pg.Value != Cfg.PgPort && Engines.PostgresInstalled) restarts.Add("PostgreSQL");
+            if (_mongo.Value != Cfg.MongoPort && Engines.MongoInstalled) restarts.Add("MongoDB");
             _dirty.Text = !dirty ? "" : "●  Unsaved changes" + (restarts.Count == 0 ? "" : "  ·  saving restarts " + string.Join(" and ", restarts));
             _save.Enabled = dirty && !_busy;
 
@@ -341,10 +356,15 @@ namespace WebHut
         void SaveAndClose()
         {
             if (_busy) return;
-            if (!_http.IsValid || !_mysql.IsValid) { Ui.Error(this, "Settings", "Ports must be numbers between 1 and 65535."); return; }
+            if (!_http.IsValid || !_mysql.IsValid || !_mysqlSrv.IsValid || !_pg.IsValid || !_mongo.IsValid) { Ui.Error(this, "Settings", "Ports must be numbers between 1 and 65535."); return; }
             int http = _http.Value, mysql = _mysql.Value;
-            if (http == mysql) { Ui.Error(this, "Settings", "HTTP and MySQL ports must differ."); return; }
-            var clash = NodeApp.LoadAll().FirstOrDefault(a => a.Port == http || a.Port == mysql);
+            var used = new List<KeyValuePair<string, int>> { new KeyValuePair<string, int>("HTTP", http), new KeyValuePair<string, int>("MariaDB", mysql) };
+            if (Engines.MySqlInstalled) used.Add(new KeyValuePair<string, int>("MySQL", _mysqlSrv.Value));
+            if (Engines.PostgresInstalled) used.Add(new KeyValuePair<string, int>("PostgreSQL", _pg.Value));
+            if (Engines.MongoInstalled) used.Add(new KeyValuePair<string, int>("MongoDB", _mongo.Value));
+            var dup = used.GroupBy(u => u.Value).FirstOrDefault(g => g.Count() > 1);
+            if (dup != null) { Ui.Error(this, "Settings", string.Join(" and ", dup.Select(u => u.Key)) + " can't share port " + dup.Key + "."); return; }
+            var clash = NodeApp.LoadAll().FirstOrDefault(a => used.Any(u => u.Value == a.Port));
             if (clash != null) { Ui.Error(this, "Settings", "Port " + clash.Port + " is used by the Node app '" + clash.Name + "'."); return; }
 
             string php = _php.SelectedItem ?? Cfg.Php;
@@ -359,6 +379,9 @@ namespace WebHut
             Cfg.Node = node;
             Cfg.HttpPort = http;
             Cfg.MysqlPort = mysql;
+            if (_mysqlSrv.Value != Cfg.MySqlPort) { Cfg.MySqlPort = _mysqlSrv.Value; RestartEngines.Add(Services.MySql); }
+            if (_pg.Value != Cfg.PgPort) { Cfg.PgPort = _pg.Value; RestartEngines.Add(Services.Postgres); }
+            if (_mongo.Value != Cfg.MongoPort) { Cfg.MongoPort = _mongo.Value; RestartEngines.Add(Services.Mongo); }
             Cfg.StartOnLaunch = _startOnLaunch.Checked;
             Cfg.MinimizeToTray = _tray.Checked;
             Cfg.LanAccess = _lan.Checked;

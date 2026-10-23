@@ -36,6 +36,7 @@ namespace WebHut
         Row _current;
         bool _filling;
         readonly HashSet<string> _unticked = new HashSet<string>();
+        readonly HashSet<string> _ticked = new HashSet<string>();     // optional components the user chose
         readonly Action<string> _logHandler;
 
         public SetupForm()
@@ -68,7 +69,7 @@ namespace WebHut
             _body.Controls.Add(stack);
 
             // components card
-            var comps = Card(stack, "cube", "Components", "Apache and PHP are required. Untick anything else you don't need; you can add it later.");
+            var comps = Card(stack, "cube", "Components", "Apache and PHP are required. Untick anything else you don't need. MySQL, PostgreSQL, MongoDB and Adminer are optional; tick them here or add them later on the Databases page.");
             _retry = Small("Look up again", "refresh", ResolveAsync, "Find the latest versions again");
             AddTo(comps, Line(_retry));
             _list = new TableLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, ColumnCount = 1, Dock = DockStyle.Top, BackColor = Color.Transparent, Margin = new Padding(0, Px(6), 0, 0) };
@@ -270,7 +271,7 @@ namespace WebHut
                 Page.Visible = notFound;
                 if (C.LocalFile != null) { Pill.Set(PillState.Info, "Using your zip"); Detail.Text = Path.GetFileName(C.LocalFile); }
                 else if (notFound) { Pill.Set(PillState.Error, "Not found"); Detail.Text = (C.Error ?? "No download found") + ". Download it yourself, then choose the zip."; Detail.ForeColor = Ui.Red; return; }
-                else { Pill.Set(Check.Checked ? PillState.Running : PillState.Stopped, Check.Checked ? (C.Sha256 != null ? "Ready · verified" : "Ready") : "Skipped"); Detail.Text = (Required ? "Required · " : "") + (C.FileName ?? ""); }
+                else { Pill.Set(Check.Checked ? PillState.Running : PillState.Stopped, Check.Checked ? (C.Sha256 != null ? "Ready · verified" : "Ready") : Engines.IsOptional(C.Id) ? "Not added" : "Skipped"); Detail.Text = (Required ? "Required · " : Engines.IsOptional(C.Id) ? "Optional · " : "") + (C.FileName ?? ""); }
                 Detail.ForeColor = Ui.Muted;
             }
 
@@ -304,7 +305,7 @@ namespace WebHut
             SetStatus("Looking up the latest versions…", true);
             var cfg = Services.Cfg;
             var previous = _components.Where(c => c.Id != null && c.LocalFile != null).GroupBy(c => c.Id).ToDictionary(g => g.Key, g => g.First().LocalFile);
-            Task.Run(() => Setup.ResolveAll(cfg)).ContinueWith(t =>
+            Task.Run(() => Setup.ResolveAll(cfg, true)).ContinueWith(t =>
             {
                 if (IsDisposed) return;
                 _retry.Enabled = true;
@@ -333,12 +334,15 @@ namespace WebHut
             {
                 var row = new Row(c, Required.Contains(c.Id), PickZip);
                 // Keep what the user unticked across "Look up again"; components that weren't found start unticked.
-                if (!row.Required && (_unticked.Contains(c.Id ?? c.Name) || !c.Ready)) row.Check.Checked = false;
+                // Optional engines (MySQL, PostgreSQL, MongoDB, Adminer) start unticked unless the user picked them.
+                string key = c.Id ?? c.Name;
+                bool optional = Engines.IsOptional(c.Id);
+                if (!row.Required && (!c.Ready || (optional ? !_ticked.Contains(key) : _unticked.Contains(key)))) row.Check.Checked = false;
                 row.Check.CheckedChanged += (s, e) =>
                 {
                     if (!_filling)
                     {
-                        if (row.Check.Checked) _unticked.Remove(c.Id ?? c.Name); else _unticked.Add(c.Id ?? c.Name);
+                        if (row.Check.Checked) { _unticked.Remove(key); _ticked.Add(key); } else { _unticked.Add(key); _ticked.Remove(key); }
                     }
                     row.Sync(); UpdateReady();
                 };
