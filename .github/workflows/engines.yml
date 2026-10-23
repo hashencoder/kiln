@@ -32,16 +32,6 @@ jobs:
           if ($LASTEXITCODE) { Write-Output "::error title=core setup::$($out -replace "`r?`n", ' | ')"; exit 1 }
           Write-Output "::notice title=core setup::ok"
 
-      - name: Probe MySQL download hosts (diagnostic)
-        continue-on-error: true
-        run: |
-          foreach ($p in 6..14) {
-            foreach ($u in "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.$p-winx64.zip", "https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.$p-winx64.zip", "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.$p-winx64.zip") {
-              try { $r = Invoke-WebRequest $u -Method Head -UseBasicParsing -MaximumRedirection 5; $code = [int]$r.StatusCode; $ct = $r.Headers['Content-Type'] } catch { $code = $_.Exception.Response.StatusCode.value__; $ct = "" }
-              if ($code -eq 200) { Write-Output "::notice title=mysql probe::$code $ct $u" }
-            }
-          }
-
       - name: Add MySQL, PostgreSQL, MongoDB, mongosh, Adminer
         run: |
           Set-Location C:\WH
@@ -107,7 +97,10 @@ jobs:
                            @{ driver = "pgsql";  server = "127.0.0.1:5432"; user = "postgres"; expect = "postgres" })) {
             try {
               $r = Invoke-WebRequest "http://localhost:8080/adminer/" -SessionVariable web -UseBasicParsing
-              $body = @{ "auth[driver]" = $t.driver; "auth[server]" = $t.server; "auth[username]" = $t.user; "auth[password]" = ""; "auth[db]" = "" }
+              # Submit the login form like a browser: including its hidden CSRF token.
+              $token = [regex]::Match($r.Content, "name=['""]token['""][^>]*value=['""]([^'""]+)").Groups[1].Value
+              if (-not $token) { $token = [regex]::Match($r.Content, "value=['""]([^'""]+)['""][^>]*name=['""]token['""]").Groups[1].Value }
+              $body = @{ "token" = $token; "auth[driver]" = $t.driver; "auth[server]" = $t.server; "auth[username]" = $t.user; "auth[password]" = ""; "auth[db]" = "" }
               $r = Invoke-WebRequest "http://localhost:8080/adminer/" -Method Post -Body $body -WebSession $web -UseBasicParsing -MaximumRedirection 5
               $ok = $r.Content -match "Logout" -and $r.Content -match $t.expect
               if ($ok) { Write-Output "::notice title=adminer $($t.driver)::logged in, sees $($t.expect)" }
@@ -119,43 +112,6 @@ jobs:
           }
           .\whut.exe stop all
           if ($failed) { exit 1 }
-
-      - name: Adminer login trace (diagnostic)
-        if: always()
-        continue-on-error: true
-        run: |
-          Set-Location C:\WH
-          foreach ($svc in "apache", "postgresql") { .\whut.exe start $svc | Out-Null }
-          $r = Invoke-WebRequest "http://localhost:8080/adminer/" -SessionVariable web -UseBasicParsing
-          $names = [regex]::Matches($r.Content, "name=['""]?([^'"" >]+)") | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique
-          Write-Output "::notice title=trace 1 form::fields: $($names -join ', ') | cookies: $(($web.Cookies.GetCookies('http://localhost:8080/adminer/') | ForEach-Object { $_.Name + '@' + $_.Path }) -join ', ')"
-          $body = @{ "auth[driver]" = "pgsql"; "auth[server]" = "127.0.0.1:5432"; "auth[username]" = "postgres"; "auth[password]" = ""; "auth[db]" = "" }
-          try { $p = Invoke-WebRequest "http://localhost:8080/adminer/" -Method Post -Body $body -WebSession $web -UseBasicParsing -MaximumRedirection 0 -ErrorAction Stop } catch { $p = $_.Exception.Response }
-          $loc = $p.Headers.Location; $sc = $p.Headers['Set-Cookie']
-          Write-Output "::notice title=trace 2 post::status $([int]$p.StatusCode) | location $loc | set-cookie $($sc -join ' ;; ')"
-          $sess = Get-ChildItem C:\WH\tmp\sessions -ErrorAction SilentlyContinue | Select-Object -First 3 | ForEach-Object { $_.Name + ' ' + $_.Length }
-          Write-Output "::notice title=trace 3 sessions::$($sess -join ', ')"
-          $php = Get-ChildItem php -Directory | Select-Object -First 1
-          $ini = Get-Content "$($php.FullName)\php.ini" | Select-String -Pattern '^\s*session\.(save_path|cookie|use)' | ForEach-Object { $_.Line }
-          Write-Output "::notice title=trace 4 php.ini::$($ini -join ' | ')"
-          $g = Invoke-WebRequest "http://localhost:8080/adminer/?pgsql=127.0.0.1%3A5432&username=postgres" -WebSession $web -UseBasicParsing
-          $title = [regex]::Match($g.Content, "<title>(.*?)</title>").Groups[1].Value
-          $err = [regex]::Matches($g.Content, "class=['""](error|message)['""][^>]*>(.*?)</div>") | ForEach-Object { $_.Groups[2].Value }
-          Write-Output "::notice title=trace 5 get::title $title | errors $($err -join ' / ')"
-          $alog = Get-Content logs\apache-error.log -Tail 8 -ErrorAction SilentlyContinue | Out-String
-          Write-Output "::notice title=trace 6 apache log::$($alog -replace "`r?`n", ' | ')"
-
-      - name: Adminer hook check (diagnostic)
-        if: always()
-        continue-on-error: true
-        run: |
-          Set-Location C:\WH
-          $php = Get-ChildItem php -Directory | Select-Object -First 1
-          $code = 'function adminer_object(){ echo "HOOK-CALLED "; return null; } ob_start(); try { include "C:/WH/apps/adminer/adminer.php"; } catch (Throwable $e) { echo get_class($e); } $o = ob_get_clean(); echo (strpos($o, "HOOK-CALLED") !== false ? "hook called" : "hook NOT called"), " | classes: ", implode(",", array_filter(get_declared_classes(), function($c){ return stripos($c, "adminer") !== false; }));'
-          $out = & "$($php.FullName)\php.exe" -d display_errors=1 -r $code 2>&1 | Out-String
-          Write-Output "::notice title=adminer hook::$($out -replace "`r?`n", ' | ')"
-          $m = Select-String -Path apps\adminer\adminer.php -Pattern 'function login\(' -AllMatches | Select-Object -First 3 | ForEach-Object { $_.Line.Substring([Math]::Max(0, $_.Line.IndexOf('function login(') - 80), 260) }
-          Write-Output "::notice title=adminer login signature::$($m -join ' /// ')"
 
       - name: Logs on failure
         if: failure()
