@@ -95,6 +95,9 @@ namespace WebHut
                     Directory.CreateDirectory(K.Ssl);
                     File.Copy(file, Path.Combine(K.Ssl, "cacert.pem"), true);
                     break;
+                default:
+                    Engines.Install(this, c, file);   // MySQL, PostgreSQL, MongoDB, mongosh, Adminer
+                    break;
             }
             Log.Info("Installed " + c);
         }

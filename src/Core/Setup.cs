@@ -10,8 +10,11 @@ namespace WebHut
     /// <summary>First-run setup shared by the wizard and whut.</summary>
     public static class Setup
     {
-        /// <summary>Resolve every component in parallel (network calls).</summary>
-        public static List<Component> ResolveAll(WebHutConfig cfg)
+        /// <summary>Resolve the core components in parallel (network calls).</summary>
+        public static List<Component> ResolveAll(WebHutConfig cfg) { return ResolveAll(cfg, false); }
+
+        /// <summary>Same, plus the optional engines (MySQL, PostgreSQL, MongoDB, mongosh, Adminer) when asked.</summary>
+        public static List<Component> ResolveAll(WebHutConfig cfg, bool withOptional)
         {
             var jobs = new List<Func<Component>>
             {
@@ -23,6 +26,7 @@ namespace WebHut
                 () => Resolver.Composer(cfg),
                 () => Resolver.CaCert(cfg)
             };
+            if (withOptional) jobs.AddRange(Engines.Resolvers(cfg));   // shown unticked in the setup window
             var tasks = jobs.Select(j => Task.Run(() =>
             {
                 try { return j(); }
@@ -48,8 +52,8 @@ namespace WebHut
             Action<Component, string> report = (c, st) => { if (stage != null) stage(c, st); };
             var cfg = inst.Cfg;
             inst.CreateFolders();
-            // CA bundle first: php.ini points at it.
-            foreach (var c in components.OrderBy(c => c.Id == "cacert" ? 0 : 1))
+            // CA bundle first: php.ini points at it. PHP before Adminer/PostgreSQL, which enable drivers in php.ini.
+            foreach (var c in components.OrderBy(c => c.Id == "cacert" ? 0 : Engines.IsOptional(c.Id) ? 2 : 1))
             {
                 ct.ThrowIfCancellationRequested();
                 report(c, "start");

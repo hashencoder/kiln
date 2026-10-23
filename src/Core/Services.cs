@@ -54,10 +54,14 @@ namespace WebHut
         public static WebHutConfig Cfg = WebHutConfig.Load();
         public static readonly ApacheService Apache = new ApacheService();
         public static readonly MariaDbService MariaDb = new MariaDbService();
+        public static readonly MySqlService MySql = new MySqlService();
+        public static readonly PostgresService Postgres = new PostgresService();
+        public static readonly MongoService Mongo = new MongoService();
 
         public static List<Service> All()
         {
             var list = new List<Service> { Apache, MariaDb };
+            list.AddRange(Engines.InstalledServices());
             list.AddRange(NodeApp.LoadAll().Select(a => (Service)new NodeService(a)));
             return list;
         }
@@ -66,7 +70,11 @@ namespace WebHut
         {
             key = (key ?? "").ToLowerInvariant();
             if (key == "apache" || key == "httpd") return Apache;
-            if (key == "mariadb" || key == "mysql" || key == "db") return MariaDb;
+            if (key == "mariadb" || key == "db") return MariaDb;
+            // "mysql" meant MariaDB before MySQL could be added; it still does unless MySQL is installed.
+            if (key == "mysql") return Engines.MySqlInstalled ? (Service)MySql : MariaDb;
+            if (key == "postgresql" || key == "postgres" || key == "pg") return Postgres;
+            if (key == "mongodb" || key == "mongo") return Mongo;
             if (key.StartsWith("node:")) key = key.Substring(5);
             return All().FirstOrDefault(s => s.Key == "node:" + key);
         }
@@ -78,6 +86,10 @@ namespace WebHut
             if (!string.IsNullOrEmpty(Cfg.Php)) path.Add(Cfg.PhpDir);
             if (Cfg.NodeDir != null) { path.Add(Cfg.NodeDir); path.Add(Path.Combine(Cfg.NodeDir, "global")); }
             path.Add(K.MariaDbBin);
+            path.Add(K.PgBin);
+            path.Add(K.MongoshBin);
+            path.Add(K.MongoBin);
+            path.Add(K.MySqlBin);     // after MariaDB, so "mysql" keeps meaning the MariaDB client (use -P 3307 for MySQL)
             path.Add(K.Tools);
             path.Add(Path.Combine(K.Apache, "bin"));
             var env = new Dictionary<string, string>
@@ -87,7 +99,10 @@ namespace WebHut
                 {"NPM_CONFIG_CACHE", Path.Combine(K.Tmp, "npm-cache")},
                 {"COMPOSER_HOME", Path.Combine(K.Tmp, "composer")},
                 {"MYSQL_HOST", "127.0.0.1"},
-                {"MYSQL_TCP_PORT", Cfg.MysqlPort.ToString()}
+                {"MYSQL_TCP_PORT", Cfg.MysqlPort.ToString()},
+                {"PGHOST", "127.0.0.1"},
+                {"PGPORT", Cfg.PgPort.ToString()},
+                {"PGUSER", "postgres"}
             };
             if (Cfg.NodeDir != null) env["NPM_CONFIG_PREFIX"] = Path.Combine(Cfg.NodeDir, "global");
             return env;
@@ -98,6 +113,15 @@ namespace WebHut
             foreach (var kv in Env()) psi.EnvironmentVariables[kv.Key] = kv.Value;
         }
 
+        static string ShellExtras()
+        {
+            var x = new List<string>();
+            if (Engines.MySqlInstalled) x.Add("mysql -P " + Cfg.MySqlPort + " for MySQL");
+            if (Engines.PostgresInstalled) x.Add("psql");
+            if (Engines.MongoshInstalled) x.Add("mongosh");
+            return x.Count == 0 ? "" : ", plus " + string.Join(", ", x);
+        }
+
         /// <summary>Open a console with php, node, npm, composer and mariadb on PATH.</summary>
         public static void OpenShell() { OpenShell(null); }
 
@@ -106,7 +130,7 @@ namespace WebHut
         {
             if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) { dir = K.Www; Directory.CreateDirectory(K.Www); }
             var psi = new ProcessStartInfo("cmd.exe",
-                "/k \"title WebHut shell && echo WebHut shell - php, node, npm, npx, composer and mariadb are on PATH. && echo.\"")
+                "/k \"title WebHut shell && echo WebHut shell - php, node, npm, npx, composer and mariadb are on PATH" + ShellExtras() + ". && echo.\"")
             {
                 UseShellExecute = false,
                 CreateNoWindow = false,

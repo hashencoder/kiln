@@ -269,7 +269,9 @@ namespace WebHut
         Panel _pageDash, _pageSites, _pageDb;
         int _page;
         readonly List<NavItem> _pageNavs = new List<NavItem>();
-        TableLayoutPanel _sitesGrid, _dbGrid, _backupGrid;
+        TableLayoutPanel _sitesGrid, _dbGrid, _backupGrid, _enginesGrid;
+        Label _enginesNote;
+        readonly HashSet<string> _installing = new HashSet<string>();
         Label _dbSub, _dbNote;
         Pill _dbStatus;
         IconButton _pmaBtn, _backupBtn;
@@ -452,8 +454,138 @@ namespace WebHut
             _dbNote = new Label { Text = "", Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, BackColor = Ui.Card };
             Push(stack, TableCard("copy", "Recent backups", _dbNote, out g, -1, 120, 0));
             _backupGrid = g;
+
+            _enginesNote = new Label { Text = "", Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, BackColor = Ui.Card, UseMnemonic = false };
+            var links = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
+            links.Controls.Add(_enginesNote);
+            links.Controls.Add(LinkButton("pgAdmin", Engines.PgAdminUrl, "Download pgAdmin, the official PostgreSQL desktop tool"));
+            links.Controls.Add(LinkButton("Compass", Engines.CompassUrl, "Download MongoDB Compass, the official MongoDB desktop tool"));
+            Push(stack, TableCard("server", "More database engines", links, out g, -1, 130, 80, 0));
+            _enginesGrid = g;
             page.Controls.Add(stack);
             return page;
+        }
+
+        IconButton LinkButton(string text, string url, string tip)
+        {
+            var b = new IconButton(text, "external", ButtonKind.Ghost) { Font = Ui.BtnSmall, IconColor = Ui.NavInk, Margin = new Padding(Px(6), 0, 0, 0) };
+            b.Click += (s, e) => Sys.OpenUrl(url);
+            _tips.SetToolTip(b, tip);
+            return b;
+        }
+
+        static readonly string[][] EngineRows =
+        {
+            new[] { "mysql", "MySQL", "8.4 LTS · runs next to MariaDB on its own port" },
+            new[] { "postgresql", "PostgreSQL", "Newest supported release · user postgres" },
+            new[] { "mongodb", "MongoDB", "Community Server · document database" },
+            new[] { "mongosh", "mongosh", "MongoDB's command-line shell" },
+            new[] { "adminer", "Adminer", "Web UI for MySQL, PostgreSQL and MariaDB at /adminer" },
+        };
+
+        void RefreshEnginesGrid()
+        {
+            if (_enginesGrid == null) return;
+            ClearGrid(_enginesGrid);
+            HeadRow(_enginesGrid, "ENGINE", "VERSION", "PORT", "");
+            bool apache = Services.Apache.IsRunning;
+            foreach (var e in EngineRows)
+            {
+                string id = e[0];
+                bool have = Engines.Installed(id), busy = _installing.Contains(id);
+                int i = _enginesGrid.RowCount++;
+                _enginesGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                var name = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0, Px(10), Px(8), Px(10)), Anchor = AnchorStyles.Left };
+                name.Controls.Add(new Label { Text = e[1], Font = Ui.ServiceName, ForeColor = Ui.Ink, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0) });
+                name.Controls.Add(new Label { Text = e[2], Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0, Px(2), 0, 0), UseMnemonic = false });
+                _enginesGrid.Controls.Add(name, 0, i);
+                string dir = id == "mysql" ? K.MySql : id == "postgresql" ? K.PgSql : id == "mongodb" ? K.Mongo : id == "mongosh" ? K.Mongosh : K.Adminer;
+                _enginesGrid.Controls.Add(Cell(have ? WebHutConfig.FullVersion(dir) : "not added", have ? Ui.Mono : Ui.Small, have ? Ui.Ink : Ui.Faint), 1, i);
+                string port = id == "mysql" ? Cfg.MySqlPort.ToString() : id == "postgresql" ? Cfg.PgPort.ToString() : id == "mongodb" ? Cfg.MongoPort.ToString() : "";
+                _enginesGrid.Controls.Add(Cell(port, Ui.Mono, Ui.Muted), 2, i);
+
+                IconButton act;
+                if (busy) act = new IconButton("Adding…", "refresh", ButtonKind.Outline) { Enabled = false };
+                else if (!have)
+                {
+                    act = new IconButton("Add", "plus", ButtonKind.Outline) { IconColor = Ui.NavInk };
+                    act.Click += (s, ev) => AddEngine(id);
+                    _tips.SetToolTip(act, "Download the official " + e[1] + " build and set it up in WebHut");
+                }
+                else if (id == "adminer")
+                {
+                    act = new IconButton("Open", "external", ButtonKind.Outline) { IconColor = Ui.NavInk, Enabled = apache };
+                    act.Click += (s, ev) => Sys.OpenUrl(Services.Apache.Url + "adminer/");
+                    _tips.SetToolTip(act, apache ? "Open http://localhost/adminer" : "Start Apache first");
+                }
+                else if (id == "mongosh")
+                {
+                    act = new IconButton("Shell", "terminal", ButtonKind.Outline) { IconColor = Ui.NavInk };
+                    act.Click += (s, ev) => Services.OpenShell();
+                    _tips.SetToolTip(act, "Open WebHut's shell; run mongosh there");
+                }
+                else
+                {
+                    var svc = (DbServerService)Services.Find(id);
+                    act = new IconButton("Data folder", "folder", ButtonKind.Outline) { IconColor = Ui.NavInk };
+                    act.Click += (s, ev) => { Directory.CreateDirectory(svc.DataDir); Sys.OpenFolder(svc.DataDir); };
+                    _tips.SetToolTip(act, "Open " + svc.DataDir + ". Start and stop " + e[1] + " on the Dashboard.");
+                }
+                act.Font = Ui.BtnSmall; act.Anchor = AnchorStyles.Left; act.Margin = new Padding(0, Px(8), 0, Px(8));
+                _enginesGrid.Controls.Add(act, 3, i);
+            }
+            _enginesNote.Text = "Optional. Each runs on this PC only.";
+            _enginesGrid.ResumeLayout();
+        }
+
+        /// <summary>Download and set up one optional engine (MongoDB brings mongosh along; PostgreSQL and MySQL suggest Adminer).</summary>
+        void AddEngine(string id)
+        {
+            if (_installing.Contains(id)) return;
+            var ids = new List<string> { id };
+            if (id == "mongodb" && !Engines.MongoshInstalled) ids.Add("mongosh");
+            if ((id == "mysql" || id == "postgresql") && !Engines.AdminerInstalled) ids.Add("adminer");
+            foreach (var x in ids) _installing.Add(x);
+            RefreshEnginesGrid(); FitCards();
+            Toast.Show(this, "Adding " + string.Join(" and ", ids.Select(x => EngineRows.First(r => r[0] == x)[1])) + "… (see Activity)", ToastKind.Info);
+            var cfg = Cfg;
+            Task.Run(() =>
+            {
+                var inst = new Installer(cfg);
+                int last = -100;
+                var lastLog = DateTime.MinValue;
+                inst.Progress += (msg, pct) =>
+                {
+                    // Downloads report many times a second: log every 10% (or every 5 s when the size is unknown).
+                    bool download = msg.StartsWith("Downloading");
+                    if (!download || (pct >= 0 ? pct == 0 || pct >= last + 10 || pct == 100 : DateTime.Now - lastLog > TimeSpan.FromSeconds(5)))
+                    { last = pct; lastLog = DateTime.Now; Log.Info(msg); }
+                };
+                inst.CreateFolders();
+                foreach (var x in ids)
+                {
+                    var c = Engines.Resolve(cfg, x);
+                    if (!c.Ready) throw new Exception(c.Name + ": " + c.Error + " You can download it from " + c.Homepage + ".");
+                    inst.Install(c, System.Threading.CancellationToken.None);
+                }
+            }).ContinueWith(t =>
+            {
+                foreach (var x in ids) _installing.Remove(x);
+                if (IsDisposed) return;
+                if (t.IsFaulted)
+                {
+                    var msg = t.Exception.GetBaseException().Message;
+                    Log.Error("Adding " + id + " failed: " + msg);
+                    Toast.Show(this, "Couldn't add it. See Activity.", ToastKind.Error);
+                }
+                else
+                {
+                    Toast.Show(this, "Added. Start it on the Dashboard.", ToastKind.Success);
+                    if (ids.Contains("adminer") && Services.Apache.IsRunning) Run(Services.Apache, Services.Apache.Restart, "Restarting…");
+                }
+                BuildRows();
+                RefreshDbPage();
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         void RefreshDbPage()
@@ -485,6 +617,7 @@ namespace WebHut
             }
             if (backups.Count == 0) { int i = _backupGrid.RowCount++; _backupGrid.RowStyles.Add(new RowStyle(SizeType.AutoSize)); var l = Cell("No backups yet. Click Back up now, or wait for the automatic one.", Ui.Base, Ui.Muted); _backupGrid.Controls.Add(l, 0, i); _backupGrid.SetColumnSpan(l, 3); }
             _backupGrid.ResumeLayout();
+            RefreshEnginesGrid();
 
             // databases (needs a query; runs in the background)
             ClearGrid(_dbGrid);
@@ -840,7 +973,7 @@ namespace WebHut
         static string IconFor(Service svc)
         {
             if (svc == Services.Apache) return "server";
-            if (svc == Services.MariaDb) return "database";
+            if (svc == Services.MariaDb || svc is DbServerService) return "database";
             return "cube";
         }
 
@@ -848,6 +981,8 @@ namespace WebHut
         {
             if (svc == Services.Apache) return "Open http://localhost";
             if (svc == Services.MariaDb) return "Open phpMyAdmin (needs Apache and MariaDB running)";
+            if (svc is MongoService) return "Get MongoDB Compass to browse your data";
+            if (svc is DbServerService) return Engines.AdminerInstalled ? "Open in Adminer (needs Apache running)" : "Add Adminer on the Databases page to browse this database";
             return "Open " + svc.Url;
         }
 
@@ -881,7 +1016,11 @@ namespace WebHut
                 r.Toggle.SetMin(Px(84), 0);
                 r.Toggle.Click += (s, e) => { row.Failed = false; Toggle(row); };
                 r.Open = new IconButton("Open", "external", ButtonKind.Outline) { IconColor = Ui.NavInk, Font = Ui.BtnSmall };
-                r.Open.Click += (s, e) => Sys.OpenUrl(row.Svc.Url);
+                r.Open.Click += (s, e) =>
+                {
+                    if (row.Svc is DbServerService && !(row.Svc is MongoService) && !Engines.AdminerInstalled) { ShowPage(2); Toast.Show(this, "Add Adminer to browse " + row.Svc.Title + " in your browser.", ToastKind.Info); return; }
+                    Sys.OpenUrl(row.Svc.Url);
+                };
                 _tips.SetToolTip(r.Open, OpenTip(svc));
                 var logs = new IconButton("", "file", ButtonKind.Outline) { IconColor = Ui.NavInk };
                 logs.Click += (s, e) => Sys.OpenInEditor(row.Svc.LogFile);
@@ -891,9 +1030,10 @@ namespace WebHut
                 {
                     if (row.Svc is ApacheService) ShowServerConfig("apache");
                     else if (row.Svc is MariaDbService) ShowServerConfig("mariadb");
+                    else if (row.Svc is DbServerService) { var d = ((DbServerService)row.Svc).DataDir; Directory.CreateDirectory(d); Sys.OpenFolder(d); }
                     else Sys.OpenInEditor(row.Svc.ConfigFile);
                 };
-                _tips.SetToolTip(conf, svc is NodeService ? "Edit node-apps.json" : svc.Title + " configuration");
+                _tips.SetToolTip(conf, svc is NodeService ? "Edit node-apps.json" : svc is DbServerService ? "Open the " + svc.Title + " data folder (ports are in Settings)" : svc.Title + " configuration");
 
                 var actions = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, Px(9), 0, Px(9)), Anchor = AnchorStyles.Left };
                 actions.Controls.AddRange(new Control[] { r.Toggle, r.Open, logs, conf });
@@ -989,7 +1129,7 @@ namespace WebHut
                         r.Detail.Text = r.Svc.Detail;
                         r.Toggle.Enabled = true;
                         r.Toggle.Set(running ? "Stop" : "Start", running ? "stop" : "play", ButtonKind.Primary);
-                        r.Open.Enabled = running && (r.Svc == Services.Apache || Services.Apache.IsRunning);
+                        r.Open.Enabled = running && (r.Svc == Services.Apache || r.Svc is MongoService || Services.Apache.IsRunning || (r.Svc is DbServerService && !Engines.AdminerInstalled));
                     }
                     int up = t.Result.Count(x => x.pid > 0), total = t.Result.Count;
                     _tray.Text = "WebHut - " + up + " of " + total + " running";
@@ -1182,6 +1322,7 @@ namespace WebHut
                 BuildRows();
                 if (f.RestartApache && Services.Apache.IsRunning) Run(Services.Apache, Services.Apache.Restart, "Restarting…");
                 if (f.RestartMariaDb && Services.MariaDb.IsRunning) Run(Services.MariaDb, Services.MariaDb.Restart, "Restarting…");
+                foreach (var eng in f.RestartEngines) { var e2 = eng; if (e2.IsRunning) Run(e2, e2.Restart, "Restarting…"); }
             }
         }
 
@@ -1236,10 +1377,13 @@ namespace WebHut
                 _tray.Visible = false;
                 try
                 {
-                    if (Services.MariaDb.IsRunning)
+                    var dbs = new List<Service> { Services.MariaDb };
+                    dbs.AddRange(Engines.InstalledServices());
+                    if (dbs.Any(d => d.IsRunning))
                     {
-                        Native.BlockShutdown(Handle, "WebHut is stopping the database safely...");
-                        Services.MariaDb.StopForShutdown();
+                        Native.BlockShutdown(Handle, "WebHut is stopping the databases safely...");
+                        if (Services.MariaDb.IsRunning) Services.MariaDb.StopForShutdown();
+                        foreach (var d in dbs.Skip(1)) { try { if (d.IsRunning) d.Stop(); } catch (Exception ex) { Log.Error(d.Title + ": " + ex.Message); } }
                     }
                 }
                 catch (Exception ex) { Log.Error("Shutdown: " + ex.Message); }

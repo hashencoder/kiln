@@ -13,6 +13,9 @@ namespace WebHut
         public string Node = "";
         public int HttpPort = 80;
         public int MysqlPort = 3306;
+        public int MySqlPort = 3307;          // optional MySQL (MariaDB keeps 3306)
+        public int PgPort = 5432;             // optional PostgreSQL
+        public int MongoPort = 27017;         // optional MongoDB
         public string MysqlRootPassword = "";
         public bool StartOnLaunch = false;
         public bool MinimizeToTray = true;
@@ -38,6 +41,9 @@ namespace WebHut
                     c.Node = Json.Str(o, "node") ?? "";
                     c.HttpPort = ToInt(Json.Get(o, "httpPort"), 80);
                     c.MysqlPort = ToInt(Json.Get(o, "mysqlPort"), 3306);
+                    c.MySqlPort = ToInt(Json.Get(o, "mysqlServerPort"), 3307);
+                    c.PgPort = ToInt(Json.Get(o, "postgresPort"), 5432);
+                    c.MongoPort = ToInt(Json.Get(o, "mongoPort"), 27017);
                     // The root password is stored encrypted for this Windows account (DPAPI). Older versions
                     // kept it in plain text; it is read once here and encrypted on the next save.
                     string prot = Json.Str(o, "mysqlRootPasswordProtected");
@@ -81,6 +87,7 @@ namespace WebHut
             var d = new Dictionary<string, object>
             {
                 {"php", Php}, {"node", Node}, {"httpPort", HttpPort}, {"mysqlPort", MysqlPort},
+                {"mysqlServerPort", MySqlPort}, {"postgresPort", PgPort}, {"mongoPort", MongoPort},
                 {"startOnLaunch", StartOnLaunch},
                 {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl},
                 {"lanAccess", LanAccess}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep},

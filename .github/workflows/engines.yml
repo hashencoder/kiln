@@ -1,0 +1,91 @@
+name: Database engines (Windows integration)
+
+# Real end-to-end test of the optional engines on Windows: official downloads, first start
+# (data folder created), a query, clean stop, second start on the existing data, and Adminer
+# logging in to MySQL and PostgreSQL through Apache. Results are also posted as annotations.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  engines:
+    runs-on: windows-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: ./build/build.ps1
+
+      - name: Core setup (whut setup)
+        run: |
+          New-Item -ItemType Directory C:\WH -Force | Out-Null
+          Copy-Item dist\WebHut.exe, dist\whut.exe, dist\*.config C:\WH
+          Set-Location C:\WH
+          $out = .\whut.exe setup 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE) { Write-Output "::error title=core setup::$($out -replace "`r?`n", ' | ')"; exit 1 }
+          Write-Output "::notice title=core setup::ok"
+
+      - name: Add MySQL, PostgreSQL, MongoDB, mongosh, Adminer
+        run: |
+          Set-Location C:\WH
+          $out = .\whut.exe install mysql postgresql mongodb mongosh adminer 2>&1 | Out-String
+          Write-Host $out
+          foreach ($l in ($out -split "`r?`n" | Where-Object { $_ -match '^(MySQL|PostgreSQL|MongoDB|Adminer) ' })) { Write-Output "::notice title=resolved::$l" }
+          if ($LASTEXITCODE) { Write-Output "::error title=install::$($out -replace "`r?`n", ' | ')"; exit 1 }
+
+      - name: Start, query, stop, start again (each engine)
+        run: |
+          Set-Location C:\WH
+          $failed = 0
+          foreach ($e in "mysql", "postgresql", "mongodb") {
+            foreach ($round in 1, 2) {
+              $s = .\whut.exe start $e 2>&1 | Out-String
+              if ($LASTEXITCODE) {
+                $log = Get-ChildItem logs | Where-Object { $_.Name -match $e } | ForEach-Object { Get-Content $_.FullName -Tail 25 } | Out-String
+                Write-Output "::error title=$e start $round::$($s -replace "`r?`n", ' | ') LOG: $($log -replace "`r?`n", ' | ')"
+                $failed++; break
+              }
+              $q = .\whut.exe check-db $e 2>&1 | Out-String
+              if ($LASTEXITCODE) { Write-Output "::error title=$e query $round::$($q -replace "`r?`n", ' | ')"; $failed++ }
+              else { Write-Output "::notice title=$e round $round::$($q.Trim() -replace "`r?`n", ' | ')" }
+              $st = .\whut.exe status 2>&1 | Out-String
+              Write-Host $st
+              $p = .\whut.exe stop $e 2>&1 | Out-String
+              if ($LASTEXITCODE -or ($p -match "didn't stop cleanly")) { Write-Output "::warning title=$e stop $round::$($p -replace "`r?`n", ' | ')" }
+            }
+          }
+          if ($failed) { exit 1 }
+
+      - name: Adminer logs in to MySQL and PostgreSQL through Apache
+        run: |
+          Set-Location C:\WH
+          foreach ($svc in "apache", "mysql", "postgresql") { .\whut.exe start $svc; if ($LASTEXITCODE) { Write-Output "::error title=adminer::couldn't start $svc"; exit 1 } }
+          $failed = 0
+          foreach ($t in @(@{ driver = "server"; server = "127.0.0.1:3307"; user = "root"; expect = "information_schema" },
+                           @{ driver = "pgsql";  server = "127.0.0.1:5432"; user = "postgres"; expect = "postgres" })) {
+            try {
+              $r = Invoke-WebRequest "http://localhost/adminer/" -SessionVariable web -UseBasicParsing
+              $body = @{ "auth[driver]" = $t.driver; "auth[server]" = $t.server; "auth[username]" = $t.user; "auth[password]" = ""; "auth[db]" = "" }
+              $r = Invoke-WebRequest "http://localhost/adminer/" -Method Post -Body $body -WebSession $web -UseBasicParsing -MaximumRedirection 5
+              $ok = $r.Content -match "Logout" -and $r.Content -match $t.expect
+              if ($ok) { Write-Output "::notice title=adminer $($t.driver)::logged in, sees $($t.expect)" }
+              else {
+                $text = ($r.Content -replace '<[^>]+>', ' ' -replace '\s+', ' ')
+                Write-Output "::error title=adminer $($t.driver)::login page did not show databases: $($text.Substring(0, [Math]::Min(600, $text.Length)))"; $failed++
+              }
+            } catch { Write-Output "::error title=adminer $($t.driver)::$($_.Exception.Message)"; $failed++ }
+          }
+          .\whut.exe stop all
+          if ($failed) { exit 1 }
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          Get-ChildItem C:\WH\logs -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "==== $($_.Name)"; Get-Content $_.FullName -Tail 60 }

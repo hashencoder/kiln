@@ -33,6 +33,19 @@ namespace WebHut
         public static string MariaDb { get { return Path.Combine(Root, "mariadb"); } }
         public static string MariaDbBin { get { return Path.Combine(MariaDb, "bin"); } }
         public static string NodeRoot { get { return Path.Combine(Root, "node"); } }
+        // Optional database engines (Engines.cs)
+        public static string MySql { get { return Path.Combine(Root, "mysql"); } }
+        public static string MySqlBin { get { return Path.Combine(MySql, "bin"); } }
+        public static string MySqlData { get { return Path.Combine(Data, "mysql"); } }
+        public static string PgSql { get { return Path.Combine(Root, "postgresql"); } }
+        public static string PgBin { get { return Path.Combine(PgSql, "bin"); } }
+        public static string PgData { get { return Path.Combine(Data, "postgresql"); } }
+        public static string Mongo { get { return Path.Combine(Root, "mongodb"); } }
+        public static string MongoBin { get { return Path.Combine(Mongo, "bin"); } }
+        public static string MongoData { get { return Path.Combine(Data, "mongodb"); } }
+        public static string Mongosh { get { return Path.Combine(Root, "mongosh"); } }
+        public static string MongoshBin { get { return Path.Combine(Mongosh, "bin"); } }
+        public static string Adminer { get { return Path.Combine(Root, "apps", "adminer"); } }
         public static string NodeDir(string major) { return Path.Combine(NodeRoot, major); }
         public static string Config { get { return Path.Combine(Root, "config"); } }
         public static string ApacheConf { get { return Path.Combine(Config, "apache"); } }
