@@ -401,7 +401,7 @@ static class Tests
         string dash = Path.Combine(K.Www, "index.php");
         Directory.CreateDirectory(K.Www);
         File.WriteAllText(dash, File.ReadAllText(Path.Combine(K.Root, "dashboard-old.php")).Replace("\n", "\r\n"));
-        Check(Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("webhut-dashboard: 2"), "unmodified old dashboard is replaced by the new design");
+        Check(Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("webhut-dashboard: 3"), "unmodified old dashboard is replaced by the new design");
         File.WriteAllText(dash, File.ReadAllText(Path.Combine(K.Root, "dashboard-old.php")) + "\n<!-- my change -->");
         Check(!Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("my change"), "an edited dashboard is left alone");
         File.Delete(dash);

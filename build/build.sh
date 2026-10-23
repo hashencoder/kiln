@@ -13,7 +13,7 @@ REF="${MONO_REF:-/usr/lib/mono/4.8-api}"
 OUT=dist
 mkdir -p "$OUT" build/obj
 
-# Icon (assets/webhut.ico is committed; regenerate with: python3 build/make_icon.py assets/webhut.ico assets/webhut-512.png)
+# Icon (assets/webhut.ico is committed; regenerate everything from assets/logo/webhut-icon.svg with: python3 build/make_icon.py)
 ICON=assets/webhut.ico
 
 # Embed every file in overlay/ as a resource named overlay/<relative path>
@@ -33,6 +33,8 @@ COMMON=(-langversion:7.2 -optimize+ -debug- -platform:anycpu -warn:4 -nowarn:159
 # Fonts (Inter, JetBrains Mono; SIL OFL 1.1) are embedded in the GUI only, as fonts/<file>
 FONTS=()
 for f in assets/fonts/*.ttf; do FONTS+=("-resource:$f,fonts/$(basename "$f")"); done
+# Logo renders (build/make_icon.py), drawn by Ui.DrawLogo
+for f in assets/logo/webhut-[0-9]*.png; do FONTS+=("-resource:$f,logo/$(basename "$f")"); done
 
 mcs "${COMMON[@]}" -target:winexe -out:"$OUT/WebHut.exe" -win32icon:"$ICON" \
     -main:WebHut.Program "${RES[@]}" "${FONTS[@]}" src/Core/*.cs src/Gui/*.cs

@@ -138,7 +138,7 @@ If you fork WebHut and want your own name (for example "Forge"):
 
 1. Find-and-replace `WebHut` → `Forge` and `whut` → `forge` across the repo. Check `K.AppName`, the `-main:WebHut.Program` and `-main:WebHut.CliProgram` arguments in both build scripts (the namespace), and the `WEBHUT_` variable names in `overlay/` and `src/`.
 2. Rename `whut` in both build scripts and the docs.
-3. Redraw the icon if you like (`build/make_icon.py`), then regenerate `assets/webhut.ico` and `assets/webhut-512.png`.
+3. Replace the logo: edit the master vector `assets/logo/webhut-icon.svg`, then run `python3 build/make_icon.py` (needs `pip install cairosvg fonttools pillow`). It regenerates `assets/webhut.ico`, `assets/webhut-512.png`, the PNG sizes embedded in the app (`assets/logo/webhut-<n>.png`), the flame-only and monochrome SVGs, the light/dark wordmark lockups and the installer images. Also update the inline SVG in `overlay/www/index.php`.
 4. Don't call the project "XAMPP" or anything confusingly similar. That name belongs to Apache Friends. "An XAMPP alternative" in the description is fine.
 
 ## Offline bundles

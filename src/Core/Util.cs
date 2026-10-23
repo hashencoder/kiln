@@ -16,7 +16,7 @@ namespace WebHut
     public static class K
     {
         public const string AppName = "WebHut";
-        public const string AppVersion = "1.6.4";
+        public const string AppVersion = "1.6.5";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
         // repo so every WebHut install can pick up pinned versions you publish,

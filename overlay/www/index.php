@@ -2,7 +2,7 @@
 /**
  * WebHut dashboard - shown at http://localhost
  * Lists your sites (folders in www\) and Node apps, and what's running.
- * webhut-dashboard: 2
+ * webhut-dashboard: 3
  * WebHut updates this file when it is unchanged; your own edits are backed up first.
  */
 declare(strict_types=1);
@@ -112,7 +112,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WebHut · localhost</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23EA4B0C'/><path d='M33 12c2 9 13 14 13 27a14 14 0 0 1-28 0c0-7 4-11 7-14 0 5 2 8 5 9-2-8 1-15 3-22z' fill='white'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23EA4B0C'/><path fill='%23FFFFFF' d='M286 60 C305 108 280 151 237 195 C195 238 139 279 125 342 C111 405 150 450 218 463 C181 438 169 399 184 358 C197 321 232 299 263 269 C251 311 269 335 296 355 C323 375 340 405 329 435 C371 411 392 377 389 337 C387 300 367 274 351 247 C356 286 341 306 327 319 C309 290 311 263 322 234 C341 180 340 120 286 60 Z'/><path fill='%23FFFFFF' d='M355 222 C360 260 382 277 395 305 C414 345 402 389 373 417 C387 380 372 354 355 334 C340 316 342 282 355 222 Z'/><path fill='%23EA4B0C' d='M259 290 C241 326 208 346 209 385 C210 420 235 444 274 447 C314 449 344 424 343 389 C342 359 324 341 305 320 C311 346 300 358 291 367 C279 345 284 315 259 290 Z'/><path d='M241 370 L264 391 L241 412' fill='none' stroke='%23FFFFFF' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'/><path d='M281 414 H308' fill='none' stroke='%23FFFFFF' stroke-width='13' stroke-linecap='round'/></svg>">
 <style>
   :root {
     --bg:#F6F8FB; --card:#FFFFFF; --surface:#EEF2F6; --line:#E2E7ED; --ink:#17212F; --muted:#667487; --faint:#8793A3;
@@ -205,7 +205,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
 <body>
 <div class="wrap">
   <header>
-    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#EA4B0C"/><path d="M33 12c2 9 13 14 13 27a14 14 0 0 1-28 0c0-7 4-11 7-14 0 5 2 8 5 9-2-8 1-15 3-22z" fill="#fff"/></svg>
+    <svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA4B0C"/><path fill="#FFFFFF" d="M286 60 C305 108 280 151 237 195 C195 238 139 279 125 342 C111 405 150 450 218 463 C181 438 169 399 184 358 C197 321 232 299 263 269 C251 311 269 335 296 355 C323 375 340 405 329 435 C371 411 392 377 389 337 C387 300 367 274 351 247 C356 286 341 306 327 319 C309 290 311 263 322 234 C341 180 340 120 286 60 Z"/><path fill="#FFFFFF" d="M355 222 C360 260 382 277 395 305 C414 345 402 389 373 417 C387 380 372 354 355 334 C340 316 342 282 355 222 Z"/><path fill="#EA4B0C" d="M259 290 C241 326 208 346 209 385 C210 420 235 444 274 447 C314 449 344 424 343 389 C342 359 324 341 305 320 C311 346 300 358 291 367 C279 345 284 315 259 290 Z"/><path d="M241 370 L264 391 L241 412" fill="none" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M281 414 H308" fill="none" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round"/></svg>
     <div class="title">
       <h1>WebHut</h1>
       <p>Your local server is running · <span class="mono"><?= h(str_replace('/', '\\', (string)$root)) ?></span></p>

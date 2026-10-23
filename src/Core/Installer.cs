@@ -332,6 +332,7 @@ namespace WebHut
             "56abdca7b9ac08fafd976c1398eeab2be71d94f1600fb273c6124510624bb407",
             "6457cb4247b3e250a57d0220c3fb2bf15cca223a911a7fe9a61065bcc5f36c89",
             "7de87c19cbdf130470714b003235627d6ec897b6e47ff6a7a8ef08abca277dab",
+            "da58a6df67af604e7b4a827a852e7dde9f6abda0b047b3091f461b6473dd6876",   // 1.6.3-1.6.4 (old flame logo)
         };
 
         /// <summary>Replace an unmodified older WebHut dashboard (www\index.php) with the current one. Edited files are left alone.</summary>
