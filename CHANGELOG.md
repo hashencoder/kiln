@@ -8,6 +8,7 @@ All notable changes to WebHut are listed here. The format follows
 
 ### Fixed
 - The installer now tells Windows to refresh its icon cache, so a taskbar pin made before an upgrade shows the current WebHut icon.
+- WebHut's windows now use the full multi-size icon embedded in the app (16-256 px) instead of asking Explorer for it, so the taskbar and Alt+Tab show the right icon at every display scaling and never an old cached one.
 
 ## [1.6.5] - 2026-10-23
 
