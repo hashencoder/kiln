@@ -455,7 +455,7 @@ namespace WebHut
             Push(stack, TableCard("copy", "Recent backups", _dbNote, out g, -1, 120, 0));
             _backupGrid = g;
 
-            _enginesNote = new Label { Text = "", Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, BackColor = Ui.Card, UseMnemonic = false };
+            _enginesNote = new Label { Text = "", Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, BackColor = Ui.Card, UseMnemonic = false, Margin = new Padding(0, Px(9), Px(4), 0) };
             var links = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
             links.Controls.Add(_enginesNote);
             links.Controls.Add(LinkButton("pgAdmin", Engines.PgAdminUrl, "Download pgAdmin, the official PostgreSQL desktop tool"));

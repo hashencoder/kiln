@@ -535,8 +535,11 @@ static class Tests
             var avail = new HashSet<int> { 9, 10, 11 };   // 8.4.6-8.4.8 moved to the archive; 8.4.11 is newest
             var my = new Component { Name = "MySQL" };
             Engines.FindMySql(my, url => avail.Any(pn => url.EndsWith("/mysql-8.4." + pn + "-winx64.zip")));
-            Check(my.Version == "8.4.11" && my.Url == "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.11-winx64.zip" && my.FileName == "mysql-8.4.11-winx64.zip",
+            Check(my.Version == "8.4.11" && my.Url == "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-winx64.zip" && my.FileName == "mysql-8.4.11-winx64.zip",
                   "MySQL: newest 8.4 patch found by probing", my.Version + " " + my.Url);
+            var arch = new Component { Name = "MySQL" };
+            Engines.FindMySql(arch, url => url.StartsWith("https://cdn.mysql.com/archives/") && (url.Contains("8.4.7-") || url.Contains("8.4.8-")));
+            Check(arch.Version == "8.4.8" && arch.Url == "https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.8-winx64.zip", "MySQL: falls back to Oracle's archive path", arch.Url);
             var none = new Component { Name = "MySQL" };
             Engines.FindMySql(none, url => false);
             Check(none.Error != null && none.Url == null, "MySQL: nothing found is an error, not a guess");

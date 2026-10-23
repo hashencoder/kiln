@@ -362,6 +362,8 @@ namespace WebHut
             var wanted = new[] { "bz2", "curl", "exif", "fileinfo", "gd", "gettext", "intl", "mbstring", "mysqli",
                                  "openssl", "pdo_mysql", "pdo_sqlite", "soap", "sockets", "sodium", "sqlite3", "xsl", "zip" };
             var lines = new List<string>();
+            // PostgreSQL drivers when PostgreSQL or Adminer is in use (they need libpq.dll from the PHP folder).
+            if (Engines.PostgresInstalled || Engines.AdminerInstalled) wanted = wanted.Concat(new[] { "pgsql", "pdo_pgsql" }).ToArray();
             foreach (var e in wanted)
                 if (File.Exists(Path.Combine(ext, "php_" + e + ".dll"))) lines.Add("extension = " + e);
             // OPcache is built in from PHP 8.5; older versions ship it as a DLL.
