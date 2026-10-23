@@ -94,14 +94,21 @@ jobs:
         timeout-minutes: 15
         run: |
           Set-Location C:\WH
-          foreach ($svc in "apache", "mysql", "postgresql") { .\whut.exe start $svc; if ($LASTEXITCODE) { Write-Output "::error title=adminer::couldn't start $svc"; exit 1 } }
+          # Port 80 can be taken on hosted runners; use 8080 for this test.
+          $cfg = Get-Content webhut.json -Raw | ConvertFrom-Json
+          $cfg.httpPort = 8080
+          $cfg | ConvertTo-Json | Set-Content webhut.json
+          foreach ($svc in "apache", "mysql", "postgresql") {
+            $o = .\whut.exe start $svc 2>&1 | Out-String
+            if ($LASTEXITCODE) { Write-Output "::error title=adminer::couldn't start ${svc}: $($o -replace "`r?`n", ' | ')"; exit 1 }
+          }
           $failed = 0
           foreach ($t in @(@{ driver = "server"; server = "127.0.0.1:3307"; user = "root"; expect = "information_schema" },
                            @{ driver = "pgsql";  server = "127.0.0.1:5432"; user = "postgres"; expect = "postgres" })) {
             try {
-              $r = Invoke-WebRequest "http://localhost/adminer/" -SessionVariable web -UseBasicParsing
+              $r = Invoke-WebRequest "http://localhost:8080/adminer/" -SessionVariable web -UseBasicParsing
               $body = @{ "auth[driver]" = $t.driver; "auth[server]" = $t.server; "auth[username]" = $t.user; "auth[password]" = ""; "auth[db]" = "" }
-              $r = Invoke-WebRequest "http://localhost/adminer/" -Method Post -Body $body -WebSession $web -UseBasicParsing -MaximumRedirection 5
+              $r = Invoke-WebRequest "http://localhost:8080/adminer/" -Method Post -Body $body -WebSession $web -UseBasicParsing -MaximumRedirection 5
               $ok = $r.Content -match "Logout" -and $r.Content -match $t.expect
               if ($ok) { Write-Output "::notice title=adminer $($t.driver)::logged in, sees $($t.expect)" }
               else {
