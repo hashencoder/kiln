@@ -35,6 +35,7 @@ FONTS=()
 for f in assets/fonts/*.ttf; do FONTS+=("-resource:$f,fonts/$(basename "$f")"); done
 # Logo renders (build/make_icon.py), drawn by Ui.DrawLogo
 for f in assets/logo/webhut-[0-9]*.png; do FONTS+=("-resource:$f,logo/$(basename "$f")"); done
+FONTS+=("-resource:assets/webhut.ico,logo/webhut.ico")
 
 mcs "${COMMON[@]}" -target:winexe -out:"$OUT/WebHut.exe" -win32icon:"$ICON" \
     -main:WebHut.Program "${RES[@]}" "${FONTS[@]}" src/Core/*.cs src/Gui/*.cs

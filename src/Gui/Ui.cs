@@ -206,7 +206,16 @@ namespace WebHut
             {
                 if (_icon == null)
                 {
-                    try { _icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
+                    // The multi-size .ico embedded in the exe (16-256 px), read directly: Windows then picks the right size
+                    // for the title bar, Alt+Tab and the taskbar at any scaling. ExtractAssociatedIcon would give a single
+                    // 32 px icon from Explorer's icon cache, which can still hold an older WebHut icon after an upgrade.
+                    try
+                    {
+                        using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo/webhut.ico"))
+                            if (s != null) _icon = new Icon(s);
+                    }
+                    catch { }
+                    if (_icon == null) try { _icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
                     if (_icon == null) _icon = Icon.FromHandle(DrawLogo(32).GetHicon());
                 }
                 return _icon;

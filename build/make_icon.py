@@ -102,7 +102,8 @@ if __name__ == "__main__":
     render(master, 512).save(A("webhut-512.png"))
     sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256]
     frames = {n: render(master, n) for n in sizes}
-    frames[256].save(A("webhut.ico"), format="ICO", sizes=[(n, n) for n in sizes], append_images=[frames[n] for n in sizes[:-1]])
+    # Classic bitmap frames (not PNG) so every Windows icon API reads every size.
+    frames[256].save(A("webhut.ico"), format="ICO", sizes=[(n, n) for n in sizes], append_images=[frames[n] for n in sizes[:-1]], bitmap_format="bmp")
     for n in (16, 24, 32, 48, 64, 128, 256):
         frames[n].save(A("logo", "webhut-%d.png" % n))
     write("webhut-symbol.svg", symbol(ORANGE))
