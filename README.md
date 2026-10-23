@@ -161,6 +161,24 @@ WebHut is for **local development only**. Everything listens on `127.0.0.1`, and
 
 Issues and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- Release builds are made from this repository by [GitHub Actions](.github/workflows/release.yml); nothing is built or signed on a personal machine.
+- Every signing request is approved by hand before a release is signed.
+- Team roles:
+  - Committers and reviewers: [@hashencoder](https://github.com/hashencoder)
+  - Approvers: [@hashencoder](https://github.com/hashencoder)
+
+### Privacy
+
+WebHut collects no personal data and has no telemetry or analytics. It connects to the internet only to:
+- download Apache, PHP, MariaDB, phpMyAdmin, Node.js, Composer and the CA certificate bundle from their publishers' official sites (listed under [What you get](#what-you-get)), when you install or update them;
+- ask GitHub's public API whether a newer WebHut release exists, when you open the About window or check for updates.
+
+Your sites and databases stay on your PC. The servers WebHut runs listen only on this PC unless you turn on network access in Settings.
+
 ## License
 
 WebHut's code and documentation are [MIT licensed](LICENSE). The components WebHut downloads keep their own licenses; see [docs/10-licensing.md](docs/10-licensing.md).
