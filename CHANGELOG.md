@@ -4,7 +4,7 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.7.0] - 2026-10-23
 
 ### Added
 - **Optional MySQL, PostgreSQL and MongoDB** next to MariaDB, each from its official Windows download:
@@ -20,6 +20,7 @@ All notable changes to WebHut are listed here. The format follows
 - New guide: [docs/13 – MySQL, PostgreSQL and MongoDB](docs/13-more-databases.md). Backups and the update manager still cover the core components and MariaDB only.
 
 ### Fixed
+- `whut start` no longer hangs when its output is piped or captured by a script (PowerShell, CI): servers are now started fully detached, with no inherited handles, no console and their own process group. This applies to Apache, MariaDB, the new engines and Node apps.
 - The installer now tells Windows to refresh its icon cache, so a taskbar pin made before an upgrade shows the current WebHut icon.
 - WebHut's windows now use the full multi-size icon embedded in the app (16-256 px) instead of asking Explorer for it, so the taskbar and Alt+Tab show the right icon at every display scaling and never an old cached one.
 
