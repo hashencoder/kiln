@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Linq;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
@@ -210,28 +213,34 @@ namespace WebHut
             }
         }
 
-        /// <summary>The WebHut mark: a flame in a rounded square.</summary>
+        static readonly int[] LogoSizes = { 16, 24, 32, 48, 64, 128, 256 };
+        static readonly Dictionary<int, Bitmap> LogoCache = new Dictionary<int, Bitmap>();
+
+        /// <summary>The WebHut mark (assets/logo/webhut-icon.svg), from the PNG renders embedded as logo/webhut-&lt;n&gt;.png:
+        /// the exact size when there is one (crisp at 16-32 px), otherwise the next larger one scaled down.</summary>
         public static Bitmap DrawLogo(int size)
         {
+            int src = LogoSizes.FirstOrDefault(n => n >= size);
+            if (src == 0) src = LogoSizes[LogoSizes.Length - 1];
+            Bitmap master;
+            lock (LogoCache)
+            {
+                if (!LogoCache.TryGetValue(src, out master))
+                {
+                    var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo/webhut-" + src + ".png");
+                    master = s == null ? null : new Bitmap(s);
+                    LogoCache[src] = master;
+                }
+            }
             var bmp = new Bitmap(size, size);
             using (var g = Graphics.FromImage(bmp))
             {
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                float r = size * 0.22f;
-                using (var path = Rounded(new RectangleF(0, 0, size - 1, size - 1), r))
-                using (var b = new SolidBrush(Accent)) g.FillPath(b, path);
-                float s = size / 32f;
-                using (var flame = new GraphicsPath())
-                {
-                    flame.AddBezier(16 * s, 5 * s, 22 * s, 11 * s, 25 * s, 16 * s, 24 * s, 21 * s);
-                    flame.AddBezier(24 * s, 21 * s, 23 * s, 25.5f * s, 19.5f * s, 28 * s, 16 * s, 28 * s);
-                    flame.AddBezier(16 * s, 28 * s, 12.5f * s, 28 * s, 9 * s, 25.5f * s, 8 * s, 21 * s);
-                    flame.AddBezier(8 * s, 21 * s, 7.5f * s, 17 * s, 10 * s, 14 * s, 12 * s, 12.5f * s);
-                    flame.AddBezier(12 * s, 12.5f * s, 12 * s, 15 * s, 13 * s, 17 * s, 14.5f * s, 17.5f * s);
-                    flame.AddBezier(14.5f * s, 17.5f * s, 14 * s, 13 * s, 15 * s, 9 * s, 16 * s, 5 * s);
-                    flame.CloseFigure();
-                    using (var w = new SolidBrush(Color.White)) g.FillPath(w, flame);
-                }
+                if (master != null) g.DrawImage(master, new Rectangle(0, 0, size, size));
+                else using (var path = Rounded(new RectangleF(0, 0, size - 1, size - 1), size * 0.22f))
+                     using (var b = new SolidBrush(Color.FromArgb(0xEA, 0x4B, 0x0C))) g.FillPath(b, path);
             }
             return bmp;
         }

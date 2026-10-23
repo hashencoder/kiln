@@ -49,6 +49,8 @@ function Invoke-Csc([string[]]$csArgs) {
 Write-Host "Building WebHut.exe..."
 # Fonts (Inter, JetBrains Mono; SIL OFL 1.1) are embedded in the GUI only, as fonts/<file>
 $fonts = Get-ChildItem -Path (Join-Path $repo "assets\fonts\*.ttf") | Sort-Object Name | ForEach-Object { "/resource:`"$($_.FullName)`",fonts/$($_.Name)" }
+# Logo renders (build/make_icon.py), drawn by Ui.DrawLogo
+$fonts += Get-ChildItem -Path (Join-Path $repo "assets\logo\webhut-*.png") | Where-Object { $_.Name -match '^webhut-\d+\.png$' } | Sort-Object Name | ForEach-Object { "/resource:`"$($_.FullName)`",logo/$($_.Name)" }
 Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\WebHut.exe`"", "/main:WebHut.Program") + $fonts + $core + $gui)
 Write-Host "Building whut.exe..."
 Invoke-Csc ($common + @("/target:exe", "/out:`"$out\whut.exe`"", "/main:WebHut.CliProgram") + $core + $cli)

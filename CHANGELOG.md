@@ -4,6 +4,15 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.6.5] - 2026-10-23
+
+### Changed
+- **New WebHut logo:** a modern geometric flame with a terminal prompt (`>_`) in its core, on WebHut orange (#EA4B0C).
+  - Used everywhere: the app icon, sidebar and About window, the installer, the localhost dashboard and the README.
+  - Pre-rendered at 16-256 px so it stays crisp in the title bar and taskbar.
+  - The master vector is `assets/logo/webhut-icon.svg`. `build/make_icon.py` builds the .ico, the PNGs, flame-only and monochrome SVGs, and the light and dark wordmark lockups from it.
+- An unchanged 1.6.3/1.6.4 dashboard (`www\index.php`) is updated to show the new logo; edited dashboards are left alone.
+
 ## [1.6.4] - 2026-10-22
 
 ### Changed
