@@ -4,6 +4,11 @@ All notable changes to WebHut are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- The installer now tells Windows to refresh its icon cache, so a taskbar pin made before an upgrade shows the current WebHut icon.
+
 ## [1.6.5] - 2026-10-23
 
 ### Changed
