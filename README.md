@@ -4,6 +4,21 @@
 
 <p align="center"><b>A portable, XAMPP-style local development stack for Windows:<br>Apache, the latest PHP, MariaDB, phpMyAdmin and Node.js in one folder, with one control panel.</b></p>
 
+<p align="center">
+  <a href="../../releases/latest"><b>⬇ Download for Windows</b></a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#webhut-xampp-and-laragon">Compare</a> ·
+  <a href="docs/">Docs</a> ·
+  Free and open source (MIT)
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/dashboard-dark.png">
+    <img src="docs/images/dashboard-light.png" width="860" alt="The WebHut control panel with Apache and MariaDB running">
+  </picture>
+</p>
+
 ---
 
 ## Why
@@ -22,6 +37,30 @@ WebHut keeps the XAMPP experience (a portable folder, a panel with Start/Stop bu
 - **Test on your phone.** One switch lets devices on your Wi-Fi open your sites (`http://192.168.x.x/...`), like XAMPP. phpMyAdmin and the database stay private.
 - **Moving from XAMPP is one click.** WebHut copies your XAMPP databases and `htdocs` projects, even when XAMPP's MySQL has crashed, without changing XAMPP.
 - **Always current.** WebHut ships no third-party binaries. It downloads the official builds when you run it and verifies checksums where the publisher provides them, and its update checker keeps you current.
+
+## WebHut, XAMPP and Laragon
+
+All three give you Apache, PHP and a database on Windows. Where they differ:
+
+| | **WebHut** | XAMPP | Laragon |
+|---|---|---|---|
+| Price | Free, MIT licensed | Free | Free for personal use; paid license for commercial use |
+| PHP version at setup | Newest stable, downloaded when you install | The one bundled with that XAMPP release | Bundled; add others yourself |
+| Several PHP versions side by side | Yes, one-click switch | One per installation | Yes |
+| Node.js apps | Managed processes, each at its own `name.localhost`, websockets work | Not included | Node.js included |
+| Automatic site addresses | `folder.localhost`, no hosts file, no admin rights | Edit vhosts yourself | `folder.test` |
+| Database crash safety | Crash-safe settings, backups every 2 h and on stop, rebuild from backup | Manual | Manual |
+| Moving from XAMPP | One-click import of databases and `htdocs` | — | Manual |
+| Component updates | Built-in, with checksum checks, health check and rollback | Install a newer bundle | Automatic with a paid license |
+
+Comparison as of October 2026. If something here is out of date, please [open an issue](../../issues) and it will be fixed.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/sites-dark.png">
+    <img src="docs/images/sites-light.png" width="860" alt="WebHut's Sites page: every folder in www gets its own .localhost address">
+  </picture>
+</p>
 
 ## What you get
 
