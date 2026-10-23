@@ -234,11 +234,12 @@ namespace WebHut
                 WorkingDirectory = Path.Combine(K.Apache, "bin")
             };
             Services.ApplyEnv(psi);
-            var p = Process.Start(psi);
-            bool up = WaitFor(() => p.HasExited || Sys.IsPortListening(Cfg.HttpPort), 15000);
+            var p = Native.StartDetached(psi);
+            Func<bool> gone = () => { try { return p == null || p.HasExited; } catch { return true; } };
+            bool up = WaitFor(() => gone() || Sys.IsPortListening(Cfg.HttpPort), 15000);
             // A server can open its port and then abort during startup; make sure it stays up.
-            if (up && !p.HasExited) WaitFor(() => p.HasExited, 1500);
-            if (p.HasExited || !up)
+            if (up && !gone()) WaitFor(gone, 1500);
+            if (gone() || !up)
                 throw new Exception("Apache didn't start. Last lines of apache-error.log:\n" + Sys.Tail(LogFile, 15));
             Log.Info("Apache is running: " + Url);
             if (Cfg.LanAccess)
@@ -350,11 +351,12 @@ namespace WebHut
                 WorkingDirectory = K.MariaDbBin
             };
             Services.ApplyEnv(psi);
-            var p = Process.Start(psi);
-            bool up = WaitFor(() => p.HasExited || Sys.IsPortListening(Cfg.MysqlPort), 30000);
+            var p = Native.StartDetached(psi);
+            Func<bool> gone = () => { try { return p == null || p.HasExited; } catch { return true; } };
+            bool up = WaitFor(() => gone() || Sys.IsPortListening(Cfg.MysqlPort), 30000);
             // MariaDB opens its port before finishing startup and can still abort; make sure it stays up.
-            if (up && !p.HasExited) WaitFor(() => p.HasExited, 2000);
-            if (p.HasExited || !up)
+            if (up && !gone()) WaitFor(gone, 2000);
+            if (gone() || !up)
                 throw new Exception("MariaDB didn't start. Last lines of mariadb.err:\n" + Sys.Tail(LogFile, 15));
             if (!File.Exists(PidFile)) File.WriteAllText(PidFile, p.Id.ToString());
             File.WriteAllText(PortFile, Cfg.MysqlPort.ToString());
@@ -490,7 +492,8 @@ namespace WebHut
             foreach (var kv in App.Env) psi.EnvironmentVariables[kv.Key] = kv.Value;
 
             Log.Info("Starting " + App.Name + ": " + App.Command + " on port " + App.Port + "...");
-            var p = Process.Start(psi);
+            var p = Native.StartDetached(psi);
+            if (p == null) throw new Exception(App.Name + " exited right away. Last lines of its log:\n" + Sys.Tail(LogFile, 15));
             File.WriteAllText(PidFile, p.Id.ToString());
             Thread.Sleep(1500);
             if (p.HasExited)

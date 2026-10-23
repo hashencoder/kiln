@@ -439,14 +439,16 @@ namespace WebHut
         {
             var psi = new ProcessStartInfo(exe, args) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = workDir };
             Services.ApplyEnv(psi);
-            return Process.Start(psi);
+            return Native.StartDetached(psi);
         }
+
+        protected static bool Gone(Process p) { try { return p == null || p.HasExited; } catch { return true; } }
 
         protected void WaitUp(Process p, int timeoutMs)
         {
-            bool up = WaitFor(() => p.HasExited || Sys.IsPortListening(Port), timeoutMs);
-            if (up && !p.HasExited) WaitFor(() => p.HasExited, 1500);
-            if (p.HasExited || !up)
+            bool up = WaitFor(() => Gone(p) || Sys.IsPortListening(Port), timeoutMs);
+            if (up && !Gone(p)) WaitFor(() => Gone(p), 1500);
+            if (Gone(p) || !up)
                 throw new Exception(Title + " didn't start. Last lines of " + Path.GetFileName(LogFile) + ":\n" + Sys.Tail(LogFile, 15));
             File.WriteAllText(PidFile, p.Id.ToString());
             File.WriteAllText(PortFile, Port.ToString());
@@ -576,7 +578,7 @@ namespace WebHut
             Log.Info("Starting PostgreSQL on port " + Port + "...");
             // pg_ctl starts the server in the background and (-w) returns once it accepts connections.
             var p = Launch(Exe, "start -D \"" + DataDir + "\" -l \"" + LogFile + "\" -w -t 60 -o \"-p " + Port + " -c listen_addresses=127.0.0.1\"", K.PgBin);
-            if (!p.WaitForExit(90000)) { try { p.Kill(); } catch { } }
+            if (p != null && !p.WaitForExit(90000)) { try { p.Kill(); } catch { } }
             if (!WaitFor(() => Sys.IsPortListening(Port), 10000) || Pid() == 0)
                 throw new Exception("PostgreSQL didn't start. Last lines of postgresql.log:\n" + Sys.Tail(LogFile, 15));
             File.WriteAllText(PortFile, Port.ToString());
