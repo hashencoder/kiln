@@ -1,13 +1,13 @@
 {
-    "version": "1.6.3",
+    "version": "1.6.5",
     "description": "Free, open-source local web-development stack for Windows (Apache, PHP, MariaDB, phpMyAdmin, Node.js, Composer). A modern XAMPP replacement.",
     "homepage": "https://github.com/hashencoder/webhut",
     "license": "MIT",
     "notes": "On first run WebHut downloads Apache, PHP, MariaDB, phpMyAdmin, Node.js and Composer into its folder. Sites, databases and settings are kept in Scoop's persist folder across updates.",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/hashencoder/webhut/releases/download/v1.6.3/WebHut-1.6.3-win64.zip",
-            "hash": "c3aeaf2363873f0ce2a93507bd0146062607ec01545df33c93866a0e9fd70dbb"
+            "url": "https://github.com/hashencoder/webhut/releases/download/v1.6.5/WebHut-1.6.5-win64.zip",
+            "hash": "ca4993ee57b3b340f881c439bb081526dcf6a902a6f8726ec7d1f90282e390c8"
         }
     },
     "extract_dir": "WebHut",
