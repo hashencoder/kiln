@@ -32,6 +32,16 @@ jobs:
           if ($LASTEXITCODE) { Write-Output "::error title=core setup::$($out -replace "`r?`n", ' | ')"; exit 1 }
           Write-Output "::notice title=core setup::ok"
 
+      - name: Probe MySQL download hosts (diagnostic)
+        continue-on-error: true
+        run: |
+          foreach ($p in 6..14) {
+            foreach ($u in "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.$p-winx64.zip", "https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.$p-winx64.zip", "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.$p-winx64.zip") {
+              try { $r = Invoke-WebRequest $u -Method Head -UseBasicParsing -MaximumRedirection 5; $code = [int]$r.StatusCode; $ct = $r.Headers['Content-Type'] } catch { $code = $_.Exception.Response.StatusCode.value__; $ct = "" }
+              if ($code -eq 200) { Write-Output "::notice title=mysql probe::$code $ct $u" }
+            }
+          }
+
       - name: Add MySQL, PostgreSQL, MongoDB, mongosh, Adminer
         run: |
           Set-Location C:\WH

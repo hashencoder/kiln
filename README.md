@@ -2,7 +2,7 @@
 
 <h1 align="center">WebHut</h1>
 
-<p align="center"><b>A portable, XAMPP-style local development stack for Windows:<br>Apache, the latest PHP, MariaDB, phpMyAdmin and Node.js in one folder, with one control panel.</b></p>
+<p align="center"><b>A portable, XAMPP-style local development stack for Windows:<br>Apache, the latest PHP, MariaDB, phpMyAdmin and Node.js in one folder, with one control panel.<br>Optional: MySQL, PostgreSQL and MongoDB.</b></p>
 
 <p align="center">
   <a href="../../releases/latest"><b>⬇ Download for Windows</b></a> ·
@@ -48,6 +48,7 @@ All three give you Apache, PHP and a database on Windows. Where they differ:
 | PHP version at setup | Newest stable, downloaded when you install | The one bundled with that XAMPP release | Bundled; add others yourself |
 | Several PHP versions side by side | Yes, one-click switch | One per installation | Yes |
 | Node.js apps | Managed processes, each at its own `name.localhost`, websockets work | Not included | Node.js included |
+| Databases | MariaDB, plus optional MySQL 8.4, PostgreSQL and MongoDB, each on its own port | MariaDB | MySQL; others as add-ons |
 | Automatic site addresses | `folder.localhost`, no hosts file, no admin rights | Edit vhosts yourself | `folder.test` |
 | Database crash safety | Crash-safe settings, backups every 2 h and on stop, rebuild from backup | Manual | Manual |
 | Moving from XAMPP | One-click import of databases and `htdocs` | — | Manual |
@@ -73,6 +74,10 @@ Comparison as of October 2026. If something here is out of date, please [open an
 | Node.js | newest LTS line | [nodejs.org](https://nodejs.org/en/download) |
 | Composer | latest stable | [getcomposer.org](https://getcomposer.org/download/) |
 | CA certificates | Mozilla bundle, so PHP's HTTPS calls work | [curl.se](https://curl.se/docs/caextract.html) |
+| *Optional:* MySQL | newest 8.4 LTS, port 3307 | [dev.mysql.com](https://dev.mysql.com/downloads/mysql/) |
+| *Optional:* PostgreSQL | newest supported release, port 5432 | [EnterpriseDB Windows binaries](https://www.enterprisedb.com/download-postgresql-binaries) |
+| *Optional:* MongoDB + mongosh | newest production release, port 27017 | [mongodb.com](https://www.mongodb.com/try/download/community) |
+| *Optional:* Adminer | web UI for MySQL and PostgreSQL at `/adminer` | [adminer.org](https://www.adminer.org/) |
 
 Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistributable 2017–2026 (x64)**, which the setup window checks for and can install. WebHut itself runs on the .NET Framework 4.8 that is built into Windows 10 (version 1903 and later) and Windows 11.
 
@@ -138,6 +143,7 @@ Settings and data live **outside** the component folders, so upgrading Apache, M
 | [10 – Licensing](docs/10-licensing.md) | Component licenses and what redistribution requires |
 | [11 – Databases](docs/11-databases.md) | Crash safety, backups, rebuild from backup, moving from XAMPP |
 | [12 – Server configuration](docs/12-server-configuration.md) | Apache & MariaDB settings manager: ownership, validation, rollback |
+| [13 – MySQL, PostgreSQL and MongoDB](docs/13-more-databases.md) | Adding the optional engines, ports, connecting, Adminer, passwords |
 
 ## Building from source
 

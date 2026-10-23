@@ -85,26 +85,43 @@ namespace WebHut
             return c;
         }
 
-        /// <summary>True when the URL answers 200 to a HEAD request (redirects followed).</summary>
-        public static Func<string, bool> UrlExists = url =>
+        /// <summary>True when the URL exists: a HEAD request, or (for hosts that refuse HEAD) a one-byte ranged GET.</summary>
+        public static Func<string, bool> UrlExists = url => Probe(url, "HEAD") || Probe(url, "GET");
+
+        static bool Probe(string url, string method)
         {
             try
             {
                 Sys.EnableModernTls();
                 var req = (HttpWebRequest)WebRequest.Create(url);
-                req.Method = "HEAD";
+                req.Method = method;
+                if (method == "GET") req.AddRange(0, 0);
                 req.UserAgent = "WebHut/" + K.AppVersion + " (portable dev stack for Windows)";
                 req.Timeout = 15000;
                 req.AllowAutoRedirect = true;
-                using (var resp = (HttpWebResponse)req.GetResponse()) return (int)resp.StatusCode == 200;
+                using (var resp = (HttpWebResponse)req.GetResponse())
+                {
+                    int code = (int)resp.StatusCode;
+                    // A redirect to an HTML page (login or error page) doesn't count as the file.
+                    bool html = (resp.ContentType ?? "").StartsWith("text/html", StringComparison.OrdinalIgnoreCase);
+                    return (code == 200 || code == 206) && !html;
+                }
             }
             catch { return false; }
-        };
-
-        public static string MySqlUrl(string version)
-        {
-            return "https://dev.mysql.com/get/Downloads/MySQL-" + MySqlSeries + "/mysql-" + version + "-winx64.zip";
         }
+
+        /// <summary>Oracle's CDN: the newest release of a series sits in /Downloads, older ones in /archives.</summary>
+        public static string[] MySqlUrls(string version)
+        {
+            return new[]
+            {
+                "https://cdn.mysql.com/Downloads/MySQL-" + MySqlSeries + "/mysql-" + version + "-winx64.zip",
+                "https://cdn.mysql.com/archives/mysql-" + MySqlSeries + "/mysql-" + version + "-winx64.zip",
+                "https://dev.mysql.com/get/Downloads/MySQL-" + MySqlSeries + "/mysql-" + version + "-winx64.zip"
+            };
+        }
+
+        public static string MySqlUrl(string version) { return MySqlUrls(version)[0]; }
 
         public static Component MySql(WebHutConfig cfg)
         {
@@ -120,14 +137,16 @@ namespace WebHut
         public static void FindMySql(Component x, Func<string, bool> exists)
         {
             int best = -1;
+            string bestUrl = null;
             for (int p = MySqlBaselinePatch; p <= MySqlBaselinePatch + 24; p++)
             {
-                if (exists(MySqlUrl(MySqlSeries + "." + p))) best = p;
+                string found = MySqlUrls(MySqlSeries + "." + p).FirstOrDefault(exists);
+                if (found != null) { best = p; bestUrl = found; }
                 else if (best >= 0 && p > best + 2) break;     // two missing in a row after a hit: past the newest
             }
             if (best < 0) { x.Error = "Couldn't find a MySQL " + MySqlSeries + " Windows download at dev.mysql.com."; return; }
             x.Version = MySqlSeries + "." + best;
-            x.Url = MySqlUrl(x.Version);
+            x.Url = bestUrl;
             x.FileName = "mysql-" + x.Version + "-winx64.zip";
             x.Sha256 = null;
         }
