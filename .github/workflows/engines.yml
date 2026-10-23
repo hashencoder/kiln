@@ -51,29 +51,47 @@ jobs:
           if ($LASTEXITCODE) { Write-Output "::error title=install::$($out -replace "`r?`n", ' | ')"; exit 1 }
 
       - name: Start, query, stop, start again (each engine)
+        timeout-minutes: 25
         run: |
           Set-Location C:\WH
+          # Every whut call: own time limit, output to files (so nothing can hang on a pipe).
+          function W([string]$a, [int]$t = 300) {
+            $o = "C:\WH\w-out.txt"; $e = "C:\WH\w-err.txt"
+            $p = Start-Process .\whut.exe -ArgumentList $a -PassThru -NoNewWindow -RedirectStandardOutput $o -RedirectStandardError $e -WorkingDirectory C:\WH
+            $null = $p.Handle
+            $done = $p.WaitForExit($t * 1000)
+            $txt = ((Get-Content $o -Raw) + " " + (Get-Content $e -Raw)) -replace "`r?`n", ' | '
+            if (-not $done) { try { $p.Kill() } catch {} ; return @{ code = 999; out = "TIMEOUT after $t s: $txt" } }
+            return @{ code = $p.ExitCode; out = $txt }
+          }
+          function Logs($e) { (Get-ChildItem logs | Where-Object { $_.Name -match $e } | ForEach-Object { Get-Content $_.FullName -Tail 25 } | Out-String) -replace "`r?`n", ' | ' }
           $failed = 0
           foreach ($e in "mysql", "postgresql", "mongodb") {
             foreach ($round in 1, 2) {
-              $s = .\whut.exe start $e 2>&1 | Out-String
-              if ($LASTEXITCODE) {
-                $log = Get-ChildItem logs | Where-Object { $_.Name -match $e } | ForEach-Object { Get-Content $_.FullName -Tail 25 } | Out-String
-                Write-Output "::error title=$e start $round::$($s -replace "`r?`n", ' | ') LOG: $($log -replace "`r?`n", ' | ')"
-                $failed++; break
-              }
-              $q = .\whut.exe check-db $e 2>&1 | Out-String
-              if ($LASTEXITCODE) { Write-Output "::error title=$e query $round::$($q -replace "`r?`n", ' | ')"; $failed++ }
-              else { Write-Output "::notice title=$e round $round::$($q.Trim() -replace "`r?`n", ' | ')" }
-              $st = .\whut.exe status 2>&1 | Out-String
-              Write-Host $st
-              $p = .\whut.exe stop $e 2>&1 | Out-String
-              if ($LASTEXITCODE -or ($p -match "didn't stop cleanly")) { Write-Output "::warning title=$e stop $round::$($p -replace "`r?`n", ' | ')" }
+              $sw = [Diagnostics.Stopwatch]::StartNew()
+              $r = W "start $e" 420
+              if ($r.code -ne 0) { Write-Output "::error title=$e start $round::$($r.out) LOG: $(Logs $e)"; $failed++; W "stop $e" 120 | Out-Null; break }
+              Write-Output "::notice title=$e start $round::$([int]$sw.Elapsed.TotalSeconds) s"
+              $q = W "check-db $e" 120
+              if ($q.code -ne 0) { Write-Output "::error title=$e query $round::$($q.out)"; $failed++ }
+              else { Write-Output "::notice title=$e query $round::$($q.out)" }
+              $st = W "stop $e" 180
+              if ($st.code -ne 0 -or $st.out -match "didn't stop cleanly") { Write-Output "::warning title=$e stop $round::$($st.out)" }
             }
           }
           if ($failed) { exit 1 }
 
+      - name: whut start piped into another command returns (no inherited handles)
+        timeout-minutes: 6
+        run: |
+          Set-Location C:\WH
+          $job = Start-Job { Set-Location C:\WH; .\whut.exe start mysql 2>&1 | Out-String }
+          if (Wait-Job $job -Timeout 240) { Write-Output "::notice title=piped start::returned: $((Receive-Job $job) -replace "`r?`n", ' | ')" }
+          else { Write-Output "::error title=piped start::'whut start mysql | Out-String' did not return within 240 s"; Stop-Job $job; .\whut.exe stop mysql; exit 1 }
+          .\whut.exe stop mysql
+
       - name: Adminer logs in to MySQL and PostgreSQL through Apache
+        timeout-minutes: 15
         run: |
           Set-Location C:\WH
           foreach ($svc in "apache", "mysql", "postgresql") { .\whut.exe start $svc; if ($LASTEXITCODE) { Write-Output "::error title=adminer::couldn't start $svc"; exit 1 } }

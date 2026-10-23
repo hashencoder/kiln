@@ -223,6 +223,44 @@ namespace WebHut
         [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
         static extern uint GetConsoleProcessList(uint[] list, uint count);
 
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        struct STARTUPINFO
+        {
+            public int cb; public string lpReserved, lpDesktop, lpTitle;
+            public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
+            public short wShowWindow, cbReserved2; public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
+        }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct PROCESS_INFORMATION { public IntPtr hProcess, hThread; public int dwProcessId, dwThreadId; }
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern bool CreateProcess(string app, System.Text.StringBuilder cmd, IntPtr pa, IntPtr ta, bool inherit, uint flags,
+                                         string env, string dir, ref STARTUPINFO si, out PROCESS_INFORMATION pi);
+
+        /// <summary>
+        /// Start a server so it shares nothing with WebHut: no inherited handles (a server must never hold the pipe of a
+        /// script that ran "whut start ... | something", or that script waits for ever), no console, its own process group.
+        /// Returns null if the process is already gone. Off Windows (tests), a normal Process.Start.
+        /// </summary>
+        public static System.Diagnostics.Process StartDetached(System.Diagnostics.ProcessStartInfo psi)
+        {
+            if (!Sys.IsWindows) return System.Diagnostics.Process.Start(psi);
+            var env = new System.Text.StringBuilder();
+            foreach (var key in psi.EnvironmentVariables.Keys.Cast<string>().OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+                env.Append(key).Append('=').Append(psi.EnvironmentVariables[key]).Append('\0');
+            env.Append('\0');
+            var cmd = new System.Text.StringBuilder("\"" + psi.FileName + "\" " + (psi.Arguments ?? ""));
+            var si = new STARTUPINFO();
+            si.cb = System.Runtime.InteropServices.Marshal.SizeOf(typeof(STARTUPINFO));
+            PROCESS_INFORMATION pi;
+            const uint CREATE_NO_WINDOW = 0x08000000, CREATE_UNICODE_ENVIRONMENT = 0x00000400, CREATE_NEW_PROCESS_GROUP = 0x00000200;
+            if (!CreateProcess(null, cmd, IntPtr.Zero, IntPtr.Zero, false, CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_PROCESS_GROUP,
+                               env.ToString(), string.IsNullOrEmpty(psi.WorkingDirectory) ? null : psi.WorkingDirectory, ref si, out pi))
+                throw new System.ComponentModel.Win32Exception(System.Runtime.InteropServices.Marshal.GetLastWin32Error(), "Couldn't start " + psi.FileName);
+            try { return System.Diagnostics.Process.GetProcessById(pi.dwProcessId); }
+            catch { return null; }   // exited already
+            finally { CloseHandle(pi.hThread); CloseHandle(pi.hProcess); }
+        }
+
         /// <summary>True when this process is the only one attached to its console, i.e. Windows created the
         /// console just for us because the program was double-clicked rather than run from a terminal.</summary>
         public static bool OwnsConsoleAlone()
