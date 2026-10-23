@@ -4,7 +4,7 @@ MariaDB is WebHut's default database. You can add **MySQL**, **PostgreSQL** and 
 
 | Engine | Version WebHut installs | Port | User | Download | From |
 |---|---|---|---|---|---|
-| MySQL | newest **8.4 LTS** release | **3307** (MariaDB keeps 3306) | `root`, no password | about 300 MB | Oracle's CDN (cdn.mysql.com) |
+| MySQL | newest **8.4 LTS** release | **3307** (MariaDB keeps 3306) | `root`, no password | a few hundred MB | Oracle's CDN (cdn.mysql.com) |
 | PostgreSQL | newest supported release | 5432 | `postgres`, no password | about 330 MB (includes pgAdmin's files) | Windows binaries from get.enterprisedb.com, the builds the PostgreSQL project links to |
 | MongoDB | newest production Community Server | 27017 | no authentication | about 950 MB | fastdl.mongodb.org (SHA-256 checked) |
 | mongosh | latest MongoDB Shell | – | – | about 60 MB | GitHub releases of mongodb-js/mongosh (SHA-256 checked) |
