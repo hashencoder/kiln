@@ -7,7 +7,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/hashencoder/servnook/releases/download/v1.7.0/ServNook-1.7.0-win64.zip",
-            "hash": "TO-BE-FILLED-AFTER-RELEASE"
+            "hash": "24e28ddb5f74243fd3aa142a3ae2060ec137e1b11246dd71a81c8dfa334dbf4b"
         }
     },
     "extract_dir": "ServNook",

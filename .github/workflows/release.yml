@@ -1,12 +1,9 @@
 # Builds ServNook on Windows and attaches the zip to a GitHub release.
-# Trigger either way:
-#   - push a tag like v1.0.0  (git tag v1.0.0 && git push origin v1.0.0), or
-#   - publish a release on GitHub (Releases > Draft a new release, tag v1.0.0)
+# Trigger: publish a release on GitHub (Releases > Draft a new release, tag v1.0.0).
 name: Build and release
 
 on:
-  push:
-    tags: ["v*"]
+  # Publishing a release creates its tag too; building on both events made two runs race to upload the same files.
   release:
     types: [published]
   pull_request:
