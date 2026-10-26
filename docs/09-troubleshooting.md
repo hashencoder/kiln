@@ -75,7 +75,7 @@ Or avoid the conflict: **Settings → HTTP port → 8080**. Sites are then at `h
 |---|---|
 | `http://blog.localhost` shows the ServNook dashboard | No vhost for `blog` yet. Click **Refresh sites**. Folder names must be letters, digits and hyphens. |
 | `blog.localhost` doesn't resolve | Some browsers or OS DNS settings don't map `*.localhost`. Use Chrome, Edge or Firefox, or add `127.0.0.1 blog.localhost` to the hosts file (admin). Check that no "secure DNS" extension is overriding it. |
-| Laravel or Symfony shows a directory listing or 403 | ServNook serves `public\` only if it exists at Refresh time. Click **Refresh sites** after creating the project. |
+| Laravel or Symfony shows a directory listing or 403 | ServNook serves `public\` only if it contains `index.php` (or `index.html`) at Refresh time. Click **Refresh sites** after creating the project. |
 | `.htaccess` rules ignored | They work under `www\`. For custom document roots, include `AllowOverride All` in your custom vhost. |
 | 403 Forbidden from another device | Expected: `Require local`. See [08](08-security.md#opening-servnook-to-your-lan-for-testing-on-a-phone). |
 

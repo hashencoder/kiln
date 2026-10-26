@@ -31,10 +31,19 @@ namespace ServNook
                 string name = folder.ToLowerInvariant();
                 if (!Label.IsMatch(name) || name == "localhost" || taken.Contains(name)) continue;
                 if (File.Exists(Path.Combine(custom, name + ".conf"))) continue;
-                string doc = Directory.Exists(Path.Combine(dir, "public")) ? folder + "/public" : folder;
+                string doc = ServesFromPublic(dir) ? folder + "/public" : folder;
                 result.Add(new Site { Name = name, Folder = folder, DocRoot = "${SERVNOOK_ROOT}/www/" + doc });
             }
             return result;
+        }
+
+        /// <summary>Laravel, Symfony and similar keep their front controller in public\ and are served from there.
+        /// A public\ folder without one (for example an app whose index.php sits in the project root and keeps only
+        /// assets in public\) is not a document root: serving it would bypass the app and its .htaccess routing.</summary>
+        public static bool ServesFromPublic(string dir)
+        {
+            string pub = Path.Combine(dir, "public");
+            return File.Exists(Path.Combine(pub, "index.php")) || File.Exists(Path.Combine(pub, "index.html"));
         }
 
         public static void Write(ServNookConfig cfg)
