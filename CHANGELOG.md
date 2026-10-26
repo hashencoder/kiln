@@ -4,10 +4,13 @@ All notable changes to ServNook (called WebHut up to 1.6.5) are listed here. The
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.7.3] - 2026-10-27
 
 ### Added
 - **phpMyAdmin signs you in automatically** as `root` with the password saved in ServNook, like XAMPP, so `http://localhost/phpmyadmin` opens straight to your databases. phpMyAdmin is still reachable from this PC only. It follows password changes made in ServNook. Turn it off in **Settings › Services › Sign in to phpMyAdmin automatically** to get the login page back (the password is then removed from phpMyAdmin's config file).
+
+### Changed
+- Upgrading from WebHut now also renames WebHut in the comments of `my.ini`, `php.ini`, phpMyAdmin's `config.inc.php` and the Apache configs, plus the access-log format name. Only comments and messages change: a setting that really points at a `C:\WebHut` folder is left alone.
 
 ## [1.7.2] - 2026-10-27
 
