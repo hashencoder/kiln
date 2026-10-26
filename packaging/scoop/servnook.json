@@ -1,13 +1,13 @@
 {
-    "version": "1.7.2",
+    "version": "1.7.3",
     "description": "Free, open-source local web-development stack for Windows (Apache, PHP, MariaDB, phpMyAdmin, Node.js, Composer). A modern XAMPP replacement.",
     "homepage": "https://github.com/hashencoder/servnook",
     "license": "MIT",
     "notes": "On first run ServNook downloads Apache, PHP, MariaDB, phpMyAdmin, Node.js and Composer into its folder. Sites, databases and settings are kept in Scoop's persist folder across updates.",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/hashencoder/servnook/releases/download/v1.7.2/ServNook-1.7.2-win64.zip",
-            "hash": "7131b4d95eece2a0db85c2fd88101039b08122be51d0e85a07353777fc86023d"
+            "url": "https://github.com/hashencoder/servnook/releases/download/v1.7.3/ServNook-1.7.3-win64.zip",
+            "hash": "3130ddb90c124e4a535a331e0b47291900087b9982d803b8732253eb7f86a2e1"
         }
     },
     "extract_dir": "ServNook",
