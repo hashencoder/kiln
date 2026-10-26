@@ -193,6 +193,15 @@ static class Tests
               newConf.Contains("${SERVNOOK_ROOT}/www") && newConf.Contains("<IfDefine SERVNOOK_LAN>") && newConf.Contains("${SERVNOOK_LAN_IPS}") &&
               newConf.Contains(ApacheConfFile.DotfilesBegin) && newConf.Contains(ApacheConfFile.DotfilesEnd), "httpd.conf defines and markers move to SERVNOOK names", newConf);
         Check(Legacy.MigrateApacheText(newConf) == newConf, "migrating twice changes nothing");
+        string cmt = "# WebHut - Apache httpd.conf\r\n#    httpd.exe -d \"C:/webhut/apache\"\r\n    Error \"PHP_DIR is not defined. Start Apache with WebHut.exe.\"\r\n" +
+                     "LogFormat \"%v %h\" webhut\r\nCustomLog \"${SERVNOOK_ROOT}/logs/a.log\" webhut\r\nDocumentRoot \"C:/WebHut/www/webhut\"\r\n";
+        string cmtNew = Legacy.MigrateApacheText(cmt);
+        Check(cmtNew.Contains("# ServNook - Apache") && cmtNew.Contains("C:/servnook/apache") && cmtNew.Contains("with ServNook.exe.") &&
+              cmtNew.Contains("\" servnook\r\nCustomLog") && cmtNew.EndsWith("a.log\" servnook\r\nDocumentRoot \"C:/WebHut/www/webhut\"\r\n"),
+              "comments, messages and the log nickname are renamed; a real C:/WebHut path in a setting is not", cmtNew);
+        string phpIniOld = ";  WebHut - php.ini (development)\n;  webhut-root: C:/ServNook\nerror_log = \"C:/WebHut/logs/x.log\"\n";
+        string iniNew = Legacy.MigrateCommentText(phpIniOld);
+        Check(iniNew.Contains(";  ServNook - php.ini") && iniNew.Contains(";  servnook-root: C:/ServNook") && iniNew.Contains("\"C:/WebHut/logs/x.log\""), "php.ini comments and marker renamed, settings kept", iniNew);
         string verDir = Path.Combine(K.Root, "zver");
         Directory.CreateDirectory(verDir);
         File.WriteAllText(Path.Combine(verDir, ".webhut-version"), "8.4.7");
