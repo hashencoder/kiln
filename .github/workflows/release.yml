@@ -57,7 +57,38 @@ jobs:
           if (-not (Test-Path "$dir\www\keepme")) { throw "uninstall deleted the user's sites" }
           Write-Host "Installer OK: installs, runs snook, uninstalls, keeps www"
 
-      - name: Upgrade test (WebHut 1.6.5 folder -> ServNook)
+      - name: Upgrade test (default C:\WebHut is renamed to C:\ServNook)
+        shell: pwsh
+        run: |
+          $old = Join-Path $env:RUNNER_TEMP "WebHut-Setup-1.6.5.exe"
+          Invoke-WebRequest "https://github.com/hashencoder/servnook/releases/download/v1.6.5/WebHut-Setup-1.6.5.exe" -OutFile $old
+          $from = "C:\WebHut"; $to = "C:\ServNook"
+          if (Test-Path $to) { throw "$to already exists on the runner" }
+          Start-Process $old -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$from" -Wait
+          if (-not (Test-Path "$from\WebHut.exe")) { throw "WebHut 1.6.5 did not install" }
+          '{ "httpPort": 8282 }' | Set-Content "$from\webhut.json"
+          New-Item -ItemType Directory -Force "$from\www\blog", "$from\data\backups" | Out-Null
+          'x' | Set-Content "$from\data\backups\keep.sql.gz"
+          $setup = Get-ChildItem dist/ServNook-Setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/LOG=$env:RUNNER_TEMP\move.log" -Wait
+          Get-Content "$env:RUNNER_TEMP\move.log" | Select-String "Renamed|rename" | Out-Host
+          if (Test-Path $from) { throw "$from is still there" }
+          if (-not (Test-Path "$to\ServNook.exe")) { throw "ServNook.exe is not in $to" }
+          foreach ($f in "www\blog","data\backups\keep.sql.gz") { if (-not (Test-Path "$to\$f")) { throw "$f did not move" } }
+          foreach ($f in "WebHut.exe","whut.exe") { if (Test-Path "$to\$f") { throw "$f was left behind" } }
+          $menu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\ServNook\ServNook.lnk"
+          $lnk = (New-Object -ComObject WScript.Shell).CreateShortcut($menu)
+          if ($lnk.TargetPath -ne "$to\ServNook.exe") { throw "Start menu shortcut points to $($lnk.TargetPath)" }
+          $loc = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall | Get-ItemProperty | Where-Object { $_.DisplayName -eq "ServNook" }
+          if ($loc.InstallLocation.TrimEnd('\') -ne $to) { throw "uninstall entry points to $($loc.InstallLocation)" }
+          & "$to\snook.exe" status | Out-Host
+          if ((Get-Content "$to\servnook.json" -Raw) -notmatch '8282') { throw "settings were lost" }
+          Start-Process "$to\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait
+          Start-Sleep -Seconds 3
+          if (Test-Path "$to\ServNook.exe") { throw "uninstall left ServNook.exe" }
+          Write-Host "Move OK: C:\WebHut renamed to C:\ServNook with sites, backups and settings"
+
+      - name: Upgrade test (custom folder name is upgraded in place)
         shell: pwsh
         run: |
           $old = Join-Path $env:RUNNER_TEMP "WebHut-Setup-1.6.5.exe"

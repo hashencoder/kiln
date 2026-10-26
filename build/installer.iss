@@ -169,10 +169,65 @@ begin
   end;
 end;
 
+{ WebHut (up to 1.6.5) installed to C:\WebHut by default. When upgrading such a folder, offer C:\ServNook instead
+  and rename the folder, so sites, databases and settings move with it. Choosing another folder on the
+  folder page installs there as usual (the old folder is then left alone). }
+var
+  MoveFrom, MoveTo: String;
+
+procedure InitializeWizard();
+var
+  Prev, Target: String;
+begin
+  Prev := RemoveBackslashUnlessRoot(WizardForm.PrevAppDir);
+  if (Prev = '') or (CompareText(ExtractFileName(Prev), 'WebHut') <> 0) or not DirExists(Prev) then exit;
+  Target := AddBackslash(ExtractFileDir(Prev)) + 'ServNook';
+  if DirExists(Target) then exit;
+  MoveFrom := Prev;
+  MoveTo := Target;
+  WizardForm.DirEdit.Text := Target;
+  WizardForm.SelectDirBrowseLabel.Caption :=
+    'Your WebHut folder ' + MoveFrom + ' will be renamed to ' + MoveTo + '. Your sites, databases and settings move with it. ' +
+    'Running servers are stopped first; start them again in ServNook.';
+end;
+
+function StopServers(Dir: String): Boolean;
+var
+  Code: Integer;
+begin
+  Result := True;
+  if FileExists(AddBackslash(Dir) + 'snook.exe') then
+    Result := Exec(AddBackslash(Dir) + 'snook.exe', 'stop all', Dir, SW_HIDE, ewWaitUntilTerminated, Code)
+  else if FileExists(AddBackslash(Dir) + 'whut.exe') then
+    Result := Exec(AddBackslash(Dir) + 'whut.exe', 'stop all', Dir, SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Tries: Integer;
 begin
   Result := '';
-  ClosePanel(WizardDirValue());
+  if (MoveFrom <> '') and (CompareText(RemoveBackslashUnlessRoot(WizardDirValue()), MoveTo) = 0)
+     and DirExists(MoveFrom) and not DirExists(MoveTo) then
+  begin
+    ClosePanel(MoveFrom);
+    StopServers(MoveFrom);
+    Tries := 0;
+    while not RenameFile(MoveFrom, MoveTo) do
+    begin
+      Tries := Tries + 1;
+      if Tries >= 10 then
+      begin
+        Result := 'Setup couldn''t rename ' + MoveFrom + ' to ' + MoveTo + ' because a program still has a file open in it ' +
+                  '(for example a terminal, code editor or Explorer window in that folder). Close it and run Setup again. Nothing was changed.';
+        exit;
+      end;
+      Sleep(1000);
+    end;
+    Log('Renamed ' + MoveFrom + ' to ' + MoveTo);
+  end
+  else
+    ClosePanel(WizardDirValue());
 end;
 
 function InitializeUninstall(): Boolean;
