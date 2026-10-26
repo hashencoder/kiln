@@ -94,6 +94,9 @@ static class Tests
         // ---------------------------------------------------------------- vhosts
         Console.WriteLine("Virtual hosts");
         Directory.CreateDirectory(Path.Combine(K.Www, "blog", "public"));
+        File.WriteAllText(Path.Combine(K.Www, "blog", "public", "index.php"), "<?php");
+        Directory.CreateDirectory(Path.Combine(K.Www, "rosapp", "public", "assets"));   // public\ holds only assets
+        File.WriteAllText(Path.Combine(K.Www, "rosapp", "index.php"), "<?php");
         Directory.CreateDirectory(Path.Combine(K.Www, "Shop"));
         Directory.CreateDirectory(Path.Combine(K.Www, "my site"));      // invalid hostname: skipped
         Directory.CreateDirectory(Path.Combine(K.Www, "api"));          // same name as a Node app: skipped
@@ -102,6 +105,7 @@ static class Tests
         Vhosts.Write(loaded);
         string sites = File.ReadAllText(Path.Combine(K.ApacheConf, "generated", "sites.conf"));
         Check(sites.Contains("ServerName blog.localhost") && sites.Contains("${SERVNOOK_ROOT}/www/blog/public\""), "site with public/ uses it as DocumentRoot");
+        Check(sites.Contains("${SERVNOOK_ROOT}/www/rosapp\"") && !sites.Contains("www/rosapp/public"), "public/ without an index file is not used as DocumentRoot");
         Check(sites.Contains("ServerName shop.localhost") && sites.Contains("${SERVNOOK_ROOT}/www/Shop\""), "uppercase folder -> lowercase host, real path kept");
         Check(!sites.Contains("my site"), "folder with a space is skipped");
         Check(!sites.Contains("ServerName api.localhost"), "folder named like a Node app is left to the Node vhost");

@@ -37,9 +37,10 @@ chmod +x "$W/apache/bin/httpd.exe"
 chmod o+rx "$W" "$W/www"
 
 # Sites and a fake Node app
-mkdir -p "$W/www/blog/public" "$W/www/shop" "$W/www/api"
+mkdir -p "$W/www/blog/public" "$W/www/shop" "$W/www/api" "$W/www/assetsonly/public"
 echo '<?php echo "blog-public " . PHP_VERSION;' > "$W/www/blog/public/index.php"
 echo '<?php echo "shop-root";' > "$W/www/shop/index.php"
+echo '<?php echo "assets-root";' > "$W/www/assetsonly/index.php"
 echo 'node-app-ok' > "$W/www/api/index.html"
 echo 'secret' > "$W/www/shop/.htaccess-test"; printf 'Options -Indexes\n' > "$W/www/shop/.htaccess"
 chmod -R o+rX "$W/www"
@@ -58,6 +59,7 @@ echo "== pages"
 check "dashboard at http://localhost runs PHP"            'get localhost / | grep -q "is running"'
 check "blog.localhost serves www/blog/public (PHP)"       'get blog.localhost / | grep -q "blog-public"'
 check "shop.localhost serves www/shop (no public/)"       '[ "$(get shop.localhost /)" = "shop-root" ]'
+check "public/ without index is ignored (app in root)"    '[ "$(get assetsonly.localhost /)" = "assets-root" ]'
 check "http://localhost/shop/ works like XAMPP htdocs"    '[ "$(get localhost /shop/)" = "shop-root" ]'
 check "unknown host falls back to the dashboard"          'get nothing.localhost / | grep -q "is running"'
 check ".htaccess files are never served"                  '[ "$(code shop.localhost /.htaccess)" = "403" ]'
