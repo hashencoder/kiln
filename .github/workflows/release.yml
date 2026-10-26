@@ -1,4 +1,4 @@
-# Builds WebHut on Windows and attaches the zip to a GitHub release.
+# Builds ServNook on Windows and attaches the zip to a GitHub release.
 # Trigger either way:
 #   - push a tag like v1.0.0  (git tag v1.0.0 && git push origin v1.0.0), or
 #   - publish a release on GitHub (Releases > Draft a new release, tag v1.0.0)
@@ -31,51 +31,79 @@ jobs:
       - name: Inno Setup
         shell: pwsh
         run: |
-          # 6.7+ for the WebHut-coloured, dark-mode-aware wizard
+          # 6.7+ for the ServNook-coloured, dark-mode-aware wizard
           choco upgrade innosetup -y --no-progress
 
       - name: Build
         shell: pwsh
         run: ./build/build.ps1 -Package -Version ${{ steps.ver.outputs.version }}
 
-      - name: Smoke test whut
+      - name: Smoke test snook
         shell: pwsh
         run: |
-          ./dist/whut.exe version
-          ./dist/whut.exe help
+          ./dist/snook.exe version
+          ./dist/snook.exe help
 
       - name: Smoke test installer (silent install, check files, silent uninstall)
         shell: pwsh
         run: |
-          $setup = Get-ChildItem dist/WebHut-Setup-*.exe | Select-Object -First 1
+          $setup = Get-ChildItem dist/ServNook-Setup-*.exe | Select-Object -First 1
           if (-not $setup) { throw "installer was not built" }
-          $dir = "C:\WebHutCI"
+          $dir = "C:\ServNookCI"
           Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$dir" -Wait
-          foreach ($f in "WebHut.exe","whut.exe","README.txt") { if (-not (Test-Path "$dir\$f")) { throw "missing $f after install" } }
-          & "$dir\whut.exe" version
+          foreach ($f in "ServNook.exe","snook.exe","README.txt") { if (-not (Test-Path "$dir\$f")) { throw "missing $f after install" } }
+          & "$dir\snook.exe" version
           New-Item -ItemType Directory "$dir\www\keepme" -Force | Out-Null
           Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait
           Start-Sleep -Seconds 3
-          if (Test-Path "$dir\WebHut.exe") { throw "WebHut.exe still there after uninstall" }
+          if (Test-Path "$dir\ServNook.exe") { throw "ServNook.exe still there after uninstall" }
           if (-not (Test-Path "$dir\www\keepme")) { throw "uninstall deleted the user's sites" }
-          Write-Host "Installer OK: installs, runs whut, uninstalls, keeps www"
+          Write-Host "Installer OK: installs, runs snook, uninstalls, keeps www"
+
+      - name: Upgrade test (WebHut 1.6.5 folder -> ServNook)
+        shell: pwsh
+        run: |
+          $old = Join-Path $env:RUNNER_TEMP "WebHut-Setup-1.6.5.exe"
+          Invoke-WebRequest "https://github.com/hashencoder/servnook/releases/download/v1.6.5/WebHut-Setup-1.6.5.exe" -OutFile $old
+          $dir = "C:\WebHutUp"
+          Start-Process $old -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$dir" -Wait
+          if (-not (Test-Path "$dir\WebHut.exe")) { throw "WebHut 1.6.5 did not install" }
+          # A folder that has been used: settings, a custom vhost with the old Apache variables, a site.
+          '{ "httpPort": 8181 }' | Set-Content "$dir\webhut.json"
+          New-Item -ItemType Directory -Force "$dir\config\apache\custom", "$dir\www\mysite" | Out-Null
+          'DocumentRoot "${WEBHUT_ROOT}/www/mysite"' | Set-Content "$dir\config\apache\custom\mysite.conf"
+          $setup = Get-ChildItem dist/ServNook-Setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait   # no /DIR: must reuse the WebHut folder
+          if (-not (Test-Path "$dir\ServNook.exe")) { throw "ServNook was not installed into the existing WebHut folder" }
+          foreach ($f in "WebHut.exe","whut.exe") { if (Test-Path "$dir\$f") { throw "$f was left behind" } }
+          $menu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
+          if (Test-Path "$menu\WebHut") { throw "old WebHut Start menu folder was left behind" }
+          if (-not (Test-Path "$menu\ServNook\ServNook.lnk")) { throw "no ServNook Start menu shortcut" }
+          & "$dir\snook.exe" status | Out-Host   # first run moves the WebHut files to the new names
+          if (Test-Path "$dir\webhut.json") { throw "webhut.json was not moved" }
+          if ((Get-Content "$dir\servnook.json" -Raw) -notmatch '8181') { throw "settings were lost" }
+          if ((Get-Content "$dir\config\apache\custom\mysite.conf" -Raw) -notmatch 'SERVNOOK_ROOT') { throw "custom vhost was not migrated" }
+          if (-not (Test-Path "$dir\config\apache\custom\mysite.conf.webhut.bak")) { throw "no backup of the migrated vhost" }
+          if (-not (Test-Path "$dir\www\mysite")) { throw "the site folder was lost" }
+          Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait
+          Write-Host "Upgrade OK: WebHut 1.6.5 folder upgraded in place, settings and vhosts migrated"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: WebHut-${{ steps.ver.outputs.version }}-win64
+          name: ServNook-${{ steps.ver.outputs.version }}-win64
           path: |
-            dist/WebHut-*-win64.zip
-            dist/WebHut-*-win64.zip.sha256
-            dist/WebHut-Setup-*.exe
-            dist/WebHut-Setup-*.exe.sha256
+            dist/ServNook-*-win64.zip
+            dist/ServNook-*-win64.zip.sha256
+            dist/ServNook-Setup-*.exe
+            dist/ServNook-Setup-*.exe.sha256
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/WebHut-Setup-*.exe
-            dist/WebHut-Setup-*.exe.sha256
-            dist/WebHut-*-win64.zip
-            dist/WebHut-*-win64.zip.sha256
+            dist/ServNook-Setup-*.exe
+            dist/ServNook-Setup-*.exe.sha256
+            dist/ServNook-*-win64.zip
+            dist/ServNook-*-win64.zip.sha256
           generate_release_notes: true

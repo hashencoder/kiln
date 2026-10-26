@@ -10,17 +10,17 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
 
-namespace WebHut
+namespace ServNook
 {
-    /// <summary>Well-known paths. Everything is relative to the folder WebHut.exe lives in.</summary>
+    /// <summary>Well-known paths. Everything is relative to the folder ServNook.exe lives in.</summary>
     public static class K
     {
-        public const string AppName = "WebHut";
+        public const string AppName = "ServNook";
         public const string AppVersion = "1.7.0";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
-        // repo so every WebHut install can pick up pinned versions you publish,
-        // e.g. https://raw.githubusercontent.com/<you>/webhut/main/versions.json
+        // repo so every ServNook install can pick up pinned versions you publish,
+        // e.g. https://raw.githubusercontent.com/<you>/servnook/main/versions.json
         public const string DefaultManifestUrl = "";
 
         public static readonly string Root = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
@@ -63,29 +63,29 @@ namespace WebHut
         public static string Ssl { get { return Path.Combine(Root, "ssl"); } }
         public static string Tools { get { return Path.Combine(Root, "tools"); } }
         public static string Backups { get { return Path.Combine(Data, "backups"); } }
-        public static string ConfigFile { get { return Path.Combine(Root, "webhut.json"); } }
+        public static string ConfigFile { get { return Path.Combine(Root, "servnook.json"); } }
         public static string NodeAppsFile { get { return Path.Combine(Root, "node-apps.json"); } }
 
         public static string Fwd(string p) { return p.Replace('\\', '/').TrimEnd('/'); }
 
-        /// <summary>WebHut refuses to run from paths Apache/PHP handle badly.</summary>
+        /// <summary>ServNook refuses to run from paths Apache/PHP handle badly.</summary>
         public static string RootProblem()
         {
             if (Root.Contains(" "))
-                return "The WebHut folder path contains a space (" + Root + "). Apache and PHP config paths break on spaces. Move WebHut to a path like C:\\webhut.";
+                return "The ServNook folder path contains a space (" + Root + "). Apache and PHP config paths break on spaces. Move ServNook to a path like C:\\servnook.";
             string pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string pf86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
             if ((pf.Length > 0 && Root.StartsWith(pf, StringComparison.OrdinalIgnoreCase)) ||
                 (pf86.Length > 0 && Root.StartsWith(pf86, StringComparison.OrdinalIgnoreCase)))
-                return "WebHut is inside Program Files, where it can't write its own files without admin rights. Move it to a path like C:\\webhut.";
+                return "ServNook is inside Program Files, where it can't write its own files without admin rights. Move it to a path like C:\\servnook.";
             return null;
         }
 
-        /// <summary>Non-blocking advice about the WebHut folder location.</summary>
+        /// <summary>Non-blocking advice about the ServNook folder location.</summary>
         public static string RootWarning()
         {
             if (Root.Length > 60)
-                return "The WebHut folder path is long (" + Root.Length + " characters). Deep node_modules folders can hit Windows' 260-character path limit; a short path like C:\\webhut avoids that.";
+                return "The ServNook folder path is long (" + Root.Length + " characters). Deep node_modules folders can hit Windows' 260-character path limit; a short path like C:\\servnook avoids that.";
             return null;
         }
     }
@@ -108,7 +108,7 @@ namespace WebHut
                 try
                 {
                     Directory.CreateDirectory(K.Logs);
-                    File.AppendAllText(Path.Combine(K.Logs, "webhut.log"),
+                    File.AppendAllText(Path.Combine(K.Logs, "servnook.log"),
                         DateTime.Now.ToString("yyyy-MM-dd ", System.Globalization.CultureInfo.InvariantCulture) + line + Environment.NewLine);
                 }
                 catch { }
@@ -152,7 +152,7 @@ namespace WebHut
             return v == null ? null : Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        /// <summary>Pretty-printed JSON so webhut.json stays hand-editable.</summary>
+        /// <summary>Pretty-printed JSON so servnook.json stays hand-editable.</summary>
         public static string Pretty(object value)
         {
             var sb = new StringBuilder();
@@ -237,8 +237,8 @@ namespace WebHut
                                          string env, string dir, ref STARTUPINFO si, out PROCESS_INFORMATION pi);
 
         /// <summary>
-        /// Start a server so it shares nothing with WebHut: no inherited handles (a server must never hold the pipe of a
-        /// script that ran "whut start ... | something", or that script waits for ever), no console, its own process group.
+        /// Start a server so it shares nothing with ServNook: no inherited handles (a server must never hold the pipe of a
+        /// script that ran "snook start ... | something", or that script waits for ever), no console, its own process group.
         /// Returns null if the process is already gone. Off Windows (tests), a normal Process.Start.
         /// </summary>
         public static System.Diagnostics.Process StartDetached(System.Diagnostics.ProcessStartInfo psi)
@@ -269,7 +269,7 @@ namespace WebHut
             try { var l = new uint[4]; return GetConsoleProcessList(l, 4) == 1; } catch { return false; }
         }
 
-        /// <summary>Show "WebHut: stopping the database safely" on the Windows shutdown screen while we work.</summary>
+        /// <summary>Show "ServNook: stopping the database safely" on the Windows shutdown screen while we work.</summary>
         public static void BlockShutdown(IntPtr hwnd, string reason) { try { ShutdownBlockReasonCreate(hwnd, reason); } catch { } }
         public static void UnblockShutdown(IntPtr hwnd) { try { ShutdownBlockReasonDestroy(hwnd); } catch { } }
 
@@ -287,7 +287,7 @@ namespace WebHut
 
         /// <summary>
         /// Stop servers we launch from inheriting our stdin/stdout/stderr. Otherwise a caller that
-        /// captures whut's output (PowerShell, CI) would wait forever for Apache to close the pipe.
+        /// captures snook's output (PowerShell, CI) would wait forever for Apache to close the pipe.
         /// </summary>
         public static void DontInheritStdHandles()
         {
@@ -569,7 +569,7 @@ namespace WebHut
 
         public static void EnableModernTls()
         {
-            // WebHut.exe.config opts into SystemDefault (0): Windows then picks TLS 1.2/1.3 itself.
+            // ServNook.exe.config opts into SystemDefault (0): Windows then picks TLS 1.2/1.3 itself.
             // Never force TLS 1.3: on Windows 10 SChannel has no TLS 1.3 client, and naming it
             // explicitly makes every HTTPS request fail ("The function requested is not supported").
             try

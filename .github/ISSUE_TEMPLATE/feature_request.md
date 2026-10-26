@@ -8,6 +8,6 @@ labels: enhancement
 <!-- What are you trying to do, and what gets in the way today? -->
 
 **Your idea**
-<!-- How should WebHut help? -->
+<!-- How should ServNook help? -->
 
 **Alternatives you've tried**

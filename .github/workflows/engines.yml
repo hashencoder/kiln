@@ -22,12 +22,12 @@ jobs:
       - name: Build
         run: ./build/build.ps1
 
-      - name: Core setup (whut setup)
+      - name: Core setup (snook setup)
         run: |
           New-Item -ItemType Directory C:\WH -Force | Out-Null
-          Copy-Item dist\WebHut.exe, dist\whut.exe, dist\*.config C:\WH
+          Copy-Item dist\ServNook.exe, dist\snook.exe, dist\*.config C:\WH
           Set-Location C:\WH
-          $out = .\whut.exe setup 2>&1 | Out-String
+          $out = .\snook.exe setup 2>&1 | Out-String
           Write-Host $out
           if ($LASTEXITCODE) { Write-Output "::error title=core setup::$($out -replace "`r?`n", ' | ')"; exit 1 }
           Write-Output "::notice title=core setup::ok"
@@ -35,7 +35,7 @@ jobs:
       - name: Add MySQL, PostgreSQL, MongoDB, mongosh, Adminer
         run: |
           Set-Location C:\WH
-          $out = .\whut.exe install mysql postgresql mongodb mongosh adminer 2>&1 | Out-String
+          $out = .\snook.exe install mysql postgresql mongodb mongosh adminer 2>&1 | Out-String
           Write-Host $out
           foreach ($l in ($out -split "`r?`n" | Where-Object { $_ -match '^(MySQL|PostgreSQL|MongoDB|Adminer) ' })) { Write-Output "::notice title=resolved::$l" }
           if ($LASTEXITCODE) { Write-Output "::error title=install::$($out -replace "`r?`n", ' | ')"; exit 1 }
@@ -44,10 +44,10 @@ jobs:
         timeout-minutes: 25
         run: |
           Set-Location C:\WH
-          # Every whut call: own time limit, output to files (so nothing can hang on a pipe).
+          # Every snook call: own time limit, output to files (so nothing can hang on a pipe).
           function W([string]$a, [int]$t = 300) {
             $o = "C:\WH\w-out.txt"; $e = "C:\WH\w-err.txt"
-            $p = Start-Process .\whut.exe -ArgumentList $a -PassThru -NoNewWindow -RedirectStandardOutput $o -RedirectStandardError $e -WorkingDirectory C:\WH
+            $p = Start-Process .\snook.exe -ArgumentList $a -PassThru -NoNewWindow -RedirectStandardOutput $o -RedirectStandardError $e -WorkingDirectory C:\WH
             $null = $p.Handle
             $done = $p.WaitForExit($t * 1000)
             $txt = ((Get-Content $o -Raw) + " " + (Get-Content $e -Raw)) -replace "`r?`n", ' | '
@@ -71,25 +71,25 @@ jobs:
           }
           if ($failed) { exit 1 }
 
-      - name: whut start piped into another command returns (no inherited handles)
+      - name: snook start piped into another command returns (no inherited handles)
         timeout-minutes: 6
         run: |
           Set-Location C:\WH
-          $job = Start-Job { Set-Location C:\WH; .\whut.exe start mysql 2>&1 | Out-String }
+          $job = Start-Job { Set-Location C:\WH; .\snook.exe start mysql 2>&1 | Out-String }
           if (Wait-Job $job -Timeout 240) { Write-Output "::notice title=piped start::returned: $((Receive-Job $job) -replace "`r?`n", ' | ')" }
-          else { Write-Output "::error title=piped start::'whut start mysql | Out-String' did not return within 240 s"; Stop-Job $job; .\whut.exe stop mysql; exit 1 }
-          .\whut.exe stop mysql
+          else { Write-Output "::error title=piped start::'snook start mysql | Out-String' did not return within 240 s"; Stop-Job $job; .\snook.exe stop mysql; exit 1 }
+          .\snook.exe stop mysql
 
       - name: Adminer logs in to MySQL and PostgreSQL through Apache
         timeout-minutes: 15
         run: |
           Set-Location C:\WH
           # Port 80 can be taken on hosted runners; use 8080 for this test.
-          $cfg = Get-Content webhut.json -Raw | ConvertFrom-Json
+          $cfg = Get-Content servnook.json -Raw | ConvertFrom-Json
           $cfg.httpPort = 8080
-          $cfg | ConvertTo-Json | Set-Content webhut.json
+          $cfg | ConvertTo-Json | Set-Content servnook.json
           foreach ($svc in "apache", "mysql", "postgresql") {
-            $o = .\whut.exe start $svc 2>&1 | Out-String
+            $o = .\snook.exe start $svc 2>&1 | Out-String
             if ($LASTEXITCODE) { Write-Output "::error title=adminer::couldn't start ${svc}: $($o -replace "`r?`n", ' | ')"; exit 1 }
           }
           $failed = 0
@@ -110,7 +110,7 @@ jobs:
               }
             } catch { Write-Output "::error title=adminer $($t.driver)::$($_.Exception.Message)"; $failed++ }
           }
-          .\whut.exe stop all
+          .\snook.exe stop all
           if ($failed) { exit 1 }
 
       - name: Logs on failure

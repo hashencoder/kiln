@@ -1,4 +1,4 @@
-// Configuration-manager integration test: drives WebHut's real ConfigManager against a real MariaDB and Apache
+// Configuration-manager integration test: drives ServNook's real ConfigManager against a real MariaDB and Apache
 // (Linux binaries standing in for the Windows .exe files). Run through tests/config-integration.sh.
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using WebHut;
+using ServNook;
 
 static class ConfigInt
 {
@@ -17,7 +17,7 @@ static class ConfigInt
         else { _fail++; Console.WriteLine("  FAIL " + name + (detail != null ? "\n       " + detail.Replace("\n", "\n       ") : "")); }
     }
 
-    static WebHutConfig Cfg { get { return Services.Cfg; } }
+    static ServNookConfig Cfg { get { return Services.Cfg; } }
 
     static string Q(string sql)
     {
@@ -59,7 +59,7 @@ static class ConfigInt
             Check(mi.Running && mi.Connected && mi.Live.ContainsKey("max_connections"), "probe reads live variables from the running server", mi.ConnectError);
             Check(mi.Dynamic("max_connections") == true && mi.Dynamic("innodb_doublewrite") == false, "dynamic vs restart-only comes from the server (" + mi.Version + ")");
             Check(mi.NextStart != null && mi.NextStart.Ok && mi.NextStart.Vars["port"] == Cfg.MysqlPort.ToString() && mi.NextStart.Vars["bind_address"] == "127.0.0.1",
-                  "next-start values include WebHut's startup arguments", mi.NextStart == null ? "" : string.Join("; ", mi.NextStart.Errors));
+                  "next-start values include ServNook's startup arguments", mi.NextStart == null ? "" : string.Join("; ", mi.NextStart.Errors));
             Check(mi.Collations.ContainsKey("utf8mb4") && mi.Collations["utf8mb4"].Contains("utf8mb4_unicode_ci"), "collations listed from the server");
             string pidBefore = File.ReadAllText(Path.Combine(K.Pids, "mariadb.pid")).Trim();
 
@@ -104,12 +104,12 @@ static class ConfigInt
             try { r = Run(e); } catch (ConfigException ex) { r = new ApplyResult { Outcome = ApplyOutcome.Failed, Message = ex.Message }; }
             Check(r.Outcome == ApplyOutcome.Failed && File.ReadAllText(K.MyIni) == iniBefore && Q("SELECT 1") == "1", "impossible setting refused; live server untouched", r.Message);
 
-            // Port change: restart on the new port, my.ini not touched, phpMyAdmin/Apache follow webhut.json.
+            // Port change: restart on the new port, my.ini not touched, phpMyAdmin/Apache follow servnook.json.
             int oldPort = Cfg.MysqlPort, newPort = oldPort + 2;
             e = new ConfigEdits { MysqlPort = newPort };
             r = Run(e);
             Check(r.Outcome == ApplyOutcome.Applied && Services.MariaDb.ActivePort == newPort && Q("SELECT @@port") == newPort.ToString(), "port change restarts MariaDB on the new port", r.Message + " " + r.Details);
-            Check(File.ReadAllText(K.MyIni) == iniBefore && WebHutConfig.Load().MysqlPort == newPort, "port saved in WebHut settings, not my.ini");
+            Check(File.ReadAllText(K.MyIni) == iniBefore && ServNookConfig.Load().MysqlPort == newPort, "port saved in ServNook settings, not my.ini");
 
             // Simulated failed restart: the new port gets taken between validation and restart -> rollback.
             int busyPort = newPort + 2;
@@ -118,7 +118,7 @@ static class ConfigInt
             r = ConfigManager.Apply(plan2, Cfg, MariaInfo.Probe(Cfg), null);
             blocker.Stop();
             Check(r.Outcome == ApplyOutcome.Failed && r.Message.StartsWith("Failed — previous configuration restored"), "failed restart reported: " + r.Message, r.Details);
-            Check(Cfg.MysqlPort == newPort && WebHutConfig.Load().MysqlPort == newPort && Services.MariaDb.IsRunning && Q("SELECT @@port") == newPort.ToString(), "rolled back: previous port restored and MariaDB running again");
+            Check(Cfg.MysqlPort == newPort && ServNookConfig.Load().MysqlPort == newPort && Services.MariaDb.IsRunning && Q("SELECT @@port") == newPort.ToString(), "rolled back: previous port restored and MariaDB running again");
             Check(Q("SELECT COUNT(*) FROM shop.orders") == "25", "databases intact after the rollback");
 
             // Persistence: a plain stop/start keeps everything.
@@ -140,7 +140,7 @@ static class ConfigInt
             e = new ConfigEdits();
             foreach (var s in MariaCatalog.All) e.Maria[s.Id] = s.Default;
             r = Run(e);
-            Check(r.Ok && Q("SELECT @@max_connections, @@innodb_doublewrite, @@slow_query_log, @@innodb_buffer_pool_size") == "100|1|0|268435456", "WebHut defaults restored: " + r.Message, r.Details);
+            Check(r.Ok && Q("SELECT @@max_connections, @@innodb_doublewrite, @@slow_query_log, @@innodb_buffer_pool_size") == "100|1|0|268435456", "ServNook defaults restored: " + r.Message, r.Details);
             Services.MariaDb.Stop(false);
         }
 

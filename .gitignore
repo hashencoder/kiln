@@ -2,7 +2,7 @@
 dist/
 build/obj/
 
-# A WebHut install created while testing inside the repo
+# A ServNook install created while testing inside the repo
 /apache/
 /php/
 /mariadb/
@@ -15,7 +15,7 @@ build/obj/
 /apps/
 /www/
 /config/
-/webhut.json
+/servnook.json
 /node-apps.json
 
 # OS / editor

@@ -5,16 +5,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace WebHut
+namespace ServNook
 {
-    /// <summary>First-run setup shared by the wizard and whut.</summary>
+    /// <summary>First-run setup shared by the wizard and snook.</summary>
     public static class Setup
     {
         /// <summary>Resolve the core components in parallel (network calls).</summary>
-        public static List<Component> ResolveAll(WebHutConfig cfg) { return ResolveAll(cfg, false); }
+        public static List<Component> ResolveAll(ServNookConfig cfg) { return ResolveAll(cfg, false); }
 
         /// <summary>Same, plus the optional engines (MySQL, PostgreSQL, MongoDB, mongosh, Adminer) when asked.</summary>
-        public static List<Component> ResolveAll(WebHutConfig cfg, bool withOptional)
+        public static List<Component> ResolveAll(ServNookConfig cfg, bool withOptional)
         {
             var jobs = new List<Func<Component>>
             {
@@ -69,7 +69,7 @@ namespace WebHut
             if (!File.Exists(K.NodeAppsFile)) NodeApp.SaveAll(new List<NodeApp>());
             Vhosts.Write(cfg);
             Services.Cfg = cfg;
-            Log.Info("Setup complete. WebHut lives in " + K.Root);
+            Log.Info("Setup complete. ServNook lives in " + K.Root);
         }
     }
 }

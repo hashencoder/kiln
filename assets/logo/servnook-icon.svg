@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <title>WebHut — Modern Flame</title>
+  <title>ServNook — Modern Flame</title>
   <rect width="512" height="512" rx="112" fill="#EA4B0C"/>
   <!-- Main flowing flame: single strong silhouette -->
   <path fill="#FFFFFF" d="M286 60 C305 108 280 151 237 195 C195 238 139 279 125 342 C111 405 150 450 218 463 C181 438 169 399 184 358 C197 321 232 299 263 269 C251 311 269 335 296 355 C323 375 340 405 329 435 C371 411 392 377 389 337 C387 300 367 274 351 247 C356 286 341 306 327 319 C309 290 311 263 322 234 C341 180 340 120 286 60 Z"/>

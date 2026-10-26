@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     public static class Program
     {
@@ -19,7 +19,7 @@ namespace WebHut
         public static int Main(string[] args)
         {
             // Must run before anything touches Ui/Fonts: GDI+ caches the screen DPI when it starts,
-            // so declaring DPI awareness later makes WebHut lay out at 100% while Windows draws text at 125%+.
+            // so declaring DPI awareness later makes ServNook lay out at 100% while Windows draws text at 125%+.
             MakeDpiAware();
             Native.DontInheritStdHandles();
             Application.EnableVisualStyles();
@@ -29,11 +29,11 @@ namespace WebHut
             var problem = K.RootProblem();
             if (problem != null)
             {
-                MessageBox.Show(problem, "WebHut", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(problem, "ServNook", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return 2;
             }
 
-            // The installer runs "WebHut.exe --quit" before replacing files: the running panel closes,
+            // The installer runs "ServNook.exe --quit" before replacing files: the running panel closes,
             // servers keep running.
             if (args.Any(a => a.Equals("--quit", StringComparison.OrdinalIgnoreCase)))
             {
@@ -41,18 +41,18 @@ namespace WebHut
                 return 0;
             }
 
-            // One panel per WebHut folder.
+            // One panel per ServNook folder.
             bool created;
-            using (var mutex = new Mutex(true, "WebHut-" + K.Root.ToLowerInvariant().GetHashCode().ToString("x"), out created))
+            using (var mutex = new Mutex(true, "ServNook-" + K.Root.ToLowerInvariant().GetHashCode().ToString("x"), out created))
             {
                 if (!created)
                 {
-                    MessageBox.Show("WebHut is already running for this folder. Look for its icon in the system tray.", "WebHut",
+                    MessageBox.Show("ServNook is already running for this folder. Look for its icon in the system tray.", "ServNook",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return 0;
                 }
 
-                Log.Info("WebHut " + K.AppVersion + " started in " + K.Root);
+                Log.Info("ServNook " + K.AppVersion + " started in " + K.Root);
                 RemoveOldPanel();
                 MigratePassword();
                 Application.ThreadException += (s, e) => Fatal(e.Exception);
@@ -69,10 +69,11 @@ namespace WebHut
             return 0;
         }
 
-        /// <summary>1.0.x shipped the panel as WebHutPanel.exe; 1.1 renamed it to WebHut.exe.
+        /// <summary>1.0.x shipped the panel as WebHutPanel.exe and 1.1 renamed it to WebHut.exe; 1.7 renamed the app to
+        /// ServNook (ServNook.exe, snook.exe), so the old WebHut.exe and whut.exe are removed too.
         /// Remove the stale copy left behind when a new zip is extracted over an old folder, and
-        /// *.old.exe copies left when a running WebHut was renamed aside during an update.
-        /// (Never touch webhut.exe: on Windows that is this very file, names ignore case.)</summary>
+        /// *.old.exe copies left when a running ServNook was renamed aside during an update.
+        /// (Never touch ServNook.exe or snook.exe: they are the current programs.)</summary>
         /// <summary>Older versions saved the MariaDB root password in plain text; re-save it encrypted.</summary>
         internal static void MigratePassword()
         {
@@ -80,22 +81,23 @@ namespace WebHut
             {
                 if (!Services.Cfg.NeedsPasswordMigration) return;
                 Services.Cfg.Save();
-                Log.Info("The MariaDB root password is now stored encrypted for your Windows account (it was plain text in webhut.json).");
+                Log.Info("The MariaDB root password is now stored encrypted for your Windows account (it was plain text in servnook.json).");
             }
-            catch (Exception e) { Log.Error("Couldn't re-save webhut.json: " + e.Message); }
+            catch (Exception e) { Log.Error("Couldn't re-save servnook.json: " + e.Message); }
         }
 
-        /// <summary>Named event the running panel waits on; set by "WebHut.exe --quit" (used by the installer).</summary>
-        public static string QuitEventName { get { return "Local\\WebHut-quit-" + K.Root.ToLowerInvariant().GetHashCode().ToString("x"); } }
+        /// <summary>Named event the running panel waits on; set by "ServNook.exe --quit" (used by the installer).</summary>
+        public static string QuitEventName { get { return "Local\\ServNook-quit-" + K.Root.ToLowerInvariant().GetHashCode().ToString("x"); } }
 
         static void RemoveOldPanel()
         {
-            foreach (var name in new[] { "WebHutPanel.exe", "WebHutPanel.exe.config", "WebHut.old.exe", "whut.old.exe" })
+            foreach (var name in new[] { "WebHutPanel.exe", "WebHutPanel.exe.config", "WebHut.old.exe", "whut.old.exe",
+                                               "WebHut.exe", "WebHut.exe.config", "whut.exe", "whut.exe.config", "ServNook.old.exe", "snook.old.exe" })
             {
                 try
                 {
                     var f = System.IO.Path.Combine(K.Root, name);
-                    if (System.IO.File.Exists(f)) { System.IO.File.Delete(f); Log.Info("Removed old " + name + " (now WebHut.exe)."); }
+                    if (System.IO.File.Exists(f)) { System.IO.File.Delete(f); Log.Info("Removed old " + name + " (now ServNook.exe)."); }
                 }
                 catch { }
             }
@@ -105,7 +107,7 @@ namespace WebHut
         {
             if (e == null) return;
             Log.Error("Unexpected error: " + e);
-            MessageBox.Show(e.Message + "\n\nDetails were written to logs\\webhut.log.", "WebHut - unexpected error",
+            MessageBox.Show(e.Message + "\n\nDetails were written to logs\\servnook.log.", "ServNook - unexpected error",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }

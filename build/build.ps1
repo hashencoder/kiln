@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Builds WebHut.exe and whut.exe on Windows with the C# compiler that ships
+  Builds ServNook.exe and snook.exe on Windows with the C# compiler that ships
   with the .NET Framework 4.8 (no Visual Studio or SDK needed).
 
 .EXAMPLE
@@ -8,7 +8,7 @@
   powershell -ExecutionPolicy Bypass -File build\build.ps1 -Package -Version 1.0.0
 #>
 param(
-    [switch]$Package,          # also create dist\WebHut-<version>-win64.zip
+    [switch]$Package,          # also create dist\ServNook-<version>-win64.zip
     [string]$Version = "1.0.0"
 )
 $ErrorActionPreference = "Stop"
@@ -32,13 +32,13 @@ $refs = @("System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows
           "System.Web.Extensions.dll", "System.IO.Compression.dll", "System.IO.Compression.FileSystem.dll",
           "System.Net.Http.dll", "System.Security.dll") | ForEach-Object { "/reference:`"$(Join-Path $fw $_)`"" }
 
-$common = @("/nologo", "/optimize+", "/debug-", "/platform:anycpu", "/warn:4", "/win32icon:`"$(Join-Path $repo 'assets\webhut.ico')`"") + $refs + $resources
+$common = @("/nologo", "/optimize+", "/debug-", "/platform:anycpu", "/warn:4", "/win32icon:`"$(Join-Path $repo 'assets\servnook.ico')`"") + $refs + $resources
 $core = Get-ChildItem (Join-Path $repo "src\Core\*.cs") | ForEach-Object { "`"$($_.FullName)`"" }
 $gui  = Get-ChildItem (Join-Path $repo "src\Gui\*.cs")  | ForEach-Object { "`"$($_.FullName)`"" }
 $cli  = Get-ChildItem (Join-Path $repo "src\Cli\*.cs")  | ForEach-Object { "`"$($_.FullName)`"" }
 
 function Invoke-Csc([string[]]$csArgs) {
-    $rsp = Join-Path $env:TEMP ("webhut-build-" + [guid]::NewGuid() + ".rsp")
+    $rsp = Join-Path $env:TEMP ("servnook-build-" + [guid]::NewGuid() + ".rsp")
     [System.IO.File]::WriteAllLines($rsp, [string[]]$csArgs)  # UTF-8 without BOM
     try {
         & $csc "@$rsp"
@@ -46,30 +46,30 @@ function Invoke-Csc([string[]]$csArgs) {
     } finally { Remove-Item $rsp -ErrorAction SilentlyContinue }
 }
 
-Write-Host "Building WebHut.exe..."
+Write-Host "Building ServNook.exe..."
 # Fonts (Inter, JetBrains Mono; SIL OFL 1.1) are embedded in the GUI only, as fonts/<file>
 $fonts = Get-ChildItem -Path (Join-Path $repo "assets\fonts\*.ttf") | Sort-Object Name | ForEach-Object { "/resource:`"$($_.FullName)`",fonts/$($_.Name)" }
 # Logo renders (build/make_icon.py), drawn by Ui.DrawLogo
-$fonts += Get-ChildItem -Path (Join-Path $repo "assets\logo\webhut-*.png") | Where-Object { $_.Name -match '^webhut-\d+\.png$' } | Sort-Object Name | ForEach-Object { "/resource:`"$($_.FullName)`",logo/$($_.Name)" }
-$fonts += "/resource:`"$(Join-Path $repo 'assets\webhut.ico')`",logo/webhut.ico"
-Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\WebHut.exe`"", "/main:WebHut.Program") + $fonts + $core + $gui)
-Write-Host "Building whut.exe..."
-Invoke-Csc ($common + @("/target:exe", "/out:`"$out\whut.exe`"", "/main:WebHut.CliProgram") + $core + $cli)
+$fonts += Get-ChildItem -Path (Join-Path $repo "assets\logo\servnook-*.png") | Where-Object { $_.Name -match '^servnook-\d+\.png$' } | Sort-Object Name | ForEach-Object { "/resource:`"$($_.FullName)`",logo/$($_.Name)" }
+$fonts += "/resource:`"$(Join-Path $repo 'assets\servnook.ico')`",logo/servnook.ico"
+Invoke-Csc ($common + @("/target:winexe", "/out:`"$out\ServNook.exe`"", "/main:ServNook.Program") + $fonts + $core + $gui)
+Write-Host "Building snook.exe..."
+Invoke-Csc ($common + @("/target:exe", "/out:`"$out\snook.exe`"", "/main:ServNook.CliProgram") + $core + $cli)
 
-Copy-Item (Join-Path $repo "build\WebHut.exe.config") (Join-Path $out "WebHut.exe.config") -Force
-Copy-Item (Join-Path $repo "build\WebHut.exe.config") (Join-Path $out "whut.exe.config") -Force
+Copy-Item (Join-Path $repo "build\ServNook.exe.config") (Join-Path $out "ServNook.exe.config") -Force
+Copy-Item (Join-Path $repo "build\ServNook.exe.config") (Join-Path $out "snook.exe.config") -Force
 
 if ($Package) {
-    $stage = Join-Path $out "WebHut"
+    $stage = Join-Path $out "ServNook"
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path $stage | Out-Null
-    Copy-Item "$out\WebHut.exe", "$out\WebHut.exe.config", "$out\whut.exe", "$out\whut.exe.config" $stage
+    Copy-Item "$out\ServNook.exe", "$out\ServNook.exe.config", "$out\snook.exe", "$out\snook.exe.config" $stage
     Copy-Item (Join-Path $repo "LICENSE") $stage
     Copy-Item (Join-Path $repo "dist-readme.txt") (Join-Path $stage "README.txt")
     $lic = Join-Path $stage "licenses"
     New-Item -ItemType Directory -Path $lic | Out-Null
     Copy-Item (Join-Path $repo "assets\fonts\OFL-*.txt") $lic
-    $zip = Join-Path $out "WebHut-$Version-win64.zip"
+    $zip = Join-Path $out "ServNook-$Version-win64.zip"
     if (Test-Path $zip) { Remove-Item $zip }
     Compress-Archive -Path $stage -DestinationPath $zip
     $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
@@ -85,7 +85,7 @@ if ($Package) {
         if (-not $setupVersion) { $setupVersion = "0.0.0" }
         & $iscc "/DAppVersion=$setupVersion" "/DStage=$stage" "/DOutDir=$out" (Join-Path $repo "build\installer.iss")
         if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
-        $setup = Join-Path $out "WebHut-Setup-$setupVersion.exe"
+        $setup = Join-Path $out "ServNook-Setup-$setupVersion.exe"
         $shash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
         Set-Content -Path "$setup.sha256" -Value "$shash  $(Split-Path $setup -Leaf)" -Encoding ASCII
         Write-Host "Installer $setup"

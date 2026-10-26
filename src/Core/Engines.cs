@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
     /// Optional database engines next to MariaDB: MySQL (8.4 LTS), PostgreSQL and MongoDB (with mongosh),
@@ -50,7 +50,7 @@ namespace WebHut
         }
 
         /// <summary>Resolve the optional components in the order they are shown.</summary>
-        public static List<Func<Component>> Resolvers(WebHutConfig cfg)
+        public static List<Func<Component>> Resolvers(ServNookConfig cfg)
         {
             return new List<Func<Component>>
             {
@@ -58,7 +58,7 @@ namespace WebHut
             };
         }
 
-        public static Component Resolve(WebHutConfig cfg, string id)
+        public static Component Resolve(ServNookConfig cfg, string id)
         {
             switch (id)
             {
@@ -96,7 +96,7 @@ namespace WebHut
                 var req = (HttpWebRequest)WebRequest.Create(url);
                 req.Method = method;
                 if (method == "GET") req.AddRange(0, 0);
-                req.UserAgent = "WebHut/" + K.AppVersion + " (portable dev stack for Windows)";
+                req.UserAgent = "ServNook/" + K.AppVersion + " (portable dev stack for Windows)";
                 req.Timeout = 15000;
                 req.AllowAutoRedirect = true;
                 using (var resp = (HttpWebResponse)req.GetResponse())
@@ -123,7 +123,7 @@ namespace WebHut
 
         public static string MySqlUrl(string version) { return MySqlUrls(version)[0]; }
 
-        public static Component MySql(WebHutConfig cfg)
+        public static Component MySql(ServNookConfig cfg)
         {
             var c = new Component { Id = "mysql", Name = "MySQL", Branch = MySqlSeries, Homepage = "https://dev.mysql.com/downloads/mysql/" };
             return Try(c, x => FindMySql(x, UrlExists));
@@ -151,7 +151,7 @@ namespace WebHut
             x.Sha256 = null;
         }
 
-        public static Component Postgres(WebHutConfig cfg)
+        public static Component Postgres(ServNookConfig cfg)
         {
             var c = new Component { Id = "postgresql", Name = "PostgreSQL", Homepage = "https://www.enterprisedb.com/download-postgresql-binaries" };
             return Try(c, x =>
@@ -187,10 +187,10 @@ namespace WebHut
                 if (string.IsNullOrEmpty(major) || string.IsNullOrEmpty(minor) || !Regex.IsMatch(major, @"^\d+$")) continue;
                 list.Add(major + "." + minor);
             }
-            return list.OrderByDescending(WebHutConfig.VersionKey).ToList();
+            return list.OrderByDescending(ServNookConfig.VersionKey).ToList();
         }
 
-        public static Component Mongo(WebHutConfig cfg)
+        public static Component Mongo(ServNookConfig cfg)
         {
             var c = new Component { Id = "mongodb", Name = "MongoDB", Homepage = "https://www.mongodb.com/try/download/community" };
             return Try(c, x => ParseMongoCurrent(Resolver.Get("https://downloads.mongodb.org/current.json"), x));
@@ -202,7 +202,7 @@ namespace WebHut
             var root = Json.Parse(json);
             var versions = Json.Arr(Json.Get(root, "versions"))
                 .Where(v => !(Json.Get(v, "production_release") is bool) || (bool)Json.Get(v, "production_release"))
-                .OrderByDescending(v => WebHutConfig.VersionKey(Json.Str(v, "version")));
+                .OrderByDescending(v => ServNookConfig.VersionKey(Json.Str(v, "version")));
             foreach (var v in versions)
                 foreach (var d in Json.Arr(Json.Get(v, "downloads")))
                 {
@@ -223,14 +223,14 @@ namespace WebHut
             x.Error = "No MongoDB Windows x86_64 zip in the release list.";
         }
 
-        public static Component Mongosh(WebHutConfig cfg)
+        public static Component Mongosh(ServNookConfig cfg)
         {
             var c = new Component { Id = "mongosh", Name = "MongoDB Shell (mongosh)", Homepage = "https://www.mongodb.com/try/download/shell" };
             return Try(c, x => ParseGitHubRelease(Resolver.Get("https://api.github.com/repos/mongodb-js/mongosh/releases/latest"),
                                                   @"^mongosh-[\d.]+-win32-x64\.zip$", x));
         }
 
-        public static Component AdminerComponent(WebHutConfig cfg)
+        public static Component AdminerComponent(ServNookConfig cfg)
         {
             var c = new Component { Id = "adminer", Name = "Adminer", Homepage = "https://www.adminer.org/" };
             return Try(c, x => ParseGitHubRelease(Resolver.Get("https://api.github.com/repos/vrana/adminer/releases/latest"),
@@ -285,10 +285,10 @@ namespace WebHut
                     throw new ArgumentException("Unknown component: " + c.Id);
             }
             string dir = c.Id == "mysql" ? K.MySql : c.Id == "postgresql" ? K.PgSql : c.Id == "mongodb" ? K.Mongo : c.Id == "mongosh" ? K.Mongosh : K.Adminer;
-            try { File.WriteAllText(Path.Combine(dir, ".webhut-version"), c.Version ?? ""); } catch { }
+            try { File.WriteAllText(Path.Combine(dir, ".servnook-version"), c.Version ?? ""); } catch { }
         }
 
-        /// <summary>Refuse a package that doesn't contain the programs WebHut needs (a wrong or broken download).</summary>
+        /// <summary>Refuse a package that doesn't contain the programs ServNook needs (a wrong or broken download).</summary>
         static void Check(string bin, params string[] files)
         {
             var missing = files.Where(f => !File.Exists(Path.Combine(bin, f))).ToList();
@@ -300,23 +300,23 @@ namespace WebHut
         /// and Apache serves /adminer to this PC only).</summary>
         public const string AdminerIndex =
             "<?php\n" +
-            "// Written by WebHut. Adminer refuses empty passwords by default; WebHut's database servers only accept\n" +
+            "// Written by ServNook. Adminer refuses empty passwords by default; ServNook's database servers only accept\n" +
             "// connections from this PC, and Apache serves /adminer to this PC only, so allow them here.\n" +
             "function adminer_object() {\n" +
             "    if (class_exists('Adminer\\\\Adminer')) {\n" +
-            "        eval('class WebHutAdminer extends \\\\Adminer\\\\Adminer { function login($login, $password) { return true; } }');\n" +
+            "        eval('class ServNookAdminer extends \\\\Adminer\\\\Adminer { function login($login, $password) { return true; } }');\n" +
             "    } else {\n" +
-            "        eval('class WebHutAdminer extends \\\\Adminer { function login($login, $password) { return true; } }');\n" +
+            "        eval('class ServNookAdminer extends \\\\Adminer { function login($login, $password) { return true; } }');\n" +
             "    }\n" +
-            "    return new WebHutAdminer;\n" +
+            "    return new ServNookAdminer;\n" +
             "}\n" +
             "include __DIR__ . '/adminer.php';\n";
 
         public const string AdminerBlock =
             "\n    # Adminer (MySQL, PostgreSQL, MariaDB) on http://localhost/adminer, this PC only\n" +
-            "    <IfFile \"${WEBHUT_ROOT}/apps/adminer/index.php\">\n" +
-            "        Alias /adminer \"${WEBHUT_ROOT}/apps/adminer\"\n" +
-            "        <Directory \"${WEBHUT_ROOT}/apps/adminer\">\n" +
+            "    <IfFile \"${SERVNOOK_ROOT}/apps/adminer/index.php\">\n" +
+            "        Alias /adminer \"${SERVNOOK_ROOT}/apps/adminer\"\n" +
+            "        <Directory \"${SERVNOOK_ROOT}/apps/adminer\">\n" +
             "            Options FollowSymLinks ExecCGI\n" +
             "            AllowOverride None\n" +
             "            DirectoryIndex index.php\n" +
@@ -350,7 +350,7 @@ namespace WebHut
         /// <summary>Turn on PHP's PostgreSQL drivers (pgsql, pdo_pgsql) in every installed PHP, when the DLLs are there.</summary>
         public static void EnablePgsqlInPhp()
         {
-            foreach (var v in WebHutConfig.InstalledPhp())
+            foreach (var v in ServNookConfig.InstalledPhp())
             {
                 string dir = K.PhpDir(v), ini = Path.Combine(dir, "php.ini");
                 if (!File.Exists(ini)) continue;
@@ -401,7 +401,7 @@ namespace WebHut
         protected string PidFile { get { return Path.Combine(K.Pids, Key + ".pid"); } }
         protected string PortFile { get { return Path.Combine(K.Pids, Key + ".port"); } }
 
-        public override string Detail { get { return WebHutConfig.FullVersion(InstallDir); } }
+        public override string Detail { get { return ServNookConfig.FullVersion(InstallDir); } }
         public override string ConfigFile { get { return K.ConfigFile; } }
 
         /// <summary>The port the running server was started on (may differ from settings after a port change).</summary>
@@ -427,7 +427,7 @@ namespace WebHut
 
         protected void Prepare(string what)
         {
-            if (!File.Exists(Exe)) throw new FileNotFoundException(Title + " is not installed (missing " + Exe + "). Add it on the Databases page or with: whut install " + Key);
+            if (!File.Exists(Exe)) throw new FileNotFoundException(Title + " is not installed (missing " + Exe + "). Add it on the Databases page or with: snook install " + Key);
             Directory.CreateDirectory(K.Logs);
             Directory.CreateDirectory(K.Pids);
             Directory.CreateDirectory(K.Data);

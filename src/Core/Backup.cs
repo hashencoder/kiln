@@ -5,7 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
     /// Automatic and manual database backups (data\backups\mariadb-YYYYMMDD-HHmmss.sql.gz),
@@ -71,7 +71,7 @@ namespace WebHut
             return n;
         }
 
-        static Sys.RunResult Client(WebHutConfig cfg, string exeNames, string args, int timeoutMs)
+        static Sys.RunResult Client(ServNookConfig cfg, string exeNames, string args, int timeoutMs)
         {
             var names = exeNames.Split('|');
             var exe = Installer.MariaExe(names);
@@ -81,7 +81,7 @@ namespace WebHut
             return Sys.Run(exe, "--protocol=TCP -h 127.0.0.1 -P " + cfg.MysqlPort + " -u root " + args, env, timeoutMs, K.MariaDbBin);
         }
 
-        public static List<string> Databases(WebHutConfig cfg)
+        public static List<string> Databases(ServNookConfig cfg)
         {
             var r = Client(cfg, "mariadb.exe|mysql.exe", "-N -e \"SHOW DATABASES\"", 30000);
             if (r.ExitCode != 0) throw new Exception("Couldn't list databases:\n" + r.Output.Trim());
@@ -91,7 +91,7 @@ namespace WebHut
         public class DbStat { public string Name; public int Tables; public long Bytes; }
 
         /// <summary>User databases with their table count and size (data + indexes).</summary>
-        public static List<DbStat> Stats(WebHutConfig cfg)
+        public static List<DbStat> Stats(ServNookConfig cfg)
         {
             var names = Databases(cfg);
             var r = Client(cfg, "mariadb.exe|mysql.exe",
@@ -110,7 +110,7 @@ namespace WebHut
         }
 
         /// <summary>Dump every user database to a new .sql.gz. Returns its path, or null if there was nothing to back up.</summary>
-        public static string Create(WebHutConfig cfg, string reason)
+        public static string Create(ServNookConfig cfg, string reason)
         {
             lock (Gate)
             {
@@ -141,7 +141,7 @@ namespace WebHut
         }
 
         /// <summary>Run a backup if automatic backups are on and the last one is older than `minAge`.</summary>
-        public static void CreateIfDue(WebHutConfig cfg, TimeSpan minAge, string reason)
+        public static void CreateIfDue(ServNookConfig cfg, TimeSpan minAge, string reason)
         {
             if (!cfg.AutoBackup) return;
             var last = LastBackupTime();
@@ -151,7 +151,7 @@ namespace WebHut
         }
 
         /// <summary>Load a backup into the running server. Tables in the backup replace current ones of the same name.</summary>
-        public static void Restore(WebHutConfig cfg, string gzFile)
+        public static void Restore(ServNookConfig cfg, string gzFile)
         {
             lock (Gate)
             {
@@ -174,7 +174,7 @@ namespace WebHut
         /// For a data folder MariaDB can no longer start from: keep it aside as data\mariadb-damaged-*,
         /// create a fresh one, start, and load the newest backup. Nothing is deleted.
         /// </summary>
-        public static string Rebuild(WebHutConfig cfg, string gzFile)
+        public static string Rebuild(ServNookConfig cfg, string gzFile)
         {
             if (gzFile == null)
             {

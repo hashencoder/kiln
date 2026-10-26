@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Builds WebHut.exe (GUI) and whut.exe (console) for Windows.
+# Builds ServNook.exe (GUI) and snook.exe (console) for Windows.
 #
 # Works on Linux/macOS with Mono's C# compiler (mcs) and .NET Framework 4.8
 # reference assemblies (Debian/Ubuntu: apt install mono-devel). On Windows,
 # use build.ps1 instead (it uses the csc.exe that ships with Windows).
 #
-# Output: dist/WebHut.exe, dist/whut.exe
+# Output: dist/ServNook.exe, dist/snook.exe
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -13,8 +13,8 @@ REF="${MONO_REF:-/usr/lib/mono/4.8-api}"
 OUT=dist
 mkdir -p "$OUT" build/obj
 
-# Icon (assets/webhut.ico is committed; regenerate everything from assets/logo/webhut-icon.svg with: python3 build/make_icon.py)
-ICON=assets/webhut.ico
+# Icon (assets/servnook.ico is committed; regenerate everything from assets/logo/servnook-icon.svg with: python3 build/make_icon.py)
+ICON=assets/servnook.ico
 
 # Embed every file in overlay/ as a resource named overlay/<relative path>
 RES=()
@@ -34,15 +34,15 @@ COMMON=(-langversion:7.2 -optimize+ -debug- -platform:anycpu -warn:4 -nowarn:159
 FONTS=()
 for f in assets/fonts/*.ttf; do FONTS+=("-resource:$f,fonts/$(basename "$f")"); done
 # Logo renders (build/make_icon.py), drawn by Ui.DrawLogo
-for f in assets/logo/webhut-[0-9]*.png; do FONTS+=("-resource:$f,logo/$(basename "$f")"); done
-FONTS+=("-resource:assets/webhut.ico,logo/webhut.ico")
+for f in assets/logo/servnook-[0-9]*.png; do FONTS+=("-resource:$f,logo/$(basename "$f")"); done
+FONTS+=("-resource:assets/servnook.ico,logo/servnook.ico")
 
-mcs "${COMMON[@]}" -target:winexe -out:"$OUT/WebHut.exe" -win32icon:"$ICON" \
-    -main:WebHut.Program "${RES[@]}" "${FONTS[@]}" src/Core/*.cs src/Gui/*.cs
+mcs "${COMMON[@]}" -target:winexe -out:"$OUT/ServNook.exe" -win32icon:"$ICON" \
+    -main:ServNook.Program "${RES[@]}" "${FONTS[@]}" src/Core/*.cs src/Gui/*.cs
 
-mcs "${COMMON[@]}" -target:exe -out:"$OUT/whut.exe" -win32icon:"$ICON" \
-    -main:WebHut.CliProgram "${RES[@]}" src/Core/*.cs src/Cli/*.cs
+mcs "${COMMON[@]}" -target:exe -out:"$OUT/snook.exe" -win32icon:"$ICON" \
+    -main:ServNook.CliProgram "${RES[@]}" src/Core/*.cs src/Cli/*.cs
 
-cp build/WebHut.exe.config "$OUT/WebHut.exe.config"
-cp build/WebHut.exe.config "$OUT/whut.exe.config"
+cp build/ServNook.exe.config "$OUT/ServNook.exe.config"
+cp build/ServNook.exe.config "$OUT/snook.exe.config"
 ls -la "$OUT"

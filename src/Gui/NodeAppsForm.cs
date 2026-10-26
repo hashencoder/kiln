@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>Node apps: a small process manager. Each app is a card row with status, Start/Stop, Open and a ⋯ menu.</summary>
     public class NodeAppsForm : Form
@@ -226,7 +226,7 @@ namespace WebHut
 
             // Auto-start is configuration, not state: plain text, not a switch, so it can't be mistaken for Start/Stop.
             r.Auto = new Label { Text = a.AutoStart ? "Auto-start on" : "Manual start", Font = Ui.Small, ForeColor = a.AutoStart ? Ui.Ink : Ui.Muted, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0) };
-            _tips.SetToolTip(r.Auto, a.AutoStart ? "Starts with Start all (and when WebHut opens, if that setting is on). Change it in Edit." : "Only starts when you click Start. Change it in Edit.");
+            _tips.SetToolTip(r.Auto, a.AutoStart ? "Starts with Start all (and when ServNook opens, if that setting is on). Change it in Edit." : "Only starts when you click Start. Change it in Edit.");
             t.Controls.Add(r.Auto, 3, 0);
 
             r.Pid = new Label { Text = "PID —", Font = Ui.Mono, ForeColor = Ui.Faint, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0) };
@@ -389,7 +389,7 @@ namespace WebHut
         void Edit(NodeApp app)
         {
             if (app == null) return;
-            if (new NodeService(app).IsRunning) { MessageBox.Show(this, "Stop " + app.Name + " before editing it.", "WebHut"); return; }
+            if (new NodeService(app).IsRunning) { MessageBox.Show(this, "Stop " + app.Name + " before editing it.", "ServNook"); return; }
             using (var f = new NodeAppEditor(app, _apps, app.Name))
             {
                 if (f.ShowDialog(this) != DialogResult.OK) { Reload(); return; }
@@ -406,7 +406,7 @@ namespace WebHut
                 r.StopRequested = true;
                 try { r.Svc.Stop(); } catch (Exception e) { Log.Error(e.Message); }
             }
-            else if (MessageBox.Show(this, "Remove " + app.Name + " from WebHut?\n\nIts files are not touched.", "Remove app", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            else if (MessageBox.Show(this, "Remove " + app.Name + " from ServNook?\n\nIts files are not touched.", "Remove app", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
             _apps.RemoveAll(a => a.Name == app.Name);
             Save();
         }
@@ -421,7 +421,7 @@ namespace WebHut
         void ShowHelp()
         {
             MessageBox.Show(this,
-                "WebHut runs each app's command in its folder with the PORT environment variable set, and Apache serves it at http://<name>.localhost (websockets included).\n\n" +
+                "ServNook runs each app's command in its folder with the PORT environment variable set, and Apache serves it at http://<name>.localhost (websockets included).\n\n" +
                 "Some dev servers ignore PORT. Pass it on the command line instead, for example:\n" +
                 "   npx vite --port %PORT%\n   next dev -p %PORT%\n\n" +
                 "Running means the process is up and answering on its port. No response means the process runs but nothing listens on the port yet.\n\n" +
@@ -467,7 +467,7 @@ namespace WebHut
 
             Row(t, "Name", _name, "Lowercase letters, digits, hyphens. URL: http://<name>.localhost");
             Row(t, "Folder", dirRow, "Inside www\\ is easiest; any folder works.");
-            Row(t, "Command", _cmd, "Run in that folder. WebHut sets PORT, so the app should listen on process.env.PORT.");
+            Row(t, "Command", _cmd, "Run in that folder. ServNook sets PORT, so the app should listen on process.env.PORT.");
             Row(t, "Port", _port, null);
             Row(t, "", _auto, null);
             Row(t, "Environment", _env, "Optional, one KEY=value per line.");
@@ -508,7 +508,7 @@ namespace WebHut
             {
                 if (d.ShowDialog(this) != DialogResult.OK) return;
                 string p = d.SelectedPath;
-                // Store paths inside WebHut as relative, so the folder stays portable.
+                // Store paths inside ServNook as relative, so the folder stays portable.
                 if (p.StartsWith(K.Root + "\\", StringComparison.OrdinalIgnoreCase)) p = p.Substring(K.Root.Length + 1).Replace('\\', '/');
                 _dir.Text = p;
                 if (string.IsNullOrWhiteSpace(_name.Text))

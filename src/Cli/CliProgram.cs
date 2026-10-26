@@ -3,38 +3,38 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace WebHut
+namespace ServNook
 {
-    /// <summary>whut.exe - command-line control for scripts and terminals.</summary>
+    /// <summary>snook.exe - command-line control for scripts and terminals.</summary>
     public static class CliProgram
     {
-        const string Help = @"whut - control your WebHut stack from the command line
+        const string Help = @"snook - control your ServNook stack from the command line
 
 Usage:
-  whut status                      Show every service
-  whut start   [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
-  whut stop    [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
-  whut restart [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
-  whut install <mysql|postgresql|mongodb|mongosh|adminer> ...
+  snook status                      Show every service
+  snook start   [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
+  snook stop    [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
+  snook restart [all|apache|mariadb|mysql|postgresql|mongodb|<node-app>]
+  snook install <mysql|postgresql|mongodb|mongosh|adminer> ...
                                    Add optional database engines and tools
                                       (MySQL 8.4 on port 3307, PostgreSQL on 5432,
                                       MongoDB on 27017, Adminer at /adminer)
-  whut sites                       Regenerate vhosts for folders in www\ and Node apps
-  whut php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
-  whut setup                       Download and install the core stack (first run)
-  whut backup                      Back up all databases now (data\backups)
-  whut backups                     List backups
-  whut restore [<file>|latest]     Load a backup into the running MariaDB
-  whut rebuild-db [<file>|latest]  MariaDB won't start after a crash: set the damaged
+  snook sites                       Regenerate vhosts for folders in www\ and Node apps
+  snook php [<branch>]              Show or switch the active PHP version (e.g. 8.4)
+  snook setup                       Download and install the core stack (first run)
+  snook backup                      Back up all databases now (data\backups)
+  snook backups                     List backups
+  snook restore [<file>|latest]     Load a backup into the running MariaDB
+  snook rebuild-db [<file>|latest]  MariaDB won't start after a crash: set the damaged
                                       data folder aside and rebuild it from a backup
-  whut import-xampp [<folder>] [--recover] [--projects]
+  snook import-xampp [<folder>] [--recover] [--projects]
                                       Copy databases (and with --projects, htdocs folders)
                                       from XAMPP. Stop XAMPP's MySQL first.
-  whut shell                       Open a console with php, node, npm and composer on PATH
-  whut version
+  snook shell                       Open a console with php, node, npm and composer on PATH
+  snook version
 
 Default target is 'all'. 'mysql' means MariaDB until MySQL is installed.
-Node apps are managed in WebHut.exe or node-apps.json.";
+Node apps are managed in ServNook.exe or node-apps.json.";
 
         public static int Main(string[] args)
         {
@@ -44,7 +44,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
             // people expect the app, so open the control panel instead of flashing the help text.
             if (args.Length == 0 && Native.OwnsConsoleAlone())
             {
-                var panel = System.IO.Path.Combine(K.Root, "WebHut.exe");
+                var panel = System.IO.Path.Combine(K.Root, "ServNook.exe");
                 if (System.IO.File.Exists(panel))
                 {
                     try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(panel) { UseShellExecute = true, WorkingDirectory = K.Root }); return 0; }
@@ -69,7 +69,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
                     case "restart": return Each(target, s => s.Restart(), false);
                     case "sites":
                         Vhosts.Write(Services.Cfg);
-                        Console.WriteLine("Vhosts regenerated. Restart Apache to apply: whut restart apache");
+                        Console.WriteLine("Vhosts regenerated. Restart Apache to apply: snook restart apache");
                         return 0;
                     case "php": return Php(args.Length > 1 ? args[1] : null);
                     case "setup": return RunSetup();
@@ -94,7 +94,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
                             return 0;
                         }
                     case "import-xampp": return ImportXampp(args);
-                    case "version": Console.WriteLine("WebHut " + K.AppVersion); return 0;
+                    case "version": Console.WriteLine("ServNook " + K.AppVersion); return 0;
                     default: Console.WriteLine(Help); return cmd == "help" || cmd == "-h" || cmd == "--help" ? 0 : 1;
                 }
             }
@@ -105,13 +105,13 @@ Node apps are managed in WebHut.exe or node-apps.json.";
             }
         }
 
-        /// <summary>whut install mysql postgresql mongodb mongosh adminer</summary>
+        /// <summary>snook install mysql postgresql mongodb mongosh adminer</summary>
         static int InstallExtras(List<string> ids)
         {
             ids = ids.Select(i => i.ToLowerInvariant()).Select(i => i == "postgres" || i == "pg" ? "postgresql" : i == "mongo" ? "mongodb" : i).Distinct().ToList();
             if (ids.Count == 0 || ids.Any(i => !Engines.IsOptional(i)))
             {
-                Console.Error.WriteLine("Usage: whut install <" + string.Join("|", Engines.OptionalIds) + "> ...");
+                Console.Error.WriteLine("Usage: snook install <" + string.Join("|", Engines.OptionalIds) + "> ...");
                 return 1;
             }
             if (ids.Contains("mongodb") && !ids.Contains("mongosh") && !Engines.MongoshInstalled) ids.Add("mongosh");
@@ -134,7 +134,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
                 catch (Exception e) { failures++; Log.Error(c.Name + ": " + e.Message); }
             }
             Services.Cfg.Save();
-            if (ids.Contains("adminer") && Services.Apache.IsRunning) Console.WriteLine("Restart Apache to open http://localhost/adminer: whut restart apache");
+            if (ids.Contains("adminer") && Services.Apache.IsRunning) Console.WriteLine("Restart Apache to open http://localhost/adminer: snook restart apache");
             return failures == 0 ? 0 : 1;
         }
 
@@ -196,7 +196,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
             bool recover = rest.Remove("--recover");
             bool projects = rest.Remove("--projects");
             string root = rest.FirstOrDefault() ?? XamppImport.Find();
-            if (root == null || !XamppImport.IsXampp(root)) { Console.Error.WriteLine("XAMPP not found. Pass its folder: whut import-xampp C:\\xampp"); return 1; }
+            if (root == null || !XamppImport.IsXampp(root)) { Console.Error.WriteLine("XAMPP not found. Pass its folder: snook import-xampp C:\\xampp"); return 1; }
             using (var x = new XamppImport(root))
             {
                 var level = x.StartServerWithRecovery(recover);
@@ -215,7 +215,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
 
         static int Php(string branch)
         {
-            var installed = WebHutConfig.InstalledPhp();
+            var installed = ServNookConfig.InstalledPhp();
             if (branch == null)
             {
                 Console.WriteLine("Active PHP: " + Services.Cfg.Php);
@@ -246,7 +246,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
             {
                 Console.Error.WriteLine("Some components couldn't be resolved. Download them by hand from:");
                 foreach (var c in bad) Console.Error.WriteLine("  " + c.Name + ": " + c.Homepage);
-                Console.Error.WriteLine("then use the setup wizard in WebHut.exe ('Use a zip I downloaded').");
+                Console.Error.WriteLine("then use the setup wizard in ServNook.exe ('Use a zip I downloaded').");
                 return 1;
             }
             if (!Installer.VcRedistOk())
@@ -255,7 +255,7 @@ Node apps are managed in WebHut.exe or node-apps.json.";
             int last = -10;
             inst.Progress += (m, p) => { if (p < 0 || p >= last + 10 || p == 100) { last = p; Console.WriteLine("  " + m); } };
             Setup.Run(inst, comps, CancellationToken.None);
-            Console.WriteLine("Done. Start everything with: whut start");
+            Console.WriteLine("Done. Start everything with: snook start");
             return 0;
         }
     }

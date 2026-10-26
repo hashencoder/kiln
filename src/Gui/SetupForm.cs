@@ -8,11 +8,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
     /// First-run setup: looks up the latest official builds, lets the user untick optional ones or point at a zip
-    /// they downloaded, then downloads, verifies and installs each one (with its own progress) and configures WebHut.
+    /// they downloaded, then downloads, verifies and installs each one (with its own progress) and configures ServNook.
     /// </summary>
     public class SetupForm : Form
     {
@@ -43,7 +43,7 @@ namespace WebHut
         {
             Ui.Style(this);
             AutoScaleMode = AutoScaleMode.None;
-            Text = "Set up WebHut";
+            Text = "Set up ServNook";
             var wa = Screen.PrimaryScreen.WorkingArea;
             ClientSize = new Size(Math.Min(Px(860), wa.Width - Px(40)), Math.Min(Px(760), wa.Height - Px(60)));
             MinimumSize = new Size(Math.Min(Px(700), wa.Width), Math.Min(Px(520), wa.Height));
@@ -56,7 +56,7 @@ namespace WebHut
             head.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             head.Controls.Add(new Logo(Px(48)) { Margin = new Padding(0, Px(2), 0, 0) }, 0, 0);
             var titles = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0) };
-            titles.Controls.Add(new Label { Text = "Set up WebHut", Font = Ui.H2, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
+            titles.Controls.Add(new Label { Text = "Set up ServNook", Font = Ui.H2, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
             _sub = new Label { Text = "Downloads the official Windows builds into " + K.Root + ". Nothing is installed system-wide.", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(0, Px(4), 0, 0), UseMnemonic = false };
             titles.Controls.Add(_sub);
             head.Controls.Add(titles, 1, 0);
@@ -449,15 +449,15 @@ namespace WebHut
             var notReady = selected.Where(c => !c.Ready).ToList();
             if (notReady.Count > 0)
             {
-                Ui.Error(this, "WebHut", "These still need a zip or must be unticked:\n" + string.Join("\n", notReady.Select(c => "• " + c.Name)));
+                Ui.Error(this, "ServNook", "These still need a zip or must be unticked:\n" + string.Join("\n", notReady.Select(c => "• " + c.Name)));
                 return;
             }
-            if (!_http.IsValid || !_mysql.IsValid) { Ui.Error(this, "WebHut", "Ports must be numbers from 1 to 65535."); return; }
-            if (_http.Value == _mysql.Value) { Ui.Error(this, "WebHut", "HTTP and MySQL ports must differ."); return; }
+            if (!_http.IsValid || !_mysql.IsValid) { Ui.Error(this, "ServNook", "Ports must be numbers from 1 to 65535."); return; }
+            if (_http.Value == _mysql.Value) { Ui.Error(this, "ServNook", "HTTP and MySQL ports must differ."); return; }
             if (!Installer.VcRedistOk())
             {
                 var a = MessageBox.Show(this, "The Visual C++ Redistributable is missing or old, so Apache probably won't start.\n\nContinue anyway? (You can install it later from Settings.)",
-                    "WebHut", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    "ServNook", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 if (a != DialogResult.Yes) return;
             }
 
@@ -493,8 +493,8 @@ namespace WebHut
                     if (!_log.Visible) ToggleLog();
                     return;
                 }
-                SetStatus("WebHut is ready. Click Start all in the next window, then open http://localhost.", false, Ui.Green);
-                MessageBox.Show(this, "WebHut is ready.\n\nClick \"Start all\" in the next window, then open http://localhost.", "WebHut", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                SetStatus("ServNook is ready. Click Start all in the next window, then open http://localhost.", false, Ui.Green);
+                MessageBox.Show(this, "ServNook is ready.\n\nClick \"Start all\" in the next window, then open http://localhost.", "ServNook", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 DialogResult = DialogResult.OK;
                 Close();
             }, TaskScheduler.FromCurrentSynchronizationContext());

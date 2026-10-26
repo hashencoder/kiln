@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     public class SettingsForm : Form
     {
@@ -27,7 +27,7 @@ namespace WebHut
         bool _busy, _loading;
         readonly ToolTip _tips = new ToolTip();
 
-        WebHutConfig Cfg { get { return Services.Cfg; } }
+        ServNookConfig Cfg { get { return Services.Cfg; } }
 
         const int LabelW = 210, Inner = 660, SideW = 210;
         readonly List<NavItem> _navs = new List<NavItem>();
@@ -38,7 +38,7 @@ namespace WebHut
         {
             Ui.Style(this);
             AutoScaleMode = AutoScaleMode.None;   // sizes are physical pixels (Ui.Px)
-            Text = "WebHut settings";
+            Text = "ServNook settings";
             var wa = Screen.PrimaryScreen.WorkingArea;
             ClientSize = new Size(Math.Min(Px(980), wa.Width - Px(40)), Math.Min(Px(700), wa.Height - Px(60)));
             MinimumSize = new Size(Math.Min(Px(900), wa.Width - Px(20)), Math.Min(Px(520), wa.Height - Px(20)));
@@ -76,10 +76,10 @@ namespace WebHut
             _vc.Click += (s, e) => InstallVc();
 
             // ---- pages (one per sidebar category)
-            var general = Page("General", "How WebHut starts, closes and looks.");
-            var startup = Section(general, "power", "Startup & behaviour", "What happens when WebHut opens and closes.");
-            Toggle(startup, _startOnLaunch, "Start servers when WebHut opens", "Apache, MariaDB, and Node apps marked \"Start with Start all\".");
-            Toggle(startup, _tray, "Keep running in the system tray", "Closing the window hides WebHut; servers keep running. Use Quit WebHut to close it.");
+            var general = Page("General", "How ServNook starts, closes and looks.");
+            var startup = Section(general, "power", "Startup & behaviour", "What happens when ServNook opens and closes.");
+            Toggle(startup, _startOnLaunch, "Start servers when ServNook opens", "Apache, MariaDB, and Node apps marked \"Start with Start all\".");
+            Toggle(startup, _tray, "Keep running in the system tray", "Closing the window hides ServNook; servers keep running. Use Quit ServNook to close it.");
             Row(startup, "Appearance", "Match Windows follows its light/dark setting.", Line(_theme));
 
             var runtimePage = Page("Runtime", "Which PHP and Node.js versions your sites and apps use.");
@@ -288,14 +288,14 @@ namespace WebHut
         {
             _loading = true;
             _php.Items.Clear();
-            _php.Items.AddRange(WebHutConfig.InstalledPhp());
+            _php.Items.AddRange(ServNookConfig.InstalledPhp());
             _php.SelectedItem = Cfg.Php;
             if (_php.SelectedIndex < 0 && _php.Items.Count > 0) _php.SelectedIndex = 0;
             _node.Items.Clear();
-            _node.Items.AddRange(WebHutConfig.InstalledNode());
+            _node.Items.AddRange(ServNookConfig.InstalledNode());
             _node.SelectedItem = Cfg.Node;
             if (_node.SelectedIndex < 0 && _node.Items.Count > 0) _node.SelectedIndex = 0;
-            _theme.SelectedIndex = Math.Max(0, Array.IndexOf(ThemeIds, WebHutConfig.NormTheme(Cfg.Theme)));
+            _theme.SelectedIndex = Math.Max(0, Array.IndexOf(ThemeIds, ServNookConfig.NormTheme(Cfg.Theme)));
             _http.Value = Cfg.HttpPort;
             _mysql.Value = Cfg.MysqlPort;
             _mysqlSrv.Value = Cfg.MySqlPort;
@@ -316,7 +316,7 @@ namespace WebHut
         bool IsDirty()
         {
             return (_php.SelectedItem ?? Cfg.Php) != Cfg.Php || (_node.SelectedItem ?? Cfg.Node) != Cfg.Node
-                || ThemeIds[Math.Max(0, _theme.SelectedIndex)] != WebHutConfig.NormTheme(Cfg.Theme)
+                || ThemeIds[Math.Max(0, _theme.SelectedIndex)] != ServNookConfig.NormTheme(Cfg.Theme)
                 || _http.Value != Cfg.HttpPort || _mysql.Value != Cfg.MysqlPort
                 || _mysqlSrv.Value != Cfg.MySqlPort || _pg.Value != Cfg.PgPort || _mongo.Value != Cfg.MongoPort
                 || _startOnLaunch.Checked != Cfg.StartOnLaunch || _tray.Checked != Cfg.MinimizeToTray || _lan.Checked != Cfg.LanAccess;
@@ -417,7 +417,7 @@ namespace WebHut
                     return;
                 }
                 SetBusy(false, t.IsFaulted ? "Failed: " + t.Exception.GetBaseException().Message : "Done.");
-                if (t.IsFaulted) Ui.Error(this, "WebHut", t.Exception.GetBaseException().Message);
+                if (t.IsFaulted) Ui.Error(this, "ServNook", t.Exception.GetBaseException().Message);
                 RefreshLists();
                 if (!t.IsFaulted && done != null) done();
             }, TaskScheduler.FromCurrentSynchronizationContext());
@@ -428,10 +428,10 @@ namespace WebHut
         {
             string php = _php.SelectedItem, node = _node.SelectedItem;
             _loading = true;
-            _php.Items.Clear(); _php.Items.AddRange(WebHutConfig.InstalledPhp());
+            _php.Items.Clear(); _php.Items.AddRange(ServNookConfig.InstalledPhp());
             _php.SelectedItem = php ?? Cfg.Php;
             if (_php.SelectedIndex < 0 && _php.Items.Count > 0) _php.SelectedIndex = 0;
-            _node.Items.Clear(); _node.Items.AddRange(WebHutConfig.InstalledNode());
+            _node.Items.Clear(); _node.Items.AddRange(ServNookConfig.InstalledNode());
             _node.SelectedItem = node ?? Cfg.Node;
             if (_node.SelectedIndex < 0 && _node.Items.Count > 0) _node.SelectedIndex = 0;
             bool vc = Installer.VcRedistOk();
@@ -456,10 +456,10 @@ namespace WebHut
             {
                 if (IsDisposed) return;
                 SetBusy(false, "");
-                if (t.IsFaulted) { Ui.Error(this, "WebHut", "Couldn't reach windows.php.net: " + t.Exception.GetBaseException().Message); return; }
-                var installed = WebHutConfig.InstalledPhp();
+                if (t.IsFaulted) { Ui.Error(this, "ServNook", "Couldn't reach windows.php.net: " + t.Exception.GetBaseException().Message); return; }
+                var installed = ServNookConfig.InstalledPhp();
                 var choices = t.Result.Where(b => !installed.Contains(b)).ToList();
-                if (choices.Count == 0) { MessageBox.Show(this, "Every supported PHP version is already installed.", "WebHut"); return; }
+                if (choices.Count == 0) { MessageBox.Show(this, "Every supported PHP version is already installed.", "ServNook"); return; }
                 string branch = Choose("Install PHP", "PHP version to install:", choices);
                 if (branch == null) return;
                 RunBg("Installing PHP " + branch + "…", () =>
@@ -475,7 +475,7 @@ namespace WebHut
             RunBg("Installing the latest Node.js LTS…", () =>
             {
                 var c = Resolver.Node(Cfg, null);
-                if (WebHutConfig.InstalledNode().Contains(c.Branch) && WebHutConfig.FullVersion(K.NodeDir(c.Branch)) == c.Version)
+                if (ServNookConfig.InstalledNode().Contains(c.Branch) && ServNookConfig.FullVersion(K.NodeDir(c.Branch)) == c.Version)
                 {
                     Log.Info("Node.js " + c.Version + " is already installed.");
                     return;

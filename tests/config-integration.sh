@@ -6,7 +6,7 @@
 # Needs: apt install mariadb-server apache2 libapache2-mod-php mono-devel; ./build/build.sh first. Run as root.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-W="${TMPDIR:-/tmp}/webhut-cfg-$$"
+W="${TMPDIR:-/tmp}/servnook-cfg-$$"
 cleanup() {
   for p in $(pgrep mariadbd) $(pgrep apache2) $(pgrep -x httpd); do grep -q "$W" /proc/$p/cmdline 2>/dev/null && kill -9 $p 2>/dev/null; done
   sleep 1; rm -rf "$W"
@@ -14,8 +14,8 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$W/mariadb/bin" "$W/config/mariadb" "$W/data" "$W/apache/bin" "$W/apache/conf" "$W/php/8.5" "$W/php/8.4" "$W/www/blog/public" "$W/www/emptydir" "$W/www/mine" "$W/config/apache/custom"
-cp dist/whut.exe dist/whut.exe.config "$W/"
-mcs -langversion:7.2 -target:exe -out:"$W/ConfigInt.exe" -r:"$W/whut.exe" tests/ConfigInt.cs
+cp dist/snook.exe dist/snook.exe.config "$W/"
+mcs -langversion:7.2 -target:exe -out:"$W/ConfigInt.exe" -r:"$W/snook.exe" tests/ConfigInt.cs
 
 # MariaDB (see integration.sh)
 for n in mariadbd mariadb mariadb-dump mariadb-admin; do ln -s "$(command -v $n || echo /usr/sbin/$n)" "$W/mariadb/bin/$n.exe"; done
@@ -38,9 +38,9 @@ chmod +x "$W/apache/bin/httpd.exe"
 echo '<?php echo "blog-public";' > "$W/www/blog/public/index.php"
 echo '<?php echo "PHP_DIR=" . php_ini_loaded_file();' > "$W/www/v.php"
 echo 'mine-ok' > "$W/www/mine/index.html"
-printf '<VirtualHost *:${WEBHUT_HTTP_PORT}>\n    ServerName mine.localhost\n    DocumentRoot "${WEBHUT_ROOT}/www/mine"\n    <Directory "${WEBHUT_ROOT}/www/mine">\n        Require local\n    </Directory>\n</VirtualHost>\n' > "$W/config/apache/custom/mine.conf"
+printf '<VirtualHost *:${SERVNOOK_HTTP_PORT}>\n    ServerName mine.localhost\n    DocumentRoot "${SERVNOOK_ROOT}/www/mine"\n    <Directory "${SERVNOOK_ROOT}/www/mine">\n        Require local\n    </Directory>\n</VirtualHost>\n' > "$W/config/apache/custom/mine.conf"
 chmod -R o+rX "$W"
-printf '{ "php": "8.5", "httpPort": 8091, "mysqlPort": 3321, "autoBackup": false }\n' > "$W/webhut.json"
+printf '{ "php": "8.5", "httpPort": 8091, "mysqlPort": 3321, "autoBackup": false }\n' > "$W/servnook.json"
 mkdir -p "$W/tmp"
 
 cd "$W" && mono ConfigInt.exe mariadb apache

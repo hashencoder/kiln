@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
     /// A MariaDB option file (my.ini) edited line by line. Comments, blank lines, unknown options, ordering,
@@ -249,7 +249,7 @@ namespace WebHut
         {
             string line = Lines[lineIndex];
             string indent = line.Substring(0, line.Length - line.TrimStart().Length);
-            Lines[lineIndex] = indent + "# " + line.TrimStart() + "    # disabled by WebHut: " + why;
+            Lines[lineIndex] = indent + "# " + line.TrimStart() + "    # disabled by ServNook: " + why;
         }
     }
 }

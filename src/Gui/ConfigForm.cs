@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
     /// Server configuration manager for Apache and MariaDB. Shows each setting's owner and effective value,
@@ -30,7 +30,7 @@ namespace WebHut
         /// <summary>True when a change was applied (the main window refreshes).</summary>
         public bool Changed;
 
-        WebHutConfig Cfg { get { return Services.Cfg; } }
+        ServNookConfig Cfg { get { return Services.Cfg; } }
         ApacheConfFile _hc;
         ApacheInfo _ai;
         MariaInfo _mi;
@@ -492,7 +492,7 @@ namespace WebHut
             }
             if (plan.MariaRestart && Services.MariaDb.IsRunning && plan.MyIniText != null &&
                 _e.Maria.Keys.Any(k => k.Contains("innodb") || k.Contains("aria")) &&
-                MessageBox.Show(this, "These InnoDB/Aria changes restart MariaDB. WebHut backs up your databases before stopping MariaDB (if automatic backups are on and the last one is older than 15 minutes), and puts the previous configuration back if MariaDB doesn't start.\n\nContinue?",
+                MessageBox.Show(this, "These InnoDB/Aria changes restart MariaDB. ServNook backs up your databases before stopping MariaDB (if automatic backups are on and the last one is older than 15 minutes), and puts the previous configuration back if MariaDB doesn't start.\n\nContinue?",
                     "Restart MariaDB", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK) return;
 
             SetBusy(true, "Validating…");
@@ -556,17 +556,17 @@ namespace WebHut
             return null;
         }
 
-        static string Shorten(string path) { return path.StartsWith(K.Root) ? "<WebHut>" + path.Substring(K.Root.Length) : path; }
+        static string Shorten(string path) { return path.StartsWith(K.Root) ? "<ServNook>" + path.Substring(K.Root.Length) : path; }
 
         // ================================================================== Apache pages
 
         Control ApGeneral()
         {
-            var page = Page("Apache · General", "Apache serves your sites. Settings here are stored in WebHut's settings or in config\\apache\\httpd.conf.");
+            var page = Page("Apache · General", "Apache serves your sites. Settings here are stored in ServNook's settings or in config\\apache\\httpd.conf.");
             var s = Section(page, "globe", "Listening", null);
             var portNote = Note("");
             Action portText = () => { if (portNote.ForeColor != Ui.Red) portNote.Text = "Effective: " + ListenText(_e.Lan ?? Cfg.LanAccess, _e.HttpPort ?? Cfg.HttpPort) + (Services.Apache.IsRunning ? " · running" : " · stopped"); };
-            Row(s, "HTTP port", "Default 80. The same setting as Settings › Services.", "WebHut setting",
+            Row(s, "HTTP port", "Default 80. The same setting as Settings › Services.", "ServNook setting",
                 PortField(Cfg.HttpPort, 1, v => { _e.HttpPort = v == Cfg.HttpPort ? (int?)null : v; OnChanged(); }, v => PortProblem(v, Cfg.HttpPort, true), portNote), portNote);
             _refresh.Add(portText); portText();
 
@@ -579,7 +579,7 @@ namespace WebHut
 
             var s2 = Section(page, "folder", "Content", null);
             Row(s2, "Document root", "Fixed: generated sites, the dashboard and phpMyAdmin rely on it. Put sites in folders inside it.", "httpd.conf · read-only",
-                Line(Mono("${WEBHUT_ROOT}/www"), Btn("Open folder", "folder", () => Sys.OpenFolder(K.Www))), Mono(K.Www, Ui.Muted));
+                Line(Mono("${SERVNOOK_ROOT}/www"), Btn("Open folder", "folder", () => Sys.OpenFolder(K.Www))), Mono(K.Www, Ui.Muted));
             var listing = new Switch { Checked = _hc.Indexes ?? true };
             listing.Enabled = _hc.Indexes != null;
             listing.CheckedChanged += (x, e) => EditApache("Indexes", listing.Checked ? "On" : "Off", (_hc.Indexes ?? true) ? "On" : "Off");
@@ -591,7 +591,7 @@ namespace WebHut
             Row(s2, "PHP execution mode", null, "httpd.conf", mode, change);
             _refresh.Add(() => { string f; mode.Text = (_e.Apache.TryGetValue("Fcgid", out f) ? f == "On" : _hc.Fcgid) ? "mod_fcgid (FastCGI)" : "mod_php (inside Apache)"; });
 
-            var s3 = Section(page, "file", "Configuration file", "WebHut's httpd.conf contains no absolute paths, so the WebHut folder can be moved.");
+            var s3 = Section(page, "file", "Configuration file", "ServNook's httpd.conf contains no absolute paths, so the ServNook folder can be moved.");
             Row(s3, "httpd.conf", null, null, Line(Btn("Open", "file", () => Sys.OpenInEditor(K.HttpdConf)), Btn("Open folder", "folder", () => Sys.OpenFolder(K.ApacheConf))), Mono(K.HttpdConf, Ui.Muted));
             return page;
         }
@@ -601,13 +601,13 @@ namespace WebHut
             var page = Page("Apache · PHP Integration", "Which PHP Apache runs, and how.");
             var s = Section(page, "cube", "PHP version", null);
             var php = new Dropdown(Px(200));
-            php.Items.AddRange(WebHutConfig.InstalledPhp());
+            php.Items.AddRange(ServNookConfig.InstalledPhp());
             php.SelectedItem = Cfg.Php;
             php.SelectedIndexChanged += (x, e) => { _e.Php = php.SelectedItem == Cfg.Php ? null : php.SelectedItem; OnChanged(); };
             var dirLabel = Mono(Cfg.PhpDir, Ui.Muted);
             _refresh.Add(() => dirLabel.Text = K.PhpDir(_e.Php ?? Cfg.Php));
-            Row(s, "Active PHP version", "Apache and the Shell use it. The same setting as Settings › Runtime.", "WebHut runtime manager",
-                Line(php, Btn("Install another…", "plus", () => { using (var f = new SettingsForm()) f.ShowDialog(this); php.Items.Clear(); php.Items.AddRange(WebHutConfig.InstalledPhp()); php.SelectedItem = _e.Php ?? Cfg.Php; })), dirLabel);
+            Row(s, "Active PHP version", "Apache and the Shell use it. The same setting as Settings › Runtime.", "ServNook runtime manager",
+                Line(php, Btn("Install another…", "plus", () => { using (var f = new SettingsForm()) f.ShowDialog(this); php.Items.Clear(); php.Items.AddRange(ServNookConfig.InstalledPhp()); php.SelectedItem = _e.Php ?? Cfg.Php; })), dirLabel);
             Row(s, "PHP folder", null, null, Line(Btn("Open folder", "folder", () => Sys.OpenFolder(K.PhpDir(_e.Php ?? Cfg.Php))), Btn("Edit php.ini", "file", () => Sys.OpenInEditor(Path.Combine(K.PhpDir(_e.Php ?? Cfg.Php), "php.ini")))));
             var info = Btn("Open phpinfo()", "external", () => Sys.OpenUrl(Services.Apache.Url + "?phpinfo=1"));
             info.Enabled = Services.Apache.IsRunning;
@@ -621,16 +621,16 @@ namespace WebHut
             bool fcgidOk = _ai.FcgidModule && _ai.PhpCgi;
             mode.Enabled = fcgidOk || _hc.Fcgid;
             mode.SelectedIndexChanged += (x, e) => EditApache("Fcgid", mode.SelectedIndex == 1 ? "On" : "Off", _hc.Fcgid ? "On" : "Off");
-            Row(s2, "PHP mode", "mod_php is fastest for one PHP version. mod_fcgid lets custom vhosts pick their own PHP (docs/05-php-versions.md).", "httpd.conf (WEBHUT_PHP_FCGID)", mode,
+            Row(s2, "PHP mode", "mod_php is fastest for one PHP version. mod_fcgid lets custom vhosts pick their own PHP (docs/05-php-versions.md).", "httpd.conf (SERVNOOK_PHP_FCGID)", mode,
                 fcgidOk ? null : (Control)Note("mod_fcgid isn't available: " + (!_ai.FcgidModule ? "apache\\modules\\mod_fcgid.so is missing (get it from Apache Lounge). " : "") + (!_ai.PhpCgi ? "php-cgi.exe is missing in the PHP folder." : ""), Ui.Amber));
 
-            var s3 = Section(page, "terminal", "Runtime definitions", "WebHut passes these to Apache at every start; httpd.conf and your vhosts use them instead of absolute paths.");
+            var s3 = Section(page, "terminal", "Runtime definitions", "ServNook passes these to Apache at every start; httpd.conf and your vhosts use them instead of absolute paths.");
             var defs = new StringBuilder();
-            defs.AppendLine("WEBHUT_ROOT       = " + K.RootFwd);
+            defs.AppendLine("SERVNOOK_ROOT       = " + K.RootFwd);
             defs.AppendLine("PHP_DIR           = " + K.Fwd(Cfg.PhpDir));
-            defs.AppendLine("WEBHUT_HTTP_PORT  = " + Cfg.HttpPort);
-            defs.Append("WEBHUT_MYSQL_PORT = " + Cfg.MysqlPort);
-            if (Cfg.LanAccess) defs.Append("\nWEBHUT_LAN        = 1");
+            defs.AppendLine("SERVNOOK_HTTP_PORT  = " + Cfg.HttpPort);
+            defs.Append("SERVNOOK_MYSQL_PORT = " + Cfg.MysqlPort);
+            if (Cfg.LanAccess) defs.Append("\nSERVNOOK_LAN        = 1");
             Add(s3, Mono(defs.ToString()));
             Add(s3, Line(Btn("Copy startup command", "copy", () => CopyText("httpd.exe " + Services.Apache.Args()))));
             return page;
@@ -846,7 +846,7 @@ namespace WebHut
                 warn.Visible = on;
             };
             lan.CheckedChanged += (x, e) => { _e.Lan = lan.Checked == Cfg.LanAccess ? (bool?)null : lan.Checked; OnChanged(); };
-            Toggle(s, lan, "Allow access from other devices", "Phones and PCs on your Wi-Fi can open your sites at this PC's address. The same setting as Settings › Security.", "WebHut setting", addr);
+            Toggle(s, lan, "Allow access from other devices", "Phones and PCs on your Wi-Fi can open your sites at this PC's address. The same setting as Settings › Security.", "ServNook setting", addr);
             Add(s, warn);
             Add(s, Call(CalloutKind.Info, "phpMyAdmin and MariaDB always stay private to this PC: turning this on never exposes them."));
             _refresh.Add(upd); upd();
@@ -862,7 +862,7 @@ namespace WebHut
             Row(s2, ".ht* files", ".htaccess and .htpasswd are never served.", "httpd.conf", Note(_hc.HtFilesDenied ? "Blocked ✓" : "Not blocked — the <Files \".ht*\"> rule is missing from httpd.conf", _hc.HtFilesDenied ? Ui.Green : Ui.Red));
             var dot = new Switch { Checked = _hc.ProtectDotfiles };
             dot.CheckedChanged += (x, e) => EditApache("ProtectDotfiles", dot.Checked ? "On" : "Off", _hc.ProtectDotfiles ? "On" : "Off");
-            Toggle(s2, dot, "Block .git, .env and other dotfiles", "Refuse requests for version-control folders and secrets files in any site. Recommended, especially with network access on.", "httpd.conf (WebHut block)");
+            Toggle(s2, dot, "Block .git, .env and other dotfiles", "Refuse requests for version-control folders and secrets files in any site. Recommended, especially with network access on.", "httpd.conf (ServNook block)");
 
             var s3 = Section(page, "key", "Virtual host check", "Access rules in generated and custom virtual hosts.");
             var findings = _vhosts.SelectMany(v => v.Findings).ToList();
@@ -874,7 +874,7 @@ namespace WebHut
         Control ApLogging()
         {
             var page = Page("Apache · Logging", "Where Apache writes its logs, and how much.");
-            var s = Section(page, "logs", "Log files", "Paths are fixed in httpd.conf under ${WEBHUT_ROOT}/logs.");
+            var s = Section(page, "logs", "Log files", "Paths are fixed in httpd.conf under ${SERVNOOK_ROOT}/logs.");
             string err = Path.Combine(K.Logs, "apache-error.log"), acc = Path.Combine(K.Logs, "apache-access.log");
             Row(s, "Error log", null, "httpd.conf · read-only", Line(Btn("Open", "file", () => Sys.OpenInEditor(err)), Btn("Open folder", "folder", () => Sys.OpenFolder(K.Logs))), Mono(err, Ui.Muted));
             Row(s, "Access log", null, "httpd.conf · read-only", Line(Btn("Open", "file", () => Sys.OpenInEditor(acc))), Mono(acc, Ui.Muted));
@@ -893,19 +893,19 @@ namespace WebHut
 
         Control ApVhosts()
         {
-            var page = Page("Apache · Virtual Hosts", "Sites Apache answers for. Generated files belong to WebHut; files in custom\\ belong to you and are never overwritten.");
+            var page = Page("Apache · Virtual Hosts", "Sites Apache answers for. Generated files belong to ServNook; files in custom\\ belong to you and are never overwritten.");
             var s = Section(page, "globe", "Virtual host files", null);
             if (_vhosts.Count == 0) Add(s, Note("No virtual host files yet. Start Apache once to generate them."));
             foreach (var v in _vhosts)
             {
-                var head = Line(new Label { UseMnemonic = false, Text = v.Name, Font = Ui.Bold, ForeColor = Ui.Ink, AutoSize = true }, new Tag(v.Generated ? "Generated · WebHut" : "Custom · yours"));
+                var head = Line(new Label { UseMnemonic = false, Text = v.Name, Font = Ui.Bold, ForeColor = Ui.Ink, AutoSize = true }, new Tag(v.Generated ? "Generated · ServNook" : "Custom · yours"));
                 var vv = v;
                 var btn = Btn(v.Generated ? "View" : "Edit", "file", () => Sys.OpenInEditor(vv.Path), v.Generated ? "Generated files are rewritten on every start; copy a block into custom\\ to change it." : null);
                 Row(s, v.Generated ? "Managed" : "Yours", v.Generated ? "Regenerated from www\\ and node-apps.json; don't edit." : "Included after the generated hosts.", null,
                     Line(head, btn), Mono(v.Hosts.Count == 0 ? "(no ServerName)" : string.Join("  ", v.Hosts.Take(12)) + (v.Hosts.Count > 12 ? "  …" : ""), Ui.Muted));
                 foreach (var f in v.Findings) Add(s, Call(f.Warning ? CalloutKind.Warning : CalloutKind.Info, f.Text));
             }
-            var s2 = Section(page, "plus", "Add your own", "Creating custom\\<name>.conf for a folder in www\\ also stops WebHut generating that folder's host.");
+            var s2 = Section(page, "plus", "Add your own", "Creating custom\\<name>.conf for a folder in www\\ also stops ServNook generating that folder's host.");
             Add(s2, Line(Btn("New custom vhost…", "plus", NewVhost), Btn("Open custom folder", "folder", () => { Directory.CreateDirectory(Path.Combine(K.ApacheConf, "custom")); Sys.OpenFolder(Path.Combine(K.ApacheConf, "custom")); })));
             return page;
         }
@@ -919,10 +919,10 @@ namespace WebHut
             string file = Path.Combine(K.ApacheConf, "custom", name + ".conf");
             if (File.Exists(file)) { Sys.OpenInEditor(file); return; }
             Directory.CreateDirectory(Path.GetDirectoryName(file));
-            string doc = Directory.Exists(Path.Combine(K.Www, name)) ? "${WEBHUT_ROOT}/www/" + name : "${WEBHUT_ROOT}/www";
-            File.WriteAllText(file, ("# Custom virtual host - yours; WebHut never overwrites this file.\n<VirtualHost *:${WEBHUT_HTTP_PORT}>\n    ServerName " + name + ".localhost\n    DocumentRoot \"" + doc + "\"\n" +
-                "    <Directory \"" + doc + "\">\n        Options FollowSymLinks\n        AllowOverride All\n        <IfDefine WEBHUT_LAN>\n            Require ip 127.0.0.0/8 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16\n        </IfDefine>\n" +
-                "        <IfDefine !WEBHUT_LAN>\n            Require local\n        </IfDefine>\n    </Directory>\n</VirtualHost>\n").Replace("\n", "\r\n"));
+            string doc = Directory.Exists(Path.Combine(K.Www, name)) ? "${SERVNOOK_ROOT}/www/" + name : "${SERVNOOK_ROOT}/www";
+            File.WriteAllText(file, ("# Custom virtual host - yours; ServNook never overwrites this file.\n<VirtualHost *:${SERVNOOK_HTTP_PORT}>\n    ServerName " + name + ".localhost\n    DocumentRoot \"" + doc + "\"\n" +
+                "    <Directory \"" + doc + "\">\n        Options FollowSymLinks\n        AllowOverride All\n        <IfDefine SERVNOOK_LAN>\n            Require ip 127.0.0.0/8 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16\n        </IfDefine>\n" +
+                "        <IfDefine !SERVNOOK_LAN>\n            Require local\n        </IfDefine>\n    </Directory>\n</VirtualHost>\n").Replace("\n", "\r\n"));
             Log.Info("Created " + file + ". Restart Apache to use it.");
             Sys.OpenInEditor(file);
             Toast.Show(this, "Created custom\\" + name + ".conf. Restart Apache to use it.", ToastKind.Info);
@@ -953,10 +953,10 @@ namespace WebHut
             Add(s2, Note("Startup command:"));
             Add(s2, Mono("httpd.exe " + Services.Apache.Args()));
             var s3 = Section(page, "refresh", "Restore", "Restoring goes through Save, with the same validation and rollback. Custom vhosts are never touched.");
-            Add(s3, Line(Btn("Restore managed defaults", "refresh", RestoreApacheDefaults, "Threads, keep-alive, log level, listing, .htaccess, PHP mode and WebHut's modules back to WebHut's values"),
+            Add(s3, Line(Btn("Restore managed defaults", "refresh", RestoreApacheDefaults, "Threads, keep-alive, log level, listing, .htaccess, PHP mode and ServNook's modules back to ServNook's values"),
                          Btn("Replace httpd.conf with template…", "warning", () =>
                          {
-                             if (MessageBox.Show(this, "Replace httpd.conf with WebHut's template? Any hand edits in httpd.conf are lost (a backup is kept in config\\backups). Files in custom\\ are not affected.",
+                             if (MessageBox.Show(this, "Replace httpd.conf with ServNook's template? Any hand edits in httpd.conf are lost (a backup is kept in config\\backups). Files in custom\\ are not affected.",
                                  "Replace httpd.conf", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) != DialogResult.OK) return;
                              _e.ResetHttpd = true; OnChanged();
                              _status.Text = "●  httpd.conf will be replaced with the template when you save  ·  " + Effects();
@@ -1086,7 +1086,7 @@ namespace WebHut
 
         Control MyGeneral()
         {
-            var page = Page("MariaDB · General", "Settings come from three places: WebHut's startup arguments (they win), my.ini, and changes made while the server runs.");
+            var page = Page("MariaDB · General", "Settings come from three places: ServNook's startup arguments (they win), my.ini, and changes made while the server runs.");
             if (!_mi.Installed) page.Controls.Add(Call(CalloutKind.Warning, "MariaDB is not installed. Run setup first."));
             var s = Section(page, "server", "Server", null);
             var portNote = Note("");
@@ -1096,11 +1096,11 @@ namespace WebHut
                 portNote.Text = "Effective: --port=" + (_e.MysqlPort ?? Cfg.MysqlPort) + " (startup argument)" + (Services.MariaDb.IsRunning ? " · running on " + Services.MariaDb.ActivePort : " · stopped") +
                                 (_e.MysqlPort != null ? " · saving restarts MariaDB and Apache (phpMyAdmin follows)" : "");
             };
-            Row(s, "Port", "Default 3306. Update your apps' database settings after changing it.", "WebHut setting",
+            Row(s, "Port", "Default 3306. Update your apps' database settings after changing it.", "ServNook setting",
                 PortField(Cfg.MysqlPort, 1, v => { _e.MysqlPort = v == Cfg.MysqlPort ? (int?)null : v; OnChanged(); }, v => PortProblem(v, Cfg.MysqlPort, false), portNote), portNote);
             _refresh.Add(pt); pt();
-            Row(s, "Bind address", "MariaDB only accepts connections from this PC. Apache's network-access setting never changes this.", "WebHut security · read-only", Mono("127.0.0.1  (--bind-address startup argument)"));
-            Row(s, "Data directory", "Moving it isn't supported here; your databases are never moved or deleted.", "WebHut runtime · read-only",
+            Row(s, "Bind address", "MariaDB only accepts connections from this PC. Apache's network-access setting never changes this.", "ServNook security · read-only", Mono("127.0.0.1  (--bind-address startup argument)"));
+            Row(s, "Data directory", "Moving it isn't supported here; your databases are never moved or deleted.", "ServNook runtime · read-only",
                 Line(Mono(Shorten(K.MariaDbData)), Btn("Open folder", "folder", () => Sys.OpenFolder(K.MariaDbData))));
             Row(s, "Backup & restore", "Back up before risky changes. Backups are logical (mariadb-dump), not copies of live files.", null,
                 Line(Btn("Backup & restore…", "copy", () => { using (var d = new DatabaseForm()) d.ShowDialog(this); }), Btn("Back up now", "copy", BackupNow)));
@@ -1132,7 +1132,7 @@ namespace WebHut
             Row(s2, "Server collation", "How text is compared and sorted. Only collations of the selected character set are listed.", "my.ini [mysqld]", coll, MStatus(MariaCatalog.Get("mysqld.collation_server")));
             var client = CharsetDropdown(MariaCatalog.Get("client.default_character_set"));
             client.SelectedIndexChanged += (x, e) => EditMaria("client.default_character_set", client.SelectedItem);
-            Row(s2, "Client character set", "For WebHut's mariadb and mariadb-dump tools ([client] in my.ini). Your apps set their own connection character set.", "my.ini [client]", client, MStatus(MariaCatalog.Get("client.default_character_set")));
+            Row(s2, "Client character set", "For ServNook's mariadb and mariadb-dump tools ([client] in my.ini). Your apps set their own connection character set.", "my.ini [client]", client, MStatus(MariaCatalog.Get("client.default_character_set")));
             return page;
         }
 
@@ -1206,14 +1206,14 @@ namespace WebHut
             SizeRow(s, "mysqld.innodb_buffer_pool_size", "Buffer pool size", "Cache for table data and indexes. 256 MB suits most development work.", 5, 1048576, new[] { 128, 256, 512, 1024, 2048 });
             long ram = TotalRam();
             if (ram > 0)
-                Add(s, Call(CalloutKind.Info, "This PC has " + MariaCatalog.Human(ram - ram % (1L << 30)) + " of RAM. For development, 256 MB–1 GB is plenty; the usual \"70% of RAM\" advice is for dedicated database servers, not a laptop running a browser and an IDE. WebHut never changes this automatically."));
+                Add(s, Call(CalloutKind.Info, "This PC has " + MariaCatalog.Human(ram - ram % (1L << 30)) + " of RAM. For development, 256 MB–1 GB is plenty; the usual \"70% of RAM\" advice is for dedicated database servers, not a laptop running a browser and an IDE. ServNook never changes this automatically."));
             var s2 = Section(page, "file", "Redo log", null);
             var lf = MariaCatalog.Get("mysqld.innodb_log_file_size");
             SizeRow(s2, lf.Id, "Log file size", "Larger logs mean fewer checkpoints during big imports, but longer crash recovery.", 4, 524288, null);
             string verNote = _mi.Supports("innodb_log_file_size") == false ? "This MariaDB version doesn't have innodb_log_file_size."
                 : _mi.Dynamic("innodb_log_file_size") == true ? "MariaDB " + _mi.Version + " resizes the redo log while running (10.11 and later); no restart needed."
                 : _mi.Running ? "MariaDB " + _mi.Version + " needs a restart for this; it recreates the redo log automatically after a clean shutdown (10.5 and later)."
-                : "Whether it can change without a restart depends on the version; WebHut asks the server when it is running.";
+                : "Whether it can change without a restart depends on the version; ServNook asks the server when it is running.";
             Add(s2, Note(verNote));
             return page;
         }
@@ -1262,7 +1262,7 @@ namespace WebHut
                                                                       : "With 0, about the last second of committed transactions can be lost even if only MariaDB crashes.");
             };
             dd.SelectedIndexChanged += (x, e) => { EditMaria(fl.Id, dd.SelectedIndex == 1 ? "2" : dd.SelectedIndex == 2 ? "0" : "1"); fw(); };
-            Row(s, "Flush log at commit", "innodb_flush_log_at_trx_commit. WebHut's default is 1. With 1, commits are on disk before MariaDB answers, as far as the disk and Windows guarantee it.", "my.ini [mysqld]", dd, MStatus(fl));
+            Row(s, "Flush log at commit", "innodb_flush_log_at_trx_commit. ServNook's default is 1. With 1, commits are on disk before MariaDB answers, as far as the disk and Windows guarantee it.", "my.ini [mysqld]", dd, MStatus(fl));
             Add(s, flWarn); fw();
 
             var dw = MariaCatalog.Get("mysqld.innodb_doublewrite");
@@ -1282,7 +1282,7 @@ namespace WebHut
             var s2 = Section(page, "server", "Aria recovery", "Aria holds MariaDB's own system tables. These options decide what happens when an Aria table is found damaged at startup.");
             var ar = MariaCatalog.Get("mysqld.aria_recover_options");
             var presets = new[] { "BACKUP,QUICK", "BACKUP", "BACKUP,FORCE,QUICK", "NORMAL", "OFF" };
-            var labels = new[] { "BACKUP,QUICK — repair, keep a backup (WebHut default)", "BACKUP — repair fully, keep a backup", "BACKUP,FORCE,QUICK — repair even if rows are lost", "NORMAL — repair", "OFF — don't repair automatically" };
+            var labels = new[] { "BACKUP,QUICK — repair, keep a backup (ServNook default)", "BACKUP — repair fully, keep a backup", "BACKUP,FORCE,QUICK — repair even if rows are lost", "NORMAL — repair", "OFF — don't repair automatically" };
             var add = new Dropdown(Px(420));
             add.Items.AddRange(labels);
             string arCur = MariaCatalog.Norm("set", Cur(ar));
@@ -1297,18 +1297,18 @@ namespace WebHut
         Control MySecurity()
         {
             var page = Page("MariaDB · Security", "The root account, network exposure and other accounts.");
-            var s = Section(page, "key", "Root password", "The password is stored encrypted for your Windows account (DPAPI), never in my.ini, webhut.json or logs.");
+            var s = Section(page, "key", "Root password", "The password is stored encrypted for your Windows account (DPAPI), never in my.ini, servnook.json or logs.");
             bool none = string.IsNullOrEmpty(Cfg.MysqlRootPassword);
             var state = new Label { UseMnemonic = false, Text = Cfg.PasswordUnreadable ? "Saved password unreadable" : none ? "No password" : "Password set", Font = Ui.Bold, ForeColor = none || Cfg.PasswordUnreadable ? Ui.Amber : Ui.Green, AutoSize = true };
             var test = Note("");
-            Row(s, "Root account", "Used by phpMyAdmin, WebHut's backups and your apps.", "MariaDB accounts",
+            Row(s, "Root account", "Used by phpMyAdmin, ServNook's backups and your apps.", "MariaDB accounts",
                 Line(state, Btn(none ? "Set password…" : "Change password…", "key", ChangePassword), Btn("Test connection", "pulse", () => TestConnection(test))), test);
-            Row(s, "Saved password out of date?", "If the password was changed outside WebHut (or webhut.json came from another PC), enter the current one. WebHut checks it with MariaDB before saving it.", null,
+            Row(s, "Saved password out of date?", "If the password was changed outside ServNook (or servnook.json came from another PC), enter the current one. ServNook checks it with MariaDB before saving it.", null,
                 Btn("Enter current password…", "key", EnterSavedPassword));
             if (none) Add(s, Call(CalloutKind.Warning, "No root password is fine for a local-only setup, like XAMPP. Set one if other people use this PC."));
 
             var s2 = Section(page, "globe", "Network", null);
-            Row(s2, "Bind address", "WebHut starts MariaDB with --bind-address=127.0.0.1: only programs on this PC can connect. Turning on Apache's network access never changes this.", "WebHut security · read-only", Mono("127.0.0.1"));
+            Row(s2, "Bind address", "ServNook starts MariaDB with --bind-address=127.0.0.1: only programs on this PC can connect. Turning on Apache's network access never changes this.", "ServNook security · read-only", Mono("127.0.0.1"));
             var bind = _ini.Effective("bind_address");
             if (bind != null) Add(s2, Call(CalloutKind.Info, "my.ini sets bind-address = " + bind.Value + " (line " + (bind.Line + 1) + "). It has no effect: the startup argument wins. You can comment it out in Advanced."));
             Add(s2, Note("Remote database access isn't offered here: it needs firewall rules, a non-root user with limited privileges, and strong authentication. Connect over SSH or use a tunnel instead."));
@@ -1401,9 +1401,9 @@ namespace WebHut
         Control MyLogging()
         {
             var page = Page("MariaDB · Logging & Diagnostics", "Error log, slow query log and live server information.");
-            var s = Section(page, "logs", "Error log", "Set by WebHut's --log-error startup argument; a log-error line in my.ini would have no effect.");
+            var s = Section(page, "logs", "Error log", "Set by ServNook's --log-error startup argument; a log-error line in my.ini would have no effect.");
             string err = Services.MariaDb.LogFile;
-            Row(s, "Location", null, "WebHut runtime · read-only", Line(Btn("Open", "file", () => Sys.OpenInEditor(err)), Btn("Open folder", "folder", () => Sys.OpenFolder(K.Logs))), Mono(err, Ui.Muted));
+            Row(s, "Location", null, "ServNook runtime · read-only", Line(Btn("Open", "file", () => Sys.OpenInEditor(err)), Btn("Open folder", "folder", () => Sys.OpenFolder(K.Logs))), Mono(err, Ui.Muted));
             Add(s, new LogView(this, new[] { "mariadb.err" }, i => err, false));
 
             var s2 = Section(page, "pulse", "Slow query log", null);
@@ -1487,7 +1487,7 @@ namespace WebHut
             Add(s2, result);
 
             var s3 = Section(page, "key", "Where settings come from", "Highest priority first: startup arguments, then changes made while running (until restart), then my.ini, then MariaDB's defaults.");
-            Row(s3, "Port, bind address, data folder, error log, PID file", null, null, Mono("WebHut settings → startup arguments"));
+            Row(s3, "Port, bind address, data folder, error log, PID file", null, null, Mono("ServNook settings → startup arguments"));
             Row(s3, "Buffer pool, connections, packet size, durability, logs, character set", null, null, Mono("my.ini [mysqld] — this window"));
             Row(s3, "Client character set", null, null, Mono("my.ini [client]"));
             Row(s3, "Anything else in my.ini", null, null, Mono("Yours — kept exactly as written"));
@@ -1503,7 +1503,7 @@ namespace WebHut
             foreach (var en in _ini.Entries().Where(x => OptionFile.IsServerGroup(x.Section) && x.Section != "mysqld" && MariaCatalog.All.Any(m => m.Section == "mysqld" && m.Key == x.Key)))
                 Add(s3, Call(CalloutKind.Info, en.Key + " is set in [" + en.Section + "] (line " + (en.Line + 1) + "). That group is read after [mysqld], so this window shows it read-only; edit my.ini by hand."));
 
-            var s4 = Section(page, "refresh", "Restore", "Puts WebHut's values back for the settings in these pages; your other my.ini lines are kept. Goes through Save, with validation and rollback.");
+            var s4 = Section(page, "refresh", "Restore", "Puts ServNook's values back for the settings in these pages; your other my.ini lines are kept. Goes through Save, with validation and rollback.");
             Add(s4, Line(Btn("Restore managed defaults", "refresh", () =>
             {
                 foreach (var m in MariaCatalog.All)
@@ -1526,7 +1526,7 @@ namespace WebHut
             }
             else if (_mi.NextStart != null && _mi.NextStart.Vars.Count > 0)
             {
-                sb.AppendLine("# MariaDB is stopped. Values it would start with (my.ini + WebHut's startup arguments, from mariadbd --help --verbose).");
+                sb.AppendLine("# MariaDB is stopped. Values it would start with (my.ini + ServNook's startup arguments, from mariadbd --help --verbose).");
                 foreach (var kv in _mi.NextStart.Vars.OrderBy(k => k.Key)) sb.AppendLine(kv.Key.PadRight(48) + kv.Value);
             }
             else sb.AppendLine("No information available (is MariaDB installed?).");

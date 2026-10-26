@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
-    /// Controlled editing of WebHut's httpd.conf. Only specific directives are touched, in place, keeping
+    /// Controlled editing of ServNook's httpd.conf. Only specific directives are touched, in place, keeping
     /// indentation, comments, unknown directives, ordering and line endings.
     /// </summary>
     public class ApacheConfFile
@@ -35,9 +35,9 @@ namespace WebHut
         public string Newline = "\r\n";
         bool _trailing = true;
 
-        public const string DotfilesBegin = "# BEGIN WebHut: protect dotfiles";
-        public const string DotfilesEnd = "# END WebHut: protect dotfiles";
-        public const string ConnHeader = "# --- Connections (set by WebHut's server configuration) ---";
+        public const string DotfilesBegin = "# BEGIN ServNook: protect dotfiles";
+        public const string DotfilesEnd = "# END ServNook: protect dotfiles";
+        public const string ConnHeader = "# --- Connections (set by ServNook's server configuration) ---";
 
         public static ApacheConfFile Load(string path) { return Parse(File.ReadAllText(path, new UTF8Encoding(false))); }
 
@@ -169,7 +169,7 @@ namespace WebHut
 
         // ------------------------------------------------------------------ the www <Directory> block
 
-        static readonly Regex WwwHeader = new Regex(@"^<Directory\s+""?\$\{WEBHUT_ROOT\}/www/?""?\s*>$", RegexOptions.IgnoreCase);
+        static readonly Regex WwwHeader = new Regex(@"^<Directory\s+""?\$\{SERVNOOK_ROOT\}/www/?""?\s*>$", RegexOptions.IgnoreCase);
 
         Directive WwwDirective(string name)
         {
@@ -237,7 +237,7 @@ namespace WebHut
 
         // ------------------------------------------------------------------ PHP mode
 
-        static readonly Regex FcgidDefine = new Regex(@"^(\s*)(#\s*)?Define\s+WEBHUT_PHP_FCGID\b(.*)$", RegexOptions.IgnoreCase);
+        static readonly Regex FcgidDefine = new Regex(@"^(\s*)(#\s*)?Define\s+SERVNOOK_PHP_FCGID\b(.*)$", RegexOptions.IgnoreCase);
 
         public bool Fcgid
         {
@@ -250,12 +250,12 @@ namespace WebHut
             if (i < 0)
             {
                 if (!on) return;
-                Lines.Insert(InsertPoint(), "Define WEBHUT_PHP_FCGID 1");
+                Lines.Insert(InsertPoint(), "Define SERVNOOK_PHP_FCGID 1");
                 return;
             }
             var m = FcgidDefine.Match(Lines[i]);
             string rest = m.Groups[3].Value.Trim().Length == 0 ? " 1" : m.Groups[3].Value;
-            Lines[i] = m.Groups[1].Value + (on ? "" : "#") + "Define WEBHUT_PHP_FCGID" + rest;
+            Lines[i] = m.Groups[1].Value + (on ? "" : "#") + "Define SERVNOOK_PHP_FCGID" + rest;
         }
 
         // ------------------------------------------------------------------ ServerName host
@@ -273,9 +273,9 @@ namespace WebHut
 
         public void SetServerHost(string host)
         {
-            var a = TopArgs("ServerName") ?? "localhost:${WEBHUT_HTTP_PORT}";
+            var a = TopArgs("ServerName") ?? "localhost:${SERVNOOK_HTTP_PORT}";
             int c = a.LastIndexOf(':');
-            SetTop("ServerName", host + (c > 0 ? a.Substring(c) : ":${WEBHUT_HTTP_PORT}"));
+            SetTop("ServerName", host + (c > 0 ? a.Substring(c) : ":${SERVNOOK_HTTP_PORT}"));
         }
 
         // ------------------------------------------------------------------ dotfile protection (managed block)
@@ -289,7 +289,7 @@ namespace WebHut
             {
                 if (b < 0) return;
                 int e = Lines.FindIndex(b, l => l.Trim() == DotfilesEnd);
-                if (e < 0) throw new InvalidOperationException("The WebHut dotfile block in httpd.conf has no END line; edit it by hand.");
+                if (e < 0) throw new InvalidOperationException("The ServNook dotfile block in httpd.conf has no END line; edit it by hand.");
                 Lines.RemoveRange(b, e - b + 1);
                 return;
             }
@@ -399,7 +399,7 @@ namespace WebHut
 
         public bool MpmIsWinnt { get { return Mpm.IndexOf("winnt", StringComparison.OrdinalIgnoreCase) >= 0; } }
 
-        public static ApacheInfo Probe(WebHutConfig cfg)
+        public static ApacheInfo Probe(ServNookConfig cfg)
         {
             var a = new ApacheInfo { Installed = File.Exists(K.Httpd) };
             string mods = Path.Combine(K.Apache, "modules");
@@ -459,10 +459,10 @@ namespace WebHut
                         if (m.Success) v.Hosts.AddRange(m.Groups[1].Value.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries));
                         if (Regex.IsMatch(t, @"^Require\s+all\s+granted\b", RegexOptions.IgnoreCase))
                             v.Findings.Add(new VhostFinding { File = v.Name, Line = i + 1, Warning = lan, Text = lan
-                                ? "Line " + (i + 1) + ": \"Require all granted\" lets any device that can reach this PC open it while network access is on. Use \"Require local\" or the private-network rule WebHut generates."
+                                ? "Line " + (i + 1) + ": \"Require all granted\" lets any device that can reach this PC open it while network access is on. Use \"Require local\" or the private-network rule ServNook generates."
                                 : "Line " + (i + 1) + ": \"Require all granted\" — fine while network access is off (Apache listens on 127.0.0.1 only), but it opens this site to any device once network access is on." });
                         if (Regex.IsMatch(t, @"^Listen\s+", RegexOptions.IgnoreCase))
-                            v.Findings.Add(new VhostFinding { File = v.Name, Line = i + 1, Warning = true, Text = "Line " + (i + 1) + ": \"" + t + "\" opens an extra port that WebHut's network-access setting doesn't control." + (t.Contains("127.0.0.1") ? "" : " Bind it to 127.0.0.1 to keep it local.") });
+                            v.Findings.Add(new VhostFinding { File = v.Name, Line = i + 1, Warning = true, Text = "Line " + (i + 1) + ": \"" + t + "\" opens an extra port that ServNook's network-access setting doesn't control." + (t.Contains("127.0.0.1") ? "" : " Bind it to 127.0.0.1 to keep it local.") });
                     }
                     v.Hosts = v.Hosts.Distinct().ToList();
                     list.Add(v);

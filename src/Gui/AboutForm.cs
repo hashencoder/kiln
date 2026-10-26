@@ -9,12 +9,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
-    /// <summary>About WebHut: logo, version, what's included, the install folder, license and the project page.</summary>
+    /// <summary>About ServNook: logo, version, what's included, the install folder, license and the project page.</summary>
     public class AboutForm : Form
     {
-        const string Repo = "https://github.com/hashencoder/webhut";
+        const string Repo = "https://github.com/hashencoder/servnook";
         static int Px(float v) { return Ui.Px(v); }
         readonly Label _update;
         readonly LinkLabel _download;
@@ -25,7 +25,7 @@ namespace WebHut
         {
             Ui.Style(this);
             AutoScaleMode = AutoScaleMode.None;
-            Text = "About WebHut";
+            Text = "About ServNook";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
@@ -41,7 +41,7 @@ namespace WebHut
             hero.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             hero.Controls.Add(new Logo(Px(56)) { Margin = new Padding(0, Px(2), 0, 0) }, 0, 0);
             var titles = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0) };
-            titles.Controls.Add(new Label { Text = "WebHut", Font = Ui.Title, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0, 0, 0, Px(4)) });
+            titles.Controls.Add(new Label { Text = "ServNook", Font = Ui.Title, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0, 0, 0, Px(4)) });
             var badges = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0) };
             badges.Controls.Add(new Chip("Version " + K.AppVersion, null, ChipKind.Accent) { Margin = new Padding(0, 0, Px(6), 0) });
             badges.Controls.Add(new Chip("Open source", null, ChipKind.Green) { Margin = new Padding(0) });
@@ -124,8 +124,8 @@ namespace WebHut
         static string Ver(string dir)
         {
             if (!Directory.Exists(dir)) return null;
-            var v = WebHutConfig.FullVersion(dir);
-            // Without the .webhut-version marker FullVersion falls back to the folder name.
+            var v = ServNookConfig.FullVersion(dir);
+            // Without the .servnook-version marker FullVersion falls back to the folder name.
             return v == Path.GetFileName(dir) && !char.IsDigit(v.Length > 0 ? v[0] : 'x') ? "installed" : v;
         }
 
@@ -156,8 +156,8 @@ namespace WebHut
             Task.Run(() =>
             {
                 Sys.EnableModernTls();
-                var req = (HttpWebRequest)WebRequest.Create("https://api.github.com/repos/hashencoder/webhut/releases/latest");
-                req.UserAgent = "WebHut/" + K.AppVersion;
+                var req = (HttpWebRequest)WebRequest.Create("https://api.github.com/repos/hashencoder/servnook/releases/latest");
+                req.UserAgent = "ServNook/" + K.AppVersion;
                 req.Accept = "application/vnd.github+json";
                 req.Timeout = 8000;
                 using (var resp = req.GetResponse())
@@ -167,9 +167,9 @@ namespace WebHut
             {
                 if (IsDisposed) return;
                 if (t.IsFaulted || string.IsNullOrEmpty(t.Result)) { _update.Text = "Couldn't check for updates (offline?)"; return; }
-                if (WebHutConfig.VersionKey(t.Result) > WebHutConfig.VersionKey(K.AppVersion))
+                if (ServNookConfig.VersionKey(t.Result) > ServNookConfig.VersionKey(K.AppVersion))
                 {
-                    _update.Text = "WebHut " + t.Result.TrimStart('v') + " is available";
+                    _update.Text = "ServNook " + t.Result.TrimStart('v') + " is available";
                     _update.ForeColor = Ui.AccentInk;
                     _update.Font = Ui.SmallBold;
                     _download.Visible = true;
@@ -182,7 +182,7 @@ namespace WebHut
         {
             var cfg = Services.Cfg;
             var sb = new StringBuilder();
-            sb.AppendLine("WebHut " + K.AppVersion);
+            sb.AppendLine("ServNook " + K.AppVersion);
             sb.AppendLine("Windows " + Environment.OSVersion.Version + (Environment.Is64BitOperatingSystem ? " x64" : "") + " · .NET " + Environment.Version);
             sb.AppendLine("Folder: " + K.Root);
             foreach (var c in comps) sb.AppendLine(c[0] + ": " + (c[1] ?? "not installed"));

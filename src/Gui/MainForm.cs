@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     public class MainForm : Form
     {
@@ -40,7 +40,7 @@ namespace WebHut
         bool _exiting, _refreshing, _trayHintShown;
         bool _anyRunning, _sequenceRunning;
 
-        WebHutConfig Cfg { get { return Services.Cfg; } }
+        ServNookConfig Cfg { get { return Services.Cfg; } }
 
         static int Px(float v) { return Ui.Px(v); }
 
@@ -48,7 +48,7 @@ namespace WebHut
         {
             Ui.Style(this);
             AutoScaleMode = AutoScaleMode.None; // every size below is already in physical pixels (Ui.Px)
-            Text = "WebHut";
+            Text = "ServNook";
             // Design size, capped to the screen's work area (e.g. 1920x1080 at 125% is only ~1536x830 "design" pixels).
             var wa = Screen.PrimaryScreen.WorkingArea;
             ClientSize = new Size(Math.Min(Px(1320), wa.Width - Px(24)), Math.Min(Px(770), wa.Height - Px(48)));
@@ -154,7 +154,7 @@ namespace WebHut
             brand.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
             var logo = new Logo(Px(42)) { Margin = new Padding(0, Px(4), 0, 0) };
             brand.Controls.Add(logo, 0, 0); brand.SetRowSpan(logo, 2);
-            brand.Controls.Add(new Label { Text = "WebHut", Font = Ui.Brand, ForeColor = Ui.Ink, AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Bottom, Margin = new Padding(0) }, 1, 0);
+            brand.Controls.Add(new Label { Text = "ServNook", Font = Ui.Brand, ForeColor = Ui.Ink, AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Bottom, Margin = new Padding(0) }, 1, 0);
             brand.Controls.Add(new Label { Text = "v" + K.AppVersion, Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Top, Margin = new Padding(Px(1), 0, 0, 0) }, 1, 1);
 
             // Places, not actions: the everyday actions live in Quick Actions on the dashboard.
@@ -179,13 +179,13 @@ namespace WebHut
             var minor = new TableLayoutPanel { Width = w, Height = Px(40), ColumnCount = 2, RowCount = 1, BackColor = Ui.Sidebar, Margin = new Padding(0, Px(4), 0, 0) };
             minor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             minor.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            var quit = new IconButton("Quit WebHut", "power", ButtonKind.Ghost) { IconColor = Ui.Faint, Font = Ui.Small, Margin = new Padding(0), Anchor = AnchorStyles.Left };
+            var quit = new IconButton("Quit ServNook", "power", ButtonKind.Ghost) { IconColor = Ui.Faint, Font = Ui.Small, Margin = new Padding(0), Anchor = AnchorStyles.Left };
             quit.Click += (s, e) => ExitApp();
-            _tips.SetToolTip(quit, "Close WebHut completely (asks whether to stop running servers)");
+            _tips.SetToolTip(quit, "Close ServNook completely (asks whether to stop running servers)");
             var about = new IconButton("", "info", ButtonKind.Ghost) { IconColor = Ui.Faint, Margin = new Padding(0), Anchor = AnchorStyles.Right };
             about.SetMin(Px(36), Px(34));
             about.Click += (s, e) => ShowAbout();
-            _tips.SetToolTip(about, "About WebHut");
+            _tips.SetToolTip(about, "About ServNook");
             minor.Controls.Add(quit, 0, 0); minor.Controls.Add(about, 1, 0);
             bottom.Controls.Add(minor);
 
@@ -258,7 +258,7 @@ namespace WebHut
             {
                 new PopupItem { Title = "Apache error log", Icon = "file", Act = () => Sys.OpenInEditor(Services.Apache.LogFile) },
                 new PopupItem { Title = "MariaDB log", Icon = "file", Act = () => Sys.OpenInEditor(Services.MariaDb.LogFile) },
-                new PopupItem { Title = "WebHut log", Icon = "file", Act = () => Sys.OpenInEditor(Path.Combine(K.Logs, "webhut.log")) },
+                new PopupItem { Title = "ServNook log", Icon = "file", Act = () => Sys.OpenInEditor(Path.Combine(K.Logs, "servnook.log")) },
                 PopupItem.Line(),
                 new PopupItem { Title = "Open logs folder", Icon = "folder", Act = () => Sys.OpenFolder(K.Logs) }
             }, Px(250));
@@ -500,7 +500,7 @@ namespace WebHut
                 name.Controls.Add(new Label { Text = e[2], Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0, Px(2), 0, 0), UseMnemonic = false });
                 _enginesGrid.Controls.Add(name, 0, i);
                 string dir = id == "mysql" ? K.MySql : id == "postgresql" ? K.PgSql : id == "mongodb" ? K.Mongo : id == "mongosh" ? K.Mongosh : K.Adminer;
-                _enginesGrid.Controls.Add(Cell(have ? WebHutConfig.FullVersion(dir) : "not added", have ? Ui.Mono : Ui.Small, have ? Ui.Ink : Ui.Faint), 1, i);
+                _enginesGrid.Controls.Add(Cell(have ? ServNookConfig.FullVersion(dir) : "not added", have ? Ui.Mono : Ui.Small, have ? Ui.Ink : Ui.Faint), 1, i);
                 string port = id == "mysql" ? Cfg.MySqlPort.ToString() : id == "postgresql" ? Cfg.PgPort.ToString() : id == "mongodb" ? Cfg.MongoPort.ToString() : "";
                 _enginesGrid.Controls.Add(Cell(port, Ui.Mono, Ui.Muted), 2, i);
 
@@ -510,7 +510,7 @@ namespace WebHut
                 {
                     act = new IconButton("Add", "plus", ButtonKind.Outline) { IconColor = Ui.NavInk };
                     act.Click += (s, ev) => AddEngine(id);
-                    _tips.SetToolTip(act, "Download the official " + e[1] + " build and set it up in WebHut");
+                    _tips.SetToolTip(act, "Download the official " + e[1] + " build and set it up in ServNook");
                 }
                 else if (id == "adminer")
                 {
@@ -522,7 +522,7 @@ namespace WebHut
                 {
                     act = new IconButton("Shell", "terminal", ButtonKind.Outline) { IconColor = Ui.NavInk };
                     act.Click += (s, ev) => Services.OpenShell();
-                    _tips.SetToolTip(act, "Open WebHut's shell; run mongosh there");
+                    _tips.SetToolTip(act, "Open ServNook's shell; run mongosh there");
                 }
                 else
                 {
@@ -592,7 +592,7 @@ namespace WebHut
         {
             if (_dbGrid == null || _dbLoading) return;
             bool up = Services.MariaDb.IsRunning;
-            _dbSub.Text = "MariaDB " + WebHutConfig.FullVersion(K.MariaDb) + " on 127.0.0.1:" + Cfg.MysqlPort + "  ·  only this PC can connect  ·  root " + (string.IsNullOrEmpty(Cfg.MysqlRootPassword) ? "has no password" : "password set");
+            _dbSub.Text = "MariaDB " + ServNookConfig.FullVersion(K.MariaDb) + " on 127.0.0.1:" + Cfg.MysqlPort + "  ·  only this PC can connect  ·  root " + (string.IsNullOrEmpty(Cfg.MysqlRootPassword) ? "has no password" : "password set");
             _dbStatus.Set(up ? PillState.Running : PillState.Stopped, up ? "MariaDB running" : "MariaDB stopped");
             _pmaBtn.Enabled = up && Services.Apache.IsRunning;
             _tips.SetToolTip(_pmaBtn, _pmaBtn.Enabled ? "Open http://localhost/phpmyadmin" : "Start Apache and MariaDB first");
@@ -715,7 +715,7 @@ namespace WebHut
             t.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
             var titles = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(0), BackColor = Ui.Bg };
-            titles.Controls.Add(new Label { Text = "WebHut", Font = Ui.H1, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
+            titles.Controls.Add(new Label { Text = "ServNook", Font = Ui.H1, ForeColor = Ui.Ink, AutoSize = true, Margin = new Padding(0) });
             _sub = new Label { Text = "", Font = Ui.Base, ForeColor = Ui.Muted, AutoSize = true, AutoEllipsis = true, Margin = new Padding(Px(2), Px(2), 0, 0) };
             titles.Controls.Add(_sub);
 
@@ -1076,7 +1076,7 @@ namespace WebHut
 
         void OnLoad(object sender, EventArgs e)
         {
-            Log.Info("WebHut " + K.AppVersion + " · " + K.Root);
+            Log.Info("ServNook " + K.AppVersion + " · " + K.Root);
             try { new Installer(Cfg).RelocateIfMoved(); } catch (Exception ex) { Log.Error(ex.Message); }
             UpdateSubtitle();
             BuildRows();
@@ -1091,8 +1091,8 @@ namespace WebHut
 
         void UpdateSubtitle()
         {
-            _sub.Text = K.Root + "   ·   PHP " + (string.IsNullOrEmpty(Cfg.Php) ? "-" : WebHutConfig.FullVersion(Cfg.PhpDir)) +
-                        "   ·   Node " + (Cfg.NodeDir == null ? "-" : WebHutConfig.FullVersion(Cfg.NodeDir));
+            _sub.Text = K.Root + "   ·   PHP " + (string.IsNullOrEmpty(Cfg.Php) ? "-" : ServNookConfig.FullVersion(Cfg.PhpDir)) +
+                        "   ·   Node " + (Cfg.NodeDir == null ? "-" : ServNookConfig.FullVersion(Cfg.NodeDir));
             if (Cfg.LanAccess)
             {
                 var ips = Sys.LanAddresses();
@@ -1132,7 +1132,7 @@ namespace WebHut
                         r.Open.Enabled = running && (r.Svc == Services.Apache || r.Svc is MongoService || Services.Apache.IsRunning || (r.Svc is DbServerService && !Engines.AdminerInstalled));
                     }
                     int up = t.Result.Count(x => x.pid > 0), total = t.Result.Count;
-                    _tray.Text = "WebHut - " + up + " of " + total + " running";
+                    _tray.Text = "ServNook - " + up + " of " + total + " running";
                     bool failed = rows.Any(r => r.Failed);
                     if (!_sequenceRunning)
                     {
@@ -1331,9 +1331,9 @@ namespace WebHut
         void BuildTray()
         {
             _tray.Icon = Ui.AppIcon;
-            _tray.Text = "WebHut";
+            _tray.Text = "ServNook";
             _tray.Visible = true;
-            // WebHut's own menu (same look as the rest of the app) instead of the plain Windows one.
+            // ServNook's own menu (same look as the rest of the app) instead of the plain Windows one.
             _tray.MouseUp += (s, e) => { if (e.Button == MouseButtons.Right) ShowTrayMenu(); };
             _tray.DoubleClick += (s, e) => ShowFromTray();
         }
@@ -1345,9 +1345,9 @@ namespace WebHut
             bool busy = _sequenceRunning || svcs.Any(x => x.Busy);
             string state = busy ? "Working…" : running == 0 ? "All services stopped" : running == svcs.Count ? "All services running" : running + " of " + svcs.Count + " services running";
             bool pma = Services.Apache.IsRunning && Services.MariaDb.IsRunning;
-            PopupMenu.ShowAt(Cursor.Position, "WebHut  ·  " + state, new List<PopupItem>
+            PopupMenu.ShowAt(Cursor.Position, "ServNook  ·  " + state, new List<PopupItem>
             {
-                new PopupItem { Title = "Open WebHut", Description = "Show the control panel", Icon = "home", Act = ShowFromTray },
+                new PopupItem { Title = "Open ServNook", Description = "Show the control panel", Icon = "home", Act = ShowFromTray },
                 new PopupItem { Title = _anyRunning ? "Stop all" : "Start all", Description = _anyRunning ? "Apache, MariaDB and Node apps" : "Apache, MariaDB and auto-start apps",
                                 Icon = _anyRunning ? "stop" : "play", Enabled = !busy, Act = ToggleAll },
                 PopupItem.Line(),
@@ -1355,7 +1355,7 @@ namespace WebHut
                 new PopupItem { Title = "phpMyAdmin", Description = pma ? "Manage databases in your browser" : "Start Apache and MariaDB first", Icon = "database", Enabled = pma, Act = () => Sys.OpenUrl(Services.MariaDb.Url) },
                 new PopupItem { Title = "www folder", Description = "Open your sites in Explorer", Icon = "folder", Act = () => Sys.OpenFolder(K.Www) },
                 PopupItem.Line(),
-                new PopupItem { Title = "Quit WebHut", Description = "Close WebHut completely", Icon = "power", Danger = true, Act = ExitApp }
+                new PopupItem { Title = "Quit ServNook", Description = "Close ServNook completely", Icon = "power", Danger = true, Act = ExitApp }
             }, Px(290));
         }
 
@@ -1381,7 +1381,7 @@ namespace WebHut
                     dbs.AddRange(Engines.InstalledServices());
                     if (dbs.Any(d => d.IsRunning))
                     {
-                        Native.BlockShutdown(Handle, "WebHut is stopping the databases safely...");
+                        Native.BlockShutdown(Handle, "ServNook is stopping the databases safely...");
                         if (Services.MariaDb.IsRunning) Services.MariaDb.StopForShutdown();
                         foreach (var d in dbs.Skip(1)) { try { if (d.IsRunning) d.Stop(); } catch (Exception ex) { Log.Error(d.Title + ": " + ex.Message); } }
                     }
@@ -1397,7 +1397,7 @@ namespace WebHut
                 if (!_trayHintShown)
                 {
                     _trayHintShown = true;
-                    _tray.ShowBalloonTip(3000, "WebHut is still running", "Your servers keep running. To close WebHut completely, use Quit WebHut.", ToolTipIcon.Info);
+                    _tray.ShowBalloonTip(3000, "ServNook is still running", "Your servers keep running. To close ServNook completely, use Quit ServNook.", ToolTipIcon.Info);
                 }
                 return;
             }
@@ -1408,7 +1408,7 @@ namespace WebHut
         /// <summary>Close the panel for an update or uninstall; servers keep running (no questions asked).</summary>
         void QuitForInstaller()
         {
-            Log.Info("WebHut was asked to close by its installer; servers keep running.");
+            Log.Info("ServNook was asked to close by its installer; servers keep running.");
             _exiting = true;
             _tray.Visible = false;
             _tray.Dispose();
@@ -1435,7 +1435,7 @@ namespace WebHut
             {
                 if (!Visible) ShowFromTray();
                 var answer = MessageBox.Show(this, "Stop all servers before quitting?\n\nYes - stop them\nNo - leave them running in the background",
-                    "Quit WebHut", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                    "Quit ServNook", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                 if (answer == DialogResult.Cancel) return;
                 if (answer == DialogResult.Yes)
                 {

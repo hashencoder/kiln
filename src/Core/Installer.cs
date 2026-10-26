@@ -10,16 +10,16 @@ using System.Text;
 using System.Threading;
 using Microsoft.Win32;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>Downloads, verifies, unpacks and configures components.</summary>
     public class Installer
     {
-        public WebHutConfig Cfg;
+        public ServNookConfig Cfg;
         /// <summary>(message, percent 0-100 or -1 when unknown)</summary>
         public event Action<string, int> Progress;
 
-        public Installer(WebHutConfig cfg) { Cfg = cfg; }
+        public Installer(ServNookConfig cfg) { Cfg = cfg; }
 
         void Report(string msg, int pct) { var h = Progress; if (h != null) h(msg, pct); }
 
@@ -27,7 +27,7 @@ namespace WebHut
 
         public static bool IsInstalled()
         {
-            return File.Exists(K.Httpd) && WebHutConfig.InstalledPhp().Count > 0;
+            return File.Exists(K.Httpd) && ServNookConfig.InstalledPhp().Count > 0;
         }
 
         public void CreateFolders()
@@ -111,7 +111,7 @@ namespace WebHut
 
         static void WriteVersion(string dir, string version)
         {
-            try { File.WriteAllText(Path.Combine(dir, ".webhut-version"), version ?? ""); } catch { }
+            try { File.WriteAllText(Path.Combine(dir, ".servnook-version"), version ?? ""); } catch { }
         }
 
         // ------------------------------------------------------------------ download
@@ -133,7 +133,7 @@ namespace WebHut
             Log.Info("Downloading " + c.Url);
 
             var req = (HttpWebRequest)WebRequest.Create(c.Url);
-            req.UserAgent = "WebHut/" + K.AppVersion + " (portable dev stack for Windows)";
+            req.UserAgent = "ServNook/" + K.AppVersion + " (portable dev stack for Windows)";
             req.Timeout = 60000;
             req.ReadWriteTimeout = 60000;
             req.AllowAutoRedirect = true;
@@ -291,7 +291,7 @@ namespace WebHut
 
         // ------------------------------------------------------------------ config files
 
-        /// <summary>A WebHut template file as shipped (e.g. "config/apache/httpd.conf").</summary>
+        /// <summary>A ServNook template file as shipped (e.g. "config/apache/httpd.conf").</summary>
         public static string Template(string name) { return Resource(name).Replace("\r\n", "\n").Replace("\n", "\r\n"); }
 
         static string Resource(string name)
@@ -310,7 +310,7 @@ namespace WebHut
             File.WriteAllText(path, text.Replace("\r\n", "\n").Replace("\n", "\r\n"), new UTF8Encoding(false));
         }
 
-        /// <summary>Write WebHut's config files. Existing files are kept unless overwrite is true.</summary>
+        /// <summary>Write ServNook's config files. Existing files are kept unless overwrite is true.</summary>
         public void WriteConfigFiles(bool overwrite)
         {
             var files = new[]
@@ -329,16 +329,17 @@ namespace WebHut
             else UpgradeDashboard(dashboard);
         }
 
-        /// <summary>SHA-256 of earlier WebHut dashboards exactly as shipped (line endings normalised).</summary>
+        /// <summary>SHA-256 of earlier ServNook dashboards exactly as shipped (line endings normalised).</summary>
         static readonly string[] OldDashboards =
         {
             "56abdca7b9ac08fafd976c1398eeab2be71d94f1600fb273c6124510624bb407",
             "6457cb4247b3e250a57d0220c3fb2bf15cca223a911a7fe9a61065bcc5f36c89",
             "7de87c19cbdf130470714b003235627d6ec897b6e47ff6a7a8ef08abca277dab",
             "da58a6df67af604e7b4a827a852e7dde9f6abda0b047b3091f461b6473dd6876",   // 1.6.3-1.6.4 (old flame logo)
+            "8d492b0ecf13a4a0695c872713bd340891d14ccbf209dfc89ac92395837344e1",   // 1.6.5 (WebHut name)
         };
 
-        /// <summary>Replace an unmodified older WebHut dashboard (www\index.php) with the current one. Edited files are left alone.</summary>
+        /// <summary>Replace an unmodified older ServNook dashboard (www\index.php) with the current one. Edited files are left alone.</summary>
         public static bool UpgradeDashboard(string file)
         {
             try
@@ -350,7 +351,7 @@ namespace WebHut
                     hash = BitConverter.ToString(sha.ComputeHash(new UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant();
                 if (!OldDashboards.Contains(hash)) return false;
                 WriteText(file, Resource("www/index.php"));
-                Log.Info("Updated the WebHut dashboard (www\\index.php) to the new design.");
+                Log.Info("Updated the ServNook dashboard (www\\index.php) to the new design.");
                 return true;
             }
             catch (Exception e) { Log.Warn("Couldn't update www\\index.php: " + e.Message); return false; }
@@ -370,7 +371,7 @@ namespace WebHut
             if (File.Exists(Path.Combine(ext, "php_opcache.dll"))) lines.Add("zend_extension = opcache");
 
             string ini = Resource("php/php.ini.template")
-                .Replace("{{WEBHUT_ROOT}}", K.RootFwd)
+                .Replace("{{SERVNOOK_ROOT}}", K.RootFwd)
                 .Replace("{{PHP_DIR}}", K.Fwd(phpDir))
                 .Replace("{{TIMEZONE}}", Sys.IanaTimeZone())
                 .Replace("{{EXTENSIONS}}", string.Join("\n", lines));
@@ -434,22 +435,22 @@ namespace WebHut
 
         // ------------------------------------------------------------------ relocation
 
-        /// <summary>If the WebHut folder was moved or copied, fix the absolute root path stored in php.ini files.</summary>
+        /// <summary>If the ServNook folder was moved or copied, fix the absolute root path stored in php.ini files.</summary>
         public void RelocateIfMoved()
         {
             string now = K.RootFwd;
-            foreach (var v in WebHutConfig.InstalledPhp())
+            foreach (var v in ServNookConfig.InstalledPhp())
             {
                 var ini = Path.Combine(K.PhpDir(v), "php.ini");
                 if (!File.Exists(ini)) continue;
                 var text = File.ReadAllText(ini);
-                // Prefer the root recorded in webhut.json; fall back to the marker line in php.ini
-                // (covers bundles shipped without webhut.json).
+                // Prefer the root recorded in servnook.json; fall back to the marker line in php.ini
+                // (covers bundles shipped without servnook.json).
                 string old = Cfg.LastRoot;
-                var marker = System.Text.RegularExpressions.Regex.Match(text, @";\s*webhut-root:\s*(\S+)");
+                var marker = System.Text.RegularExpressions.Regex.Match(text, @";\s*(?:servnook|webhut)-root:\s*(\S+)");
                 if (marker.Success) old = marker.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(old) || old.Equals(now, StringComparison.OrdinalIgnoreCase)) continue;
-                Log.Info("WebHut folder moved from " + old + " to " + now + " - updating " + ini);
+                Log.Info("ServNook folder moved from " + old + " to " + now + " - updating " + ini);
                 var fixedText = System.Text.RegularExpressions.Regex.Replace(text,
                     System.Text.RegularExpressions.Regex.Escape(old), now.Replace("$", "$$"),
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase);

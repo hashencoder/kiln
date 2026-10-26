@@ -4,22 +4,22 @@ All settings are plain text files you can edit in any editor. The common Apache 
 
 | File | What it controls | Who writes it |
 |---|---|---|
-| `webhut.json` | Active PHP/Node versions, ports, root password, panel behavior | WebHut (Settings window); safe to hand-edit while WebHut is closed |
-| `node-apps.json` | Node apps | WebHut (Node apps window); safe to hand-edit |
+| `servnook.json` | Active PHP/Node versions, ports, root password, panel behavior | ServNook (Settings window); safe to hand-edit while ServNook is closed |
+| `node-apps.json` | Node apps | ServNook (Node apps window); safe to hand-edit |
 | `config\apache\httpd.conf` | Apache core config | Created once at setup; yours to edit |
 | `config\apache\default-vhost.conf` | `http://localhost` and `/phpmyadmin` | Created once; yours to edit |
 | `config\apache\php-mod.conf`, `php-fcgid.conf` | How Apache runs PHP | Created once; yours to edit |
-| `config\apache\generated\*.conf` | One vhost per `www\` folder and per Node app | **Regenerated** by WebHut; don't edit |
-| `config\apache\custom\*.conf` | Your own vhosts and overrides | You; never touched by WebHut |
+| `config\apache\generated\*.conf` | One vhost per `www\` folder and per Node app | **Regenerated** by ServNook; don't edit |
+| `config\apache\custom\*.conf` | Your own vhosts and overrides | You; never touched by ServNook |
 | `php\<branch>\php.ini` | PHP settings for that version | Created when the version is installed; kept across PHP updates |
 | `config\mariadb\my.ini` | MariaDB settings | Created once; yours to edit |
-| `apps\phpmyadmin\config.inc.php` | phpMyAdmin | Created once; WebHut updates only the port and `AllowNoPassword` |
+| `apps\phpmyadmin\config.inc.php` | phpMyAdmin | Created once; ServNook updates only the port and `AllowNoPassword` |
 
-After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or `whut restart apache`). WebHut runs `httpd -t` before every start and shows Apache's exact error if the config is invalid.
+After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or `snook restart apache`). ServNook runs `httpd -t` before every start and shows Apache's exact error if the config is invalid.
 
 ---
 
-## webhut.json
+## servnook.json
 
 ```json
 {
@@ -30,7 +30,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
   "mysqlRootPasswordProtected": "dpapi:…",
   "startOnLaunch": false,
   "minimizeToTray": true,
-  "lastRoot": "C:/webhut",
+  "lastRoot": "C:/servnook",
   "manifestUrl": "",
   "lanAccess": false,
   "autoBackup": true,
@@ -44,11 +44,11 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | `php` | Active PHP branch, the folder name under `php\` |
 | `node` | Active Node.js major, the folder name under `node\` |
 | `httpPort`, `mysqlPort` | Listening ports. Change these in **Settings** so dependent files (phpMyAdmin config) update too. |
-| `mysqlRootPasswordProtected` | The MariaDB root password, encrypted with Windows DPAPI for your Windows account (only present when a password is set). WebHut uses it to stop MariaDB cleanly and for backups. Change it in **Server configuration › MariaDB › Security** (or Settings › Services), which also changes it inside MariaDB. A plain `mysqlRootPassword` from older versions is read once and replaced by the encrypted form. |
+| `mysqlRootPasswordProtected` | The MariaDB root password, encrypted with Windows DPAPI for your Windows account (only present when a password is set). ServNook uses it to stop MariaDB cleanly and for backups. Change it in **Server configuration › MariaDB › Security** (or Settings › Services), which also changes it inside MariaDB. A plain `mysqlRootPassword` from older versions is read once and replaced by the encrypted form. |
 | `startOnLaunch` | Start Apache, MariaDB and auto-start Node apps when the panel opens |
-| `minimizeToTray` | Closing the window hides WebHut to the tray instead of exiting |
+| `minimizeToTray` | Closing the window hides ServNook to the tray instead of exiting |
 | `lastRoot` | Where the folder was last time; used to fix `php.ini` paths after a move. Don't edit. |
-| `lanAccess` | Let devices on your local network open the sites ([08](08-security.md#opening-webhut-to-your-lan-for-testing-on-a-phone)). Set in **Settings → Network**. |
+| `lanAccess` | Let devices on your local network open the sites ([08](08-security.md#opening-servnook-to-your-lan-for-testing-on-a-phone)). Set in **Settings → Network**. |
 | `autoBackup`, `backupEveryHours`, `backupKeep` | Automatic database backups ([11](11-databases.md#backups)). Set in **Database tools** |
 | `manifestUrl` | Optional URL of a `versions.json` that pins component versions (below). Empty means the maintainer default. |
 
@@ -72,10 +72,10 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | Key | Meaning |
 |---|---|
 | `name` | Lowercase letters, digits and hyphens. The app is served at `http://<name>.localhost` (and `<name>.test`). |
-| `dir` | App folder. A path relative to the WebHut root (`www/api`) or absolute (`D:/code/api`). |
+| `dir` | App folder. A path relative to the ServNook root (`www/api`) or absolute (`D:/code/api`). |
 | `command` | Run with `cmd.exe` in `dir`. Any command works: `npm run dev`, `npm start`, `node server.js`, `npx vite --port 5173`. |
-| `port` | WebHut sets `PORT` to this value and proxies the hostname to it. The app must listen on it. |
-| `autostart` | Include in **Start all** and `whut start` |
+| `port` | ServNook sets `PORT` to this value and proxies the hostname to it. The app must listen on it. |
+| `autostart` | Include in **Start all** and `snook start` |
 | `env` | Extra environment variables |
 
 See [04 – Node.js integration](04-node-integration.md) for framework recipes.
@@ -86,16 +86,16 @@ See [04 – Node.js integration](04-node-integration.md) for framework recipes.
 
 [`overlay/config/apache/httpd.conf`](../overlay/config/apache/httpd.conf) is commented line by line. The key points:
 
-- **No absolute paths.** `${WEBHUT_ROOT}`, `${PHP_DIR}`, `${WEBHUT_HTTP_PORT}` and `${WEBHUT_MYSQL_PORT}` are defined on the command line by WebHut. If you start Apache any other way, Apache stops with `WEBHUT_ROOT is not defined`.
-- `Listen 127.0.0.1:${WEBHUT_HTTP_PORT}` and `Require local` keep everything on this machine. With network access on, WebHut adds `-C "Define WEBHUT_LAN 1"`: Apache then listens on `0.0.0.0` and every `<IfDefine WEBHUT_LAN>` block replaces `Require local` with `Require ip <private ranges>`. Use the same pattern in your custom vhosts.
+- **No absolute paths.** `${SERVNOOK_ROOT}`, `${PHP_DIR}`, `${SERVNOOK_HTTP_PORT}` and `${SERVNOOK_MYSQL_PORT}` are defined on the command line by ServNook. If you start Apache any other way, Apache stops with `SERVNOOK_ROOT is not defined`.
+- `Listen 127.0.0.1:${SERVNOOK_HTTP_PORT}` and `Require local` keep everything on this machine. With network access on, ServNook adds `-C "Define SERVNOOK_LAN 1"`: Apache then listens on `0.0.0.0` and every `<IfDefine SERVNOOK_LAN>` block replaces `Require local` with `Require ip <private ranges>`. Use the same pattern in your custom vhosts.
 - `AllowOverride All` under `www\`, so `.htaccess` files from WordPress, Laravel and similar work.
 - Modules loaded: alias, auth_basic, authn_core, authn_file, authz_core, authz_host, authz_user, autoindex, deflate, dir, env, expires, filter, headers, log_config, mime, proxy, proxy_http, rewrite, setenvif. To add one, add a `LoadModule` line; every module that ships with Apache is in `apache\modules\`.
-- `SetEnv WEBHUT_ROOT` and `SetEnv WEBHUT_MYSQL_PORT` expose those values to PHP as `$_SERVER['WEBHUT_ROOT']` and `$_SERVER['WEBHUT_MYSQL_PORT']`.
+- `SetEnv SERVNOOK_ROOT` and `SetEnv SERVNOOK_MYSQL_PORT` expose those values to PHP as `$_SERVER['SERVNOOK_ROOT']` and `$_SERVER['SERVNOOK_MYSQL_PORT']`.
 - Logs go to `logs\apache-error.log` and `logs\apache-access.log`.
 
 ### Generated vhosts
 
-On every Apache start (and on **Refresh sites** / `whut sites`), WebHut writes:
+On every Apache start (and on **Refresh sites** / `snook sites`), ServNook writes:
 
 - **`generated\sites.conf`**: one vhost per folder in `www\` whose name is a valid hostname label (letters, digits, hyphens; no spaces or dots). The folder `Shop` becomes `shop.localhost`.
   - `DocumentRoot` is `www\<folder>\public` when a `public` subfolder exists (Laravel, Symfony, Slim and others), otherwise `www\<folder>`.
@@ -112,38 +112,38 @@ Anything in `config\apache\custom\*.conf` is included after the generated files 
 
 ```apache
 # config/apache/custom/shop.conf
-<VirtualHost *:${WEBHUT_HTTP_PORT}>
+<VirtualHost *:${SERVNOOK_HTTP_PORT}>
     ServerName shop.localhost
-    DocumentRoot "${WEBHUT_ROOT}/www/shop/web"
-    <Directory "${WEBHUT_ROOT}/www/shop/web">
+    DocumentRoot "${SERVNOOK_ROOT}/www/shop/web"
+    <Directory "${SERVNOOK_ROOT}/www/shop/web">
         AllowOverride All
         Require local
     </Directory>
 </VirtualHost>
 ```
 
-Because the file is named `shop.conf`, WebHut stops generating a vhost for `www\shop`.
+Because the file is named `shop.conf`, ServNook stops generating a vhost for `www\shop`.
 
 ### HTTPS (optional, manual)
 
-WebHut 1.0 serves HTTP only, which is enough for most local work: browsers treat `localhost` and `*.localhost` as secure contexts, so service workers, `crypto.subtle` and similar APIs work over plain HTTP there. If you need real HTTPS:
+ServNook 1.0 serves HTTP only, which is enough for most local work: browsers treat `localhost` and `*.localhost` as secure contexts, so service workers, `crypto.subtle` and similar APIs work over plain HTTP there. If you need real HTTPS:
 
-1. Create a locally trusted certificate with [mkcert](https://github.com/FiloSottile/mkcert): `mkcert -install`, then `mkcert -cert-file C:\webhut\ssl\local.pem -key-file C:\webhut\ssl\local-key.pem localhost "*.localhost" blog.localhost`. (Wildcards one level under `localhost` aren't accepted by every browser, so list the names you need.)
+1. Create a locally trusted certificate with [mkcert](https://github.com/FiloSottile/mkcert): `mkcert -install`, then `mkcert -cert-file C:\servnook\ssl\local.pem -key-file C:\servnook\ssl\local-key.pem localhost "*.localhost" blog.localhost`. (Wildcards one level under `localhost` aren't accepted by every browser, so list the names you need.)
 2. Create `config\apache\custom\ssl.conf`:
 
 ```apache
 LoadModule ssl_module modules/mod_ssl.so
 LoadModule socache_shmcb_module modules/mod_socache_shmcb.so
 Listen 127.0.0.1:443
-SSLSessionCache "shmcb:${WEBHUT_ROOT}/tmp/ssl_scache(512000)"
+SSLSessionCache "shmcb:${SERVNOOK_ROOT}/tmp/ssl_scache(512000)"
 
 <VirtualHost *:443>
     ServerName blog.localhost
-    DocumentRoot "${WEBHUT_ROOT}/www/blog/public"
+    DocumentRoot "${SERVNOOK_ROOT}/www/blog/public"
     SSLEngine on
-    SSLCertificateFile    "${WEBHUT_ROOT}/ssl/local.pem"
-    SSLCertificateKeyFile "${WEBHUT_ROOT}/ssl/local-key.pem"
-    <Directory "${WEBHUT_ROOT}/www/blog/public">
+    SSLCertificateFile    "${SERVNOOK_ROOT}/ssl/local.pem"
+    SSLCertificateKeyFile "${SERVNOOK_ROOT}/ssl/local-key.pem"
+    <Directory "${SERVNOOK_ROOT}/www/blog/public">
         AllowOverride All
         Require local
     </Directory>
@@ -164,14 +164,14 @@ Each `php\<branch>\php.ini` is generated from [`overlay/php/php.ini.template`](.
 | `extension_dir` | `php\<branch>\ext` | Absolute, so it works the same under Apache and on the CLI |
 | `extension = ...` | Only DLLs present in that build | No "unable to load dynamic library" warnings across PHP versions |
 | `date.timezone` | Detected from Windows | Avoids warnings and wrong timestamps |
-| `session.save_path`, `upload_tmp_dir` | `tmp\sessions`, `tmp\uploads` | Kept inside WebHut |
+| `session.save_path`, `upload_tmp_dir` | `tmp\sessions`, `tmp\uploads` | Kept inside ServNook |
 | `curl.cainfo`, `openssl.cafile` | `ssl\cacert.pem` | HTTPS from PHP works out of the box |
 | `opcache.enable` / `validate_timestamps` | `1` / `1`, `revalidate_freq=0` | Fast, but edits show up immediately |
 | `SMTP`, `smtp_port` | `localhost`, `1025` | Point `mail()` at a local mail catcher such as [Mailpit](https://mailpit.axllent.org/) |
 
 **Xdebug** isn't bundled. Download the DLL matching your PHP version (x64, TS) from <https://xdebug.org/download>, put it in `php\<branch>\ext\`, and uncomment the Xdebug lines at the end of `php.ini`.
 
-The same `php.ini` is used by Apache (through `PHPIniDir`) and by `php.exe` in the WebHut shell, because PHP's CLI looks for `php.ini` next to `php.exe`.
+The same `php.ini` is used by Apache (through `PHPIniDir`) and by `php.exe` in the ServNook shell, because PHP's CLI looks for `php.ini` next to `php.exe`.
 
 ## MariaDB: my.ini
 
@@ -185,8 +185,8 @@ Paths, port and bind address are passed on the command line, and command-line op
 ## phpMyAdmin: config.inc.php
 
 - `auth_type = cookie`: you log in with a MariaDB user.
-- `host = 127.0.0.1`, plus the port from `webhut.json`.
-- `AllowNoPassword`: `true` while root has no password. WebHut flips it when you set a password in Settings.
+- `host = 127.0.0.1`, plus the port from `servnook.json`.
+- `AllowNoPassword`: `true` while root has no password. ServNook flips it when you set a password in Settings.
 - `blowfish_secret`: 32 random characters generated per install.
 - `TempDir = apps\phpmyadmin\tmp`.
 
