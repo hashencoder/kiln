@@ -425,11 +425,19 @@ namespace ServNook
                 throw new InvalidDataException("The downloaded file doesn't look like a Windows x64 " + c.Name + " package (missing " + string.Join(", ", missing) + ").");
         }
 
+        /// <summary>The version the program itself prints. Publishers sometimes re-release a build with a package suffix
+        /// ("8.5.12-1" on windows.php.net) while php.exe still says 8.5.12, and Apache Lounge adds " (VS18)".</summary>
+        public static string ReportedVersion(string version)
+        {
+            string v = (version ?? "").Trim().Split(' ')[0];
+            return System.Text.RegularExpressions.Regex.Replace(v, @"^(\d+(?:\.\d+)+)-\d+$", "$1");
+        }
+
         /// <summary>Make sure the new version actually works. afterStart: services are running again.</summary>
         public static void HealthCheck(UpdateItem it, ServNookConfig cfg, bool afterStart)
         {
             string dir = TargetDir(it, cfg);
-            string want = (it.C.Version ?? "").Split(' ')[0];
+            string want = ReportedVersion(it.C.Version);
             switch (it.Id)
             {
                 case "apache":
