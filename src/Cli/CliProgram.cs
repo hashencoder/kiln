@@ -60,6 +60,7 @@ Node apps are managed in ServNook.exe or node-apps.json.";
                 var problem = K.RootProblem();
                 if (problem != null && cmd != "help" && cmd != "version") { Console.Error.WriteLine(problem); return 2; }
                 new Installer(Services.Cfg).RelocateIfMoved();
+                try { new Installer(Services.Cfg).UpdatePmaConfig(); } catch { }
 
                 switch (cmd)
                 {

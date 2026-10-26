@@ -82,7 +82,7 @@ Success is reported only after verification, never just because a file was saved
 
 ## Root password
 
-The root password is never written to `my.ini` or the logs. ServNook keeps it in `servnook.json` encrypted with Windows DPAPI for your Windows account (`mysqlRootPasswordProtected`). A plain-text password from an older version is encrypted the first time this version starts.
+The root password is never written to `my.ini` or the logs. ServNook keeps it in `servnook.json` encrypted with Windows DPAPI for your Windows account (`mysqlRootPasswordProtected`). A plain-text password from an older version is encrypted the first time this version starts. While phpMyAdmin's automatic sign-in is on (the default), the password is also in `apps\phpmyadmin\config.inc.php`; see [08 – Security](08-security.md).
 
 A `servnook.json` copied to another PC or Windows account can't decrypt the password. ServNook says so; enter the password again under MariaDB › Security.
 

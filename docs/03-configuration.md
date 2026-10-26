@@ -44,6 +44,7 @@ After editing Apache or PHP config, restart Apache (**Stop**, then **Start**, or
 | `php` | Active PHP branch, the folder name under `php\` |
 | `node` | Active Node.js major, the folder name under `node\` |
 | `httpPort`, `mysqlPort` | Listening ports. Change these in **Settings** so dependent files (phpMyAdmin config) update too. |
+| `phpMyAdminAutoLogin` | `true` (default): phpMyAdmin signs in as root automatically. `false`: phpMyAdmin shows its login page. |
 | `mysqlRootPasswordProtected` | The MariaDB root password, encrypted with Windows DPAPI for your Windows account (only present when a password is set). ServNook uses it to stop MariaDB cleanly and for backups. Change it in **Server configuration › MariaDB › Security** (or Settings › Services), which also changes it inside MariaDB. A plain `mysqlRootPassword` from older versions is read once and replaced by the encrypted form. |
 | `startOnLaunch` | Start Apache, MariaDB and auto-start Node apps when the panel opens |
 | `minimizeToTray` | Closing the window hides ServNook to the tray instead of exiting |
@@ -184,7 +185,7 @@ Paths, port and bind address are passed on the command line, and command-line op
 
 ## phpMyAdmin: config.inc.php
 
-- `auth_type = cookie`: you log in with a MariaDB user.
+- **Signs you in automatically** (default): ServNook keeps a block marked `// BEGIN ServNook sign-in` at the end of the server settings that sets `auth_type = config`, user `root` and the root password saved in ServNook, so phpMyAdmin opens without a login page. phpMyAdmin is only reachable from this PC. Turn it off in **Settings › Services › Sign in to phpMyAdmin automatically**; the block then sets `auth_type = cookie` and you log in with any MariaDB user. ServNook rewrites the block when the root password changes, so don't edit it by hand.
 - `host = 127.0.0.1`, plus the port from `servnook.json`.
 - `AllowNoPassword`: `true` while root has no password. ServNook flips it when you set a password in Settings.
 - `blowfish_secret`: 32 random characters generated per install.

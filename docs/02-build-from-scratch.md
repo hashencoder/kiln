@@ -158,7 +158,7 @@ C:\servnook\mariadb\bin\mariadb-admin.exe --protocol=TCP -h 127.0.0.1 -P 3306 -u
 | Check | Expected |
 |---|---|
 | <http://hello.localhost> | The `phpinfo()` page, showing `Loaded Configuration File: C:\servnook\php\8.5\php.ini` |
-| <http://localhost/phpmyadmin> | The login page. Log in as `root` with the password you set (or none). |
+| <http://localhost/phpmyadmin> | phpMyAdmin, signed in as `root` automatically (or its login page, if you turned that off in Settings). |
 | `mariadb -h 127.0.0.1 -u root -e "select version()"` | The MariaDB version |
 | `php -r "echo file_get_contents('https://example.com') ? 'TLS ok' : 'fail';"` | `TLS ok` (proves `cacert.pem` is wired up) |
 | `node -v` and `npm -v` | The Node and npm versions |

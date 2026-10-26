@@ -21,6 +21,7 @@ namespace ServNook
         public bool MinimizeToTray = true;
         public string LastRoot = "";
         public string ManifestUrl = "";
+        public bool PmaAutoLogin = true;     // phpMyAdmin signs in as root by itself (it is only reachable from this PC)
         public bool LanAccess = false;       // let phones/PCs on the local network open the sites
         public bool AutoBackup = true;       // back up databases on stop and every BackupEveryHours
         public int BackupEveryHours = 2;
@@ -67,6 +68,7 @@ namespace ServNook
                     c.ManifestUrl = Json.Str(o, "manifestUrl") ?? "";
                     c.AutoBackup = Json.Get(o, "autoBackup") as bool? ?? true;
                     c.LanAccess = Json.Get(o, "lanAccess") as bool? ?? false;
+                    c.PmaAutoLogin = Json.Get(o, "phpMyAdminAutoLogin") as bool? ?? true;
                     c.BackupEveryHours = Math.Max(0, ToInt(Json.Get(o, "backupEveryHours"), 2));
                     c.BackupKeep = Math.Max(1, ToInt(Json.Get(o, "backupKeep"), 10));
                     c.Theme = NormTheme(Json.Str(o, "theme"));
@@ -91,7 +93,7 @@ namespace ServNook
                 {"mysqlServerPort", MySqlPort}, {"postgresPort", PgPort}, {"mongoPort", MongoPort},
                 {"startOnLaunch", StartOnLaunch},
                 {"minimizeToTray", MinimizeToTray}, {"lastRoot", LastRoot}, {"manifestUrl", ManifestUrl},
-                {"lanAccess", LanAccess}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep},
+                {"lanAccess", LanAccess}, {"phpMyAdminAutoLogin", PmaAutoLogin}, {"autoBackup", AutoBackup}, {"backupEveryHours", BackupEveryHours}, {"backupKeep", BackupKeep},
                 {"theme", Theme}, {"lastUpdateCheck", LastUpdateCheck}
             };
             if (!string.IsNullOrEmpty(MysqlRootPassword))
