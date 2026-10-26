@@ -4,13 +4,21 @@ All notable changes to ServNook (called WebHut up to 1.6.5) are listed here. The
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.7.1] - 2026-10-27
+
+### Changed
+- **Upgrading from WebHut moves the folder too.** If WebHut is in its default folder `C:\WebHut`, the installer now offers `C:\ServNook`, stops the servers, closes the panel and renames the folder, so your sites, databases, backups and settings move with it. The Start-menu and desktop shortcuts and the Windows "Installed apps" entry point to the new folder. Choose a different folder on the folder page to keep the old one.
+  - A WebHut folder with any other name is upgraded where it is, as in 1.7.0.
+  - If a program still has a file open in `C:\WebHut` (a terminal, editor or Explorer window there), Setup says so and changes nothing; close it and run Setup again.
+  - After the move, start your servers again in ServNook.
+
 ## [1.7.0] - 2026-10-27
 
 ### Changed
 - **WebHut is now ServNook.** Another company already uses the name WebHut, so the project has a new name before its public launch. Nothing else about how it works changes.
   - The panel is `ServNook.exe` and the command line is `snook` (it was `whut`): `snook start`, `snook php 8.4`, `snook status`.
   - The repository moved to [github.com/hashencoder/servnook](https://github.com/hashencoder/servnook); old links redirect.
-  - **Upgrading keeps everything.** The installer renames the default `C:\WebHut` folder to `C:\ServNook` (sites, databases and settings move with it; running servers are stopped first) and replaces the old shortcuts. A folder with another name is upgraded where it is. On first start ServNook moves `webhut.json` to `servnook.json` and `logs\webhut.log` to `logs\servnook.log`, and changes `WEBHUT_ROOT` and the other Apache variables in `config\apache` to `SERVNOOK_…` (each changed file keeps a `.webhut.bak` copy). Your sites, databases, backups and saved MariaDB password are untouched.
+  - **Upgrading keeps everything.** The installer upgrades a WebHut folder in place (same folder, e.g. `C:\WebHut`) and replaces the old shortcuts. On first start ServNook moves `webhut.json` to `servnook.json` and `logs\webhut.log` to `logs\servnook.log`, and changes `WEBHUT_ROOT` and the other Apache variables in `config\apache` to `SERVNOOK_…` (each changed file keeps a `.webhut.bak` copy). Your sites, databases, backups and saved MariaDB password are untouched.
   - If you pinned WebHut to the taskbar, unpin it and pin ServNook. Scripts that call `whut` need `snook` instead.
 
 ### Added
