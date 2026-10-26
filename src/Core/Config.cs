@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace WebHut
+namespace ServNook
 {
-    /// <summary>webhut.json - user settings.</summary>
-    public class WebHutConfig
+    /// <summary>servnook.json - user settings.</summary>
+    public class ServNookConfig
     {
         public string Php = "";
         public string Node = "";
@@ -29,9 +29,10 @@ namespace WebHut
         public string LastUpdateCheck = "";  // ISO time of the last component update check
         [System.Web.Script.Serialization.ScriptIgnore] public bool NeedsPasswordMigration, PasswordUnreadable;
 
-        public static WebHutConfig Load()
+        public static ServNookConfig Load()
         {
-            var c = new WebHutConfig();
+            Legacy.Migrate();
+            var c = new ServNookConfig();
             try
             {
                 if (File.Exists(K.ConfigFile))
@@ -55,7 +56,7 @@ namespace WebHut
                         {
                             c.MysqlRootPassword = "";
                             c.PasswordUnreadable = true;
-                            Log.Warn("The saved MariaDB root password can't be decrypted on this Windows account (was webhut.json copied from another PC?). Enter it again in Settings › Services.");
+                            Log.Warn("The saved MariaDB root password can't be decrypted on this Windows account (was servnook.json copied from another PC?). Enter it again in Settings › Services.");
                         }
                     }
                     else c.MysqlRootPassword = plain ?? "";
@@ -72,7 +73,7 @@ namespace WebHut
                     c.LastUpdateCheck = Json.Str(o, "lastUpdateCheck") ?? "";
                 }
             }
-            catch (Exception e) { Log.Error("Couldn't read webhut.json, using defaults: " + e.Message); }
+            catch (Exception e) { Log.Error("Couldn't read servnook.json, using defaults: " + e.Message); }
 
             // Fall back to whatever is actually installed.
             var phps = InstalledPhp();
@@ -97,7 +98,7 @@ namespace WebHut
             {
                 string prot = Secret.Protect(MysqlRootPassword);
                 if (prot != null) d["mysqlRootPasswordProtected"] = prot;
-                else Log.Error("Couldn't encrypt the MariaDB root password, so it wasn't saved. WebHut will ask for it again.");
+                else Log.Error("Couldn't encrypt the MariaDB root password, so it wasn't saved. ServNook will ask for it again.");
             }
             File.WriteAllText(K.ConfigFile, Json.Pretty(d));
             NeedsPasswordMigration = false;
@@ -105,7 +106,7 @@ namespace WebHut
 
         public string PhpDir { get { return K.PhpDir(Php); } }
 
-        public WebHutConfig Clone() { return (WebHutConfig)MemberwiseClone(); }
+        public ServNookConfig Clone() { return (ServNookConfig)MemberwiseClone(); }
         public string NodeDir { get { return string.IsNullOrEmpty(Node) ? null : K.NodeDir(Node); } }
 
         public static string NormTheme(string t)
@@ -150,15 +151,18 @@ namespace WebHut
         {
             try
             {
-                var f = Path.Combine(dir, ".webhut-version");
-                if (File.Exists(f)) return File.ReadAllText(f).Trim();
+                foreach (var name in new[] { ".servnook-version", ".webhut-version" })   // .webhut-version: WebHut, up to 1.6.5
+                {
+                    var f = Path.Combine(dir, name);
+                    if (File.Exists(f)) return File.ReadAllText(f).Trim();
+                }
             }
             catch { }
             return Path.GetFileName(dir);
         }
     }
 
-    /// <summary>One Node.js app managed by WebHut (node-apps.json).</summary>
+    /// <summary>One Node.js app managed by ServNook (node-apps.json).</summary>
     public class NodeApp
     {
         public string Name = "";
@@ -170,7 +174,7 @@ namespace WebHut
 
         public static readonly Regex NameRule = new Regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$");
 
-        /// <summary>Dir may be relative to the WebHut root ("www/api") or absolute.</summary>
+        /// <summary>Dir may be relative to the ServNook root ("www/api") or absolute.</summary>
         public string FullDir
         {
             get
@@ -221,10 +225,10 @@ namespace WebHut
         }
     }
 
-    /// <summary>Encrypts secrets for the current Windows user (DPAPI), so webhut.json never holds a plain-text password.</summary>
+    /// <summary>Encrypts secrets for the current Windows user (DPAPI), so servnook.json never holds a plain-text password.</summary>
     public static class Secret
     {
-        static readonly byte[] Entropy = System.Text.Encoding.UTF8.GetBytes("WebHut/mariadb-root");
+        static readonly byte[] Entropy = System.Text.Encoding.UTF8.GetBytes("WebHut/mariadb-root");   // kept from WebHut: changing it would make saved passwords unreadable
 
         public static string Protect(string plain)
         {

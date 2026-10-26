@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>Backups, restore, rebuild-from-backup, and import from XAMPP.</summary>
     public class DatabaseForm : Form
@@ -18,7 +18,7 @@ namespace WebHut
         readonly Label _status = Ui.Lbl("", Ui.Small, Ui.Muted);
         readonly List<Button> _actions = new List<Button>();
 
-        WebHutConfig Cfg { get { return Services.Cfg; } }
+        ServNookConfig Cfg { get { return Services.Cfg; } }
 
         public DatabaseForm()
         {
@@ -34,7 +34,7 @@ namespace WebHut
             Controls.Add(t);
 
             var h1 = Ui.Lbl("Backups", Ui.Bold);
-            var intro = Ui.Lbl("WebHut backs up your databases while MariaDB runs and before it stops. If a crash or power cut ever damages the database, " +
+            var intro = Ui.Lbl("ServNook backs up your databases while MariaDB runs and before it stops. If a crash or power cut ever damages the database, " +
                                "\"Rebuild from backup\" sets the damaged files aside and restores the newest backup.", Ui.Small, Ui.Muted);
             intro.MaximumSize = new Size(670, 0);
             intro.Margin = new Padding(0, 2, 0, 8);
@@ -64,7 +64,7 @@ namespace WebHut
             var h2 = Ui.Lbl("Moving from XAMPP", Ui.Bold);
             h2.Margin = new Padding(0, 18, 0, 0);
             t.Controls.Add(h2);
-            var x = Ui.Lbl("Copy your XAMPP databases (and htdocs projects) into WebHut. XAMPP itself isn't changed, and this works even when XAMPP's MySQL won't start.", Ui.Small, Ui.Muted);
+            var x = Ui.Lbl("Copy your XAMPP databases (and htdocs projects) into ServNook. XAMPP itself isn't changed, and this works even when XAMPP's MySQL won't start.", Ui.Small, Ui.Muted);
             x.MaximumSize = new Size(670, 0);
             x.Margin = new Padding(0, 2, 0, 6);
             t.Controls.Add(x);
@@ -166,9 +166,9 @@ namespace WebHut
         void RebuildSelected()
         {
             var b = Selected;
-            if (b == null) { MessageBox.Show(this, "There are no backups yet.", "WebHut"); return; }
+            if (b == null) { MessageBox.Show(this, "There are no backups yet.", "ServNook"); return; }
             var ok = MessageBox.Show(this, "Use this when MariaDB won't start after a crash.\n\n" +
-                "WebHut will stop MariaDB, move data\\mariadb aside to data\\mariadb-damaged-<date> (nothing is deleted), " +
+                "ServNook will stop MariaDB, move data\\mariadb aside to data\\mariadb-damaged-<date> (nothing is deleted), " +
                 "create a fresh database folder and load the backup from " + b.Time.ToString("g") + ".\n\n" +
                 "Changes made after that backup are not in the rebuilt database.",
                 "Rebuild from backup", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
@@ -202,7 +202,7 @@ namespace WebHut
             Controls.Add(t);
 
             var steps = Ui.Lbl("1. Stop MySQL in the XAMPP Control Panel.   2. Scan.   3. Tick what to copy.   4. Import.\n" +
-                               "XAMPP's files are never moved or deleted; WebHut makes copies.", Ui.Small, Ui.Muted);
+                               "XAMPP's files are never moved or deleted; ServNook makes copies.", Ui.Small, Ui.Muted);
             steps.MaximumSize = new Size(660, 0);
             t.Controls.Add(steps, 0, 0); t.SetColumnSpan(steps, 2);
 
@@ -317,11 +317,11 @@ namespace WebHut
                 if (dbs.Count > 0 && Services.MariaDb.IsRunning)
                 {
                     var clash = Backup.Databases(Services.Cfg).Intersect(dbs, StringComparer.OrdinalIgnoreCase).ToList();
-                    if (clash.Count > 0) existing = "\n\nWebHut already has: " + string.Join(", ", clash) + ". Their tables will be replaced by XAMPP's (WebHut backs them up first).";
+                    if (clash.Count > 0) existing = "\n\nServNook already has: " + string.Join(", ", clash) + ". Their tables will be replaced by XAMPP's (ServNook backs them up first).";
                 }
             }
             catch { }
-            var ok = MessageBox.Show(this, "Copy " + dbs.Count + " database(s) and " + projects.Count + " project(s) from XAMPP into WebHut?" + existing,
+            var ok = MessageBox.Show(this, "Copy " + dbs.Count + " database(s) and " + projects.Count + " project(s) from XAMPP into ServNook?" + existing,
                 "Import from XAMPP", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
             if (ok != DialogResult.OK) return;
             bool recovery = _damaged.Checked;
@@ -337,7 +337,7 @@ namespace WebHut
                         Ui.Error(this, "Import from XAMPP", t.Exception.GetBaseException().Message);
                         return;
                     }
-                    _status.Text = "Done. Databases are in WebHut's MariaDB; projects are in www\\. Click \"Refresh sites\" in WebHut, " +
+                    _status.Text = "Done. Databases are in ServNook's MariaDB; projects are in www\\. Click \"Refresh sites\" in ServNook, " +
                                    "and update database passwords in your apps if they used XAMPP users other than root.";
                     MessageBox.Show(this, "Import complete.", "Import from XAMPP", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }, TaskScheduler.FromCurrentSynchronizationContext());

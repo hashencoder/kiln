@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
     /// Simple outline icons drawn with GDI+ on a 24x24 grid, so the panel looks the same on every

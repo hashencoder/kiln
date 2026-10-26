@@ -1,9 +1,9 @@
 <?php
 /**
- * WebHut dashboard - shown at http://localhost
+ * ServNook dashboard - shown at http://localhost
  * Lists your sites (folders in www\) and Node apps, and what's running.
- * webhut-dashboard: 3
- * WebHut updates this file when it is unchanged; your own edits are backed up first.
+ * servnook-dashboard: 3
+ * ServNook updates this file when it is unchanged; your own edits are backed up first.
  */
 declare(strict_types=1);
 
@@ -12,10 +12,10 @@ if (isset($_GET['phpinfo'])) {
     exit;
 }
 
-$root = $_SERVER['WEBHUT_ROOT'] ?? dirname(__DIR__);
+$root = $_SERVER['SERVNOOK_ROOT'] ?? dirname(__DIR__);
 $port = (int)($_SERVER['SERVER_PORT'] ?? 80);
 $suffix = $port === 80 ? '' : ':' . $port;
-$dbPort = (int)($_SERVER['WEBHUT_MYSQL_PORT'] ?? 3306);
+$dbPort = (int)($_SERVER['SERVNOOK_MYSQL_PORT'] ?? 3306);
 
 function h(string $s): string
 {
@@ -55,8 +55,8 @@ foreach (scandir(__DIR__) ?: [] as $entry) {
 }
 
 // Network access (Settings -> "Allow access from other devices")
-$lanOn = isset($_SERVER['WEBHUT_LAN_IPS']);
-$lanIps = array_values(array_filter(explode(',', (string)($_SERVER['WEBHUT_LAN_IPS'] ?? '')),
+$lanOn = isset($_SERVER['SERVNOOK_LAN_IPS']);
+$lanIps = array_values(array_filter(explode(',', (string)($_SERVER['SERVNOOK_LAN_IPS'] ?? '')),
     fn($ip) => (bool)filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)));
 
 $nodeApps = [];
@@ -111,7 +111,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WebHut · localhost</title>
+<title>ServNook · localhost</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23EA4B0C'/><path fill='%23FFFFFF' d='M286 60 C305 108 280 151 237 195 C195 238 139 279 125 342 C111 405 150 450 218 463 C181 438 169 399 184 358 C197 321 232 299 263 269 C251 311 269 335 296 355 C323 375 340 405 329 435 C371 411 392 377 389 337 C387 300 367 274 351 247 C356 286 341 306 327 319 C309 290 311 263 322 234 C341 180 340 120 286 60 Z'/><path fill='%23FFFFFF' d='M355 222 C360 260 382 277 395 305 C414 345 402 389 373 417 C387 380 372 354 355 334 C340 316 342 282 355 222 Z'/><path fill='%23EA4B0C' d='M259 290 C241 326 208 346 209 385 C210 420 235 444 274 447 C314 449 344 424 343 389 C342 359 324 341 305 320 C311 346 300 358 291 367 C279 345 284 315 259 290 Z'/><path d='M241 370 L264 391 L241 412' fill='none' stroke='%23FFFFFF' stroke-width='13' stroke-linecap='round' stroke-linejoin='round'/><path d='M281 414 H308' fill='none' stroke='%23FFFFFF' stroke-width='13' stroke-linecap='round'/></svg>">
 <style>
   :root {
@@ -207,7 +207,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
   <header>
     <svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#EA4B0C"/><path fill="#FFFFFF" d="M286 60 C305 108 280 151 237 195 C195 238 139 279 125 342 C111 405 150 450 218 463 C181 438 169 399 184 358 C197 321 232 299 263 269 C251 311 269 335 296 355 C323 375 340 405 329 435 C371 411 392 377 389 337 C387 300 367 274 351 247 C356 286 341 306 327 319 C309 290 311 263 322 234 C341 180 340 120 286 60 Z"/><path fill="#FFFFFF" d="M355 222 C360 260 382 277 395 305 C414 345 402 389 373 417 C387 380 372 354 355 334 C340 316 342 282 355 222 Z"/><path fill="#EA4B0C" d="M259 290 C241 326 208 346 209 385 C210 420 235 444 274 447 C314 449 344 424 343 389 C342 359 324 341 305 320 C311 346 300 358 291 367 C279 345 284 315 259 290 Z"/><path d="M241 370 L264 391 L241 412" fill="none" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><path d="M281 414 H308" fill="none" stroke="#FFFFFF" stroke-width="13" stroke-linecap="round"/></svg>
     <div class="title">
-      <h1>WebHut</h1>
+      <h1>ServNook</h1>
       <p>Your local server is running · <span class="mono"><?= h(str_replace('/', '\\', (string)$root)) ?></span></p>
     </div>
     <span class="chip <?= $allUp ? 'up' : 'warn' ?>"><?= $allUp ? 'Apache and MariaDB running' : ($dbState === 'warn' ? 'Apache running · MariaDB status unknown' : 'Apache running · MariaDB stopped') ?></span>
@@ -239,7 +239,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
   <div class="actions">
     <a class="btn primary" href="/phpmyadmin/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>phpMyAdmin</a>
     <a class="btn" href="/?phpinfo=1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>PHP info</a>
-    <a class="btn" href="https://github.com/hashencoder/webhut#readme" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h6"/></svg>Documentation</a>
+    <a class="btn" href="https://github.com/hashencoder/servnook#readme" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h6"/></svg>Documentation</a>
   </div>
 
   <?php if ($lanOn): ?>
@@ -268,7 +268,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
         Each folder in <code>www\</code> becomes its own site.
         <div class="steps">
           <div>Create a folder, e.g. <code><?= h(str_replace('/', '\\', (string)$root)) ?>\www\blog</code></div>
-          <div>Click <strong>Refresh sites</strong> in WebHut</div>
+          <div>Click <strong>Refresh sites</strong> in ServNook</div>
           <div>Open <a class="mono" href="http://blog.localhost<?= h($suffix) ?>/">http://blog.localhost<?= h($suffix) ?></a></div>
         </div>
       </div>
@@ -300,7 +300,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
   <section>
     <div class="sec-head"><h2>Node apps <small>proxied to their own .localhost address</small></h2></div>
     <?php if (!$nodeApps): ?>
-      <div class="card empty"><b>No Node apps</b>Add one in WebHut → <strong>Node apps</strong>: pick a folder and a command such as <code>npm run dev</code>.</div>
+      <div class="card empty"><b>No Node apps</b>Add one in ServNook → <strong>Node apps</strong>: pick a folder and a command such as <code>npm run dev</code>.</div>
     <?php else: ?>
       <div class="card list">
       <?php foreach ($nodeApps as $app): ?>
@@ -326,7 +326,7 @@ usort($sites, fn($a, $b) => strcasecmp($a['name'], $b['name']));
   </section>
 
   <footer>
-    <span>WebHut · Apache <?= h($apacheVersion) ?> · PHP <?= h(PHP_VERSION) ?><?= $dbVersion !== '' ? ' · MariaDB ' . h($dbVersion) : '' ?></span>
+    <span>ServNook · Apache <?= h($apacheVersion) ?> · PHP <?= h(PHP_VERSION) ?><?= $dbVersion !== '' ? ' · MariaDB ' . h($dbVersion) : '' ?></span>
     <span>This page is <code>www\index.php</code> — replace it with your own any time.</span>
   </footer>
 </div>

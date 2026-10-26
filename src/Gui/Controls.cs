@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>Base for the owner-drawn controls: double-buffered, transparent corners, hover tracking.</summary>
     public abstract class Painted : Control
@@ -340,7 +340,7 @@ namespace WebHut
         }
     }
 
-    /// <summary>Rounded dropdown in the WebHut style; opens a themed menu.</summary>
+    /// <summary>Rounded dropdown in the ServNook style; opens a themed menu.</summary>
     public class Dropdown : Painted
     {
         public readonly System.Collections.Generic.List<string> Items = new System.Collections.Generic.List<string>();
@@ -529,7 +529,7 @@ namespace WebHut
         }
     }
 
-    /// <summary>Menu colours that follow the WebHut theme.</summary>
+    /// <summary>Menu colours that follow the ServNook theme.</summary>
     public class ThemeMenuColors : ProfessionalColorTable
     {
         public override Color ToolStripDropDownBackground { get { return Ui.Card; } }
@@ -569,7 +569,7 @@ namespace WebHut
         }
     }
 
-    /// <summary>Rounded check box in the WebHut style.</summary>
+    /// <summary>Rounded check box in the ServNook style.</summary>
     public class CheckMark : Painted
     {
         bool _on;
@@ -634,7 +634,7 @@ namespace WebHut
     }
 
     /// <summary>
-    /// Hosts an AutoScroll panel and replaces its Windows scroll bar with a slim, rounded one in the WebHut
+    /// Hosts an AutoScroll panel and replaces its Windows scroll bar with a slim, rounded one in the ServNook
     /// colours. The panel keeps its own scrolling (mouse wheel, keyboard, ScrollControlIntoView); it is simply made
     /// wider than the host so the native bar is clipped, and the overlay mirrors and drives its scroll position.
     /// </summary>
@@ -805,7 +805,7 @@ namespace WebHut
         }
     }
 
-    /// <summary>The WebHut mark as a control.</summary>
+    /// <summary>The ServNook mark as a control.</summary>
     public class Logo : Painted
     {
         public Logo(int size) { Size = new Size(size, size); }

@@ -6,10 +6,10 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
-    /// Loads the fonts embedded in WebHut.exe (Inter and JetBrains Mono, SIL Open Font License 1.1)
+    /// Loads the fonts embedded in ServNook.exe (Inter and JetBrains Mono, SIL Open Font License 1.1)
     /// so the panel looks the same on every PC without installing anything. Each font is registered
     /// twice: with GDI+ (PrivateFontCollection, for Font objects) and with GDI (AddFontMemResourceEx,
     /// so TextRenderer and standard controls can draw it). Falls back to Segoe UI / Consolas.

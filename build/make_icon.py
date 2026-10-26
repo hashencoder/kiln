@@ -1,17 +1,17 @@
-"""Builds every WebHut logo asset from the master vector, assets/logo/webhut-icon.svg.
+"""Builds every ServNook logo asset from the master vector, assets/logo/servnook-icon.svg.
 
     python3 build/make_icon.py          (needs: pip install cairosvg fonttools pillow)
 
 Writes (all committed, so the Windows build needs none of these tools):
-  assets/webhut.ico                    multi-size Windows icon (16-256)
-  assets/webhut-512.png                README / docs
-  assets/logo/webhut-icon.png          1024 x 1024
-  assets/logo/webhut-<n>.png           16..256, embedded in WebHut.exe for the in-app logo
-  assets/logo/webhut-symbol.svg        flame only, transparent background (orange)
-  assets/logo/webhut-symbol-white.svg  monochrome white
-  assets/logo/webhut-symbol-dark.svg   monochrome dark (#151C26)
-  assets/logo/webhut-logo-light.svg    icon + "WebHut" wordmark for light backgrounds
-  assets/logo/webhut-logo-dark.svg     icon + "WebHut" wordmark for dark backgrounds
+  assets/servnook.ico                    multi-size Windows icon (16-256)
+  assets/servnook-512.png                README / docs
+  assets/logo/servnook-icon.png          1024 x 1024
+  assets/logo/servnook-<n>.png           16..256, embedded in ServNook.exe for the in-app logo
+  assets/logo/servnook-symbol.svg        flame only, transparent background (orange)
+  assets/logo/servnook-symbol-white.svg  monochrome white
+  assets/logo/servnook-symbol-dark.svg   monochrome dark (#151C26)
+  assets/logo/servnook-logo-light.svg    icon + "ServNook" wordmark for light backgrounds
+  assets/logo/servnook-logo-dark.svg     icon + "ServNook" wordmark for dark backgrounds
   build/installer-side.png, build/installer-small.png   Inno Setup wizard images
 """
 import io
@@ -28,7 +28,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 A = lambda *p: os.path.join(ROOT, "assets", *p)
 ORANGE, INK, PAPER = "#EA4B0C", "#151C26", "#F5F7FA"
 
-master = open(A("logo", "webhut-icon.svg"), encoding="utf-8").read()
+master = open(A("logo", "servnook-icon.svg"), encoding="utf-8").read()
 paths = re.findall(r"<path[^>]*/>", master)
 flame, flick, hollow, chevron, underscore = paths  # order in the master file
 d = lambda tag: re.search(r'\sd="([^"]+)"', tag).group(1)
@@ -55,7 +55,7 @@ def wordmark(color, x, baseline, height):
     gs, cmap, hmtx = font.getGlyphSet(), font.getBestCmap(), font["hmtx"]
     scale = height / font["head"].unitsPerEm
     out, pen_x = [], 0
-    for ch in "WebHut":
+    for ch in "ServNook":
         name = cmap[ord(ch)]
         pen = SVGPathPen(gs)
         gs[name].draw(TransformPen(pen, (scale, 0, 0, -scale, x + pen_x * scale, baseline)))
@@ -69,7 +69,7 @@ def lockup(text_color):
     inner = icon[icon.index(">") + 1 : icon.rindex("</svg>")]
     word, width = wordmark(text_color, 152, 118, 96)
     w = int(152 + width + 8)
-    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d 160"><title>WebHut</title>'
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d 160"><title>ServNook</title>'
             '<g transform="translate(8 16) scale(0.25)">%s</g>%s</svg>' % (w, inner, word))
 
 
@@ -88,7 +88,7 @@ def installer_images():
     def centre(text, y, font, fill):
         w = dr.textlength(text, font=font)
         dr.text(((328 - w) / 2, y), text, font=font, fill=fill)
-    centre("WebHut", 340, fb, "#FFFFFF")
+    centre("ServNook", 340, fb, "#FFFFFF")
     centre("Apache · PHP · MariaDB", 408, fr, (255, 236, 226))
     centre("Node.js · phpMyAdmin", 436, fr, (255, 236, 226))
     side.convert("RGB").save(os.path.join(ROOT, "build", "installer-side.png"))
@@ -98,18 +98,18 @@ def installer_images():
 if __name__ == "__main__":
     os.makedirs(A("logo"), exist_ok=True)
     big = render(master, 1024)
-    big.save(A("logo", "webhut-icon.png"))
-    render(master, 512).save(A("webhut-512.png"))
+    big.save(A("logo", "servnook-icon.png"))
+    render(master, 512).save(A("servnook-512.png"))
     sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256]
     frames = {n: render(master, n) for n in sizes}
     # Classic bitmap frames (not PNG) so every Windows icon API reads every size.
-    frames[256].save(A("webhut.ico"), format="ICO", sizes=[(n, n) for n in sizes], append_images=[frames[n] for n in sizes[:-1]], bitmap_format="bmp")
+    frames[256].save(A("servnook.ico"), format="ICO", sizes=[(n, n) for n in sizes], append_images=[frames[n] for n in sizes[:-1]], bitmap_format="bmp")
     for n in (16, 24, 32, 48, 64, 128, 256):
-        frames[n].save(A("logo", "webhut-%d.png" % n))
-    write("webhut-symbol.svg", symbol(ORANGE))
-    write("webhut-symbol-white.svg", symbol("#FFFFFF"))
-    write("webhut-symbol-dark.svg", symbol(INK))
-    write("webhut-logo-light.svg", lockup(INK))
-    write("webhut-logo-dark.svg", lockup(PAPER))
+        frames[n].save(A("logo", "servnook-%d.png" % n))
+    write("servnook-symbol.svg", symbol(ORANGE))
+    write("servnook-symbol-white.svg", symbol("#FFFFFF"))
+    write("servnook-symbol-dark.svg", symbol(INK))
+    write("servnook-logo-light.svg", lockup(INK))
+    write("servnook-logo-dark.svg", lockup(PAPER))
     installer_images()
     print("logo assets written")

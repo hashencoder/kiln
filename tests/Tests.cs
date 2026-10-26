@@ -1,4 +1,4 @@
-// Logic tests for WebHut's platform-independent parts. Run with Mono:
+// Logic tests for ServNook's platform-independent parts. Run with Mono:
 //   ./tests/run.sh
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading;
-using WebHut;
+using ServNook;
 
 static class Tests
 {
@@ -25,13 +25,13 @@ static class Tests
 
         // ---------------------------------------------------------------- JSON + config
         Console.WriteLine("JSON / config");
-        var cfg = new WebHutConfig { Php = "8.5", Node = "24", HttpPort = 8080, MysqlPort = 3307, MysqlRootPassword = "p\"w", StartOnLaunch = true };
+        var cfg = new ServNookConfig { Php = "8.5", Node = "24", HttpPort = 8080, MysqlPort = 3307, MysqlRootPassword = "p\"w", StartOnLaunch = true };
         cfg.Save();
-        var loaded = WebHutConfig.Load();
+        var loaded = ServNookConfig.Load();
         Check(loaded.HttpPort == 8080 && loaded.MysqlPort == 3307, "config ports round-trip");
         Check(loaded.MysqlRootPassword == "p\"w", "config password with quote round-trips");
         Check(loaded.StartOnLaunch && loaded.MinimizeToTray, "config booleans round-trip");
-        Check(File.ReadAllText(K.ConfigFile).Contains("\n  \"httpPort\": 8080"), "webhut.json is pretty-printed");
+        Check(File.ReadAllText(K.ConfigFile).Contains("\n  \"httpPort\": 8080"), "servnook.json is pretty-printed");
 
         var apps = new List<NodeApp>
         {
@@ -45,9 +45,9 @@ static class Tests
         Check(!NodeApp.NameRule.IsMatch("My App") && !NodeApp.NameRule.IsMatch("-x") && NodeApp.NameRule.IsMatch("my-app2"), "app name rule");
 
         // ---------------------------------------------------------------- versions
-        Check(WebHutConfig.VersionKey("2.4.68 (VS18)") == new Version(2, 4, 68), "VersionKey parses Apache label");
-        Check(WebHutConfig.VersionKey("8.5.11") > WebHutConfig.VersionKey("8.5.9"), "VersionKey orders patch numbers numerically");
-        Check(WebHutConfig.VersionKey("24") == new Version(24, 0), "VersionKey handles a bare major");
+        Check(ServNookConfig.VersionKey("2.4.68 (VS18)") == new Version(2, 4, 68), "VersionKey parses Apache label");
+        Check(ServNookConfig.VersionKey("8.5.11") > ServNookConfig.VersionKey("8.5.9"), "VersionKey orders patch numbers numerically");
+        Check(ServNookConfig.VersionKey("24") == new Version(24, 0), "VersionKey handles a bare major");
 
         // ---------------------------------------------------------------- config files
         Console.WriteLine("Config files");
@@ -55,7 +55,7 @@ static class Tests
         inst.CreateFolders();
         inst.WriteConfigFiles(true);
         string httpd = File.ReadAllText(K.HttpdConf);
-        Check(httpd.Contains("Listen 127.0.0.1:${WEBHUT_HTTP_PORT}"), "httpd.conf written from embedded overlay");
+        Check(httpd.Contains("Listen 127.0.0.1:${SERVNOOK_HTTP_PORT}"), "httpd.conf written from embedded overlay");
         Check(httpd.Contains("\r\n"), "config files use Windows line endings");
         Check(File.Exists(K.MyIni) && File.Exists(Path.Combine(K.ApacheConf, "php-mod.conf")), "my.ini and php-mod.conf written");
         Check(File.Exists(Path.Combine(K.Www, "index.php")), "dashboard written to empty www");
@@ -101,8 +101,8 @@ static class Tests
         File.WriteAllText(Path.Combine(K.ApacheConf, "custom", "legacy.conf"), "# custom");
         Vhosts.Write(loaded);
         string sites = File.ReadAllText(Path.Combine(K.ApacheConf, "generated", "sites.conf"));
-        Check(sites.Contains("ServerName blog.localhost") && sites.Contains("${WEBHUT_ROOT}/www/blog/public\""), "site with public/ uses it as DocumentRoot");
-        Check(sites.Contains("ServerName shop.localhost") && sites.Contains("${WEBHUT_ROOT}/www/Shop\""), "uppercase folder -> lowercase host, real path kept");
+        Check(sites.Contains("ServerName blog.localhost") && sites.Contains("${SERVNOOK_ROOT}/www/blog/public\""), "site with public/ uses it as DocumentRoot");
+        Check(sites.Contains("ServerName shop.localhost") && sites.Contains("${SERVNOOK_ROOT}/www/Shop\""), "uppercase folder -> lowercase host, real path kept");
         Check(!sites.Contains("my site"), "folder with a space is skipped");
         Check(!sites.Contains("ServerName api.localhost"), "folder named like a Node app is left to the Node vhost");
         Check(!sites.Contains("legacy.localhost"), "folder with custom/<name>.conf is not generated");
@@ -113,17 +113,17 @@ static class Tests
         Services.Cfg = loaded;
         loaded.Php = "8.5"; loaded.HttpPort = 8080;
         string a = Services.Apache.Args();
-        Check(a.Contains("-C \"Define WEBHUT_ROOT " + K.RootFwd + "\"") && a.Contains("Define PHP_DIR " + K.Fwd(phpDir)) && a.Contains("Define WEBHUT_HTTP_PORT 8080"),
+        Check(a.Contains("-C \"Define SERVNOOK_ROOT " + K.RootFwd + "\"") && a.Contains("Define PHP_DIR " + K.Fwd(phpDir)) && a.Contains("Define SERVNOOK_HTTP_PORT 8080"),
               "Apache command line defines root, PHP dir and port", a);
-        Check(!a.Contains("WEBHUT_LAN"), "network access is off by default");
+        Check(!a.Contains("SERVNOOK_LAN"), "network access is off by default");
         loaded.LanAccess = true;
         string lanArgs = Services.Apache.Args();
-        Check(lanArgs.Contains("-C \"Define WEBHUT_LAN 1\"") && lanArgs.Contains("Define WEBHUT_LAN_IPS "), "network access passes WEBHUT_LAN and the PC's addresses", lanArgs);
+        Check(lanArgs.Contains("-C \"Define SERVNOOK_LAN 1\"") && lanArgs.Contains("Define SERVNOOK_LAN_IPS "), "network access passes SERVNOOK_LAN and the PC's addresses", lanArgs);
         loaded.LanAccess = false;
-        Check(nodeConf.Contains("ServerAlias api.test api.*.nip.io") && nodeConf.Contains("<IfDefine WEBHUT_LAN>") && nodeConf.Contains("Require local"),
+        Check(nodeConf.Contains("ServerAlias api.test api.*.nip.io") && nodeConf.Contains("<IfDefine SERVNOOK_LAN>") && nodeConf.Contains("Require local"),
               "vhosts carry nip.io aliases and both access rules");
         var env = Services.Env();
-        Check(env["WEBHUT_ROOT"] == K.RootFwd && env["PATH"].StartsWith(phpDir), "child environment puts PHP first on PATH");
+        Check(env["SERVNOOK_ROOT"] == K.RootFwd && env["PATH"].StartsWith(phpDir), "child environment puts PHP first on PATH");
 
         // ---------------------------------------------------------------- zips
         Console.WriteLine("Unpacking");
@@ -148,18 +148,50 @@ static class Tests
         Check(File.Exists(Path.Combine(t3, "bin", "httpd.exe")), "Apache24 folder picked out of the Apache Lounge zip");
 
         // ---------------------------------------------------------------- relocation
-        loaded.LastRoot = "D:/old/webhut";
-        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  webhut-root: d:/OLD/webhut\nerror_log = \"D:/old/webhut/logs/php_errors.log\"");
+        loaded.LastRoot = "D:/old/servnook";
+        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  servnook-root: d:/OLD/servnook\nerror_log = \"D:/old/servnook/logs/php_errors.log\"");
         File.WriteAllText(Path.Combine(phpDir, "php.exe"), "");
         inst.RelocateIfMoved();
         string moved = File.ReadAllText(Path.Combine(phpDir, "php.ini"));
         Check(moved.Contains(K.RootFwd + "/logs/php_errors.log") && !moved.ToLowerInvariant().Contains("d:/old"), "moving the folder rewrites php.ini paths (case-insensitive)", moved);
-        Check(WebHutConfig.Load().LastRoot == K.RootFwd, "new root remembered");
-        // Bundle case: no lastRoot in webhut.json, only the php.ini marker
+        Check(ServNookConfig.Load().LastRoot == K.RootFwd, "new root remembered");
+        // Bundle case: no lastRoot in servnook.json, only the php.ini marker
         loaded.LastRoot = "";
-        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  webhut-root: E:/bundle/webhut\nextension_dir = \"E:/bundle/webhut/php/8.5/ext\"");
+        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  servnook-root: E:/bundle/servnook\nextension_dir = \"E:/bundle/servnook/php/8.5/ext\"");
         inst.RelocateIfMoved();
         Check(File.ReadAllText(Path.Combine(phpDir, "php.ini")).Contains(K.RootFwd + "/php/8.5/ext"), "relocation works from the php.ini marker alone");
+        // A php.ini written by WebHut (before the rename) still relocates.
+        loaded.LastRoot = "";
+        File.WriteAllText(Path.Combine(phpDir, "php.ini"), ";  webhut-root: F:/WebHut\nextension_dir = \"F:/WebHut/php/8.5/ext\"");
+        inst.RelocateIfMoved();
+        Check(File.ReadAllText(Path.Combine(phpDir, "php.ini")).Contains(K.RootFwd + "/php/8.5/ext"), "relocation works from an old WebHut php.ini marker");
+
+        // ---------------------------------------------------------------- WebHut -> ServNook rename
+        Console.WriteLine("Upgrading a WebHut folder");
+        string oldConf = "Define WEBHUT_PHP_FCGID 1\nServerName localhost:${WEBHUT_HTTP_PORT}\n<IfDefine WEBHUT_LAN>\n  Require ip ${WEBHUT_LAN_IPS}\n</IfDefine>\n" +
+                         "<Directory \"${WEBHUT_ROOT}/www\">\n# BEGIN WebHut: protect dotfiles\n# END WebHut: protect dotfiles\n";
+        string newConf = Legacy.MigrateApacheText(oldConf);
+        Check(!newConf.Contains("WEBHUT") && !newConf.Contains("WebHut") && newConf.Contains("Define SERVNOOK_PHP_FCGID 1") &&
+              newConf.Contains("${SERVNOOK_ROOT}/www") && newConf.Contains("<IfDefine SERVNOOK_LAN>") && newConf.Contains("${SERVNOOK_LAN_IPS}") &&
+              newConf.Contains(ApacheConfFile.DotfilesBegin) && newConf.Contains(ApacheConfFile.DotfilesEnd), "httpd.conf defines and markers move to SERVNOOK names", newConf);
+        Check(Legacy.MigrateApacheText(newConf) == newConf, "migrating twice changes nothing");
+        string verDir = Path.Combine(K.Root, "zver");
+        Directory.CreateDirectory(verDir);
+        File.WriteAllText(Path.Combine(verDir, ".webhut-version"), "8.4.7");
+        Check(ServNookConfig.FullVersion(verDir) == "8.4.7", "versions recorded by WebHut are still read");
+        string savedCfg = File.ReadAllText(K.ConfigFile);
+        File.Delete(K.ConfigFile);
+        File.WriteAllText(Path.Combine(K.Root, "webhut.json"), "{ \"httpPort\": 8181 }");
+        string customDir = Path.Combine(K.Root, "config", "apache", "custom");
+        Directory.CreateDirectory(customDir);
+        string customConf = Path.Combine(customDir, "legacy-site.conf");
+        File.WriteAllText(customConf, "<VirtualHost *:${WEBHUT_HTTP_PORT}>\n  DocumentRoot \"${WEBHUT_ROOT}/www/legacy\"\n</VirtualHost>\n");
+        Legacy.RunAll();
+        Check(!File.Exists(Path.Combine(K.Root, "webhut.json")) && ServNookConfig.Load().HttpPort == 8181, "webhut.json becomes servnook.json with its settings");
+        Check(File.ReadAllText(customConf).Contains("${SERVNOOK_ROOT}/www/legacy") && File.ReadAllText(customConf + ".webhut.bak").Contains("${WEBHUT_ROOT}"),
+              "custom vhosts are moved to SERVNOOK names, with a .webhut.bak copy");
+        File.Delete(customConf); File.Delete(customConf + ".webhut.bak");
+        File.WriteAllText(K.ConfigFile, savedCfg);
 
         // ---------------------------------------------------------------- parsers
         Console.WriteLine("Download-page parsers");
@@ -233,10 +265,10 @@ static class Tests
         File.WriteAllText(plain, string.Join("\n", Enumerable.Range(0, 2000).Select(i => "INSERT INTO t VALUES (" + i + ");")));
         Backup.Gzip(plain, packed); Backup.Gunzip(packed, back);
         Check(File.ReadAllText(back) == File.ReadAllText(plain) && new FileInfo(packed).Length < new FileInfo(plain).Length / 3, "gzip round-trip and compression");
-        var cfgB = WebHutConfig.Load();
+        var cfgB = ServNookConfig.Load();
         Check(cfgB.AutoBackup && cfgB.BackupEveryHours == 2 && cfgB.BackupKeep == 10, "backup settings default on (2 h, keep 10)");
         cfgB.AutoBackup = false; cfgB.BackupEveryHours = 6; cfgB.Save();
-        var cfgB2 = WebHutConfig.Load();
+        var cfgB2 = ServNookConfig.Load();
         Check(!cfgB2.AutoBackup && cfgB2.BackupEveryHours == 6, "backup settings round-trip");
         cfgB2.AutoBackup = true; cfgB2.BackupEveryHours = 2; cfgB2.Save();
         string myIni = File.ReadAllText(K.MyIni);
@@ -338,8 +370,8 @@ static class Tests
         Check(hc.TopArgs("KeepAlive") == "Off" && hc.TopArgs("KeepAliveTimeout") == "3" && ht.IndexOf("KeepAlive Off") > ht.IndexOf("MaxConnectionsPerChild") && ht.IndexOf("KeepAlive Off") < ht.IndexOf("LoadModule"), "new directives go after the MPM block");
         Check(ht.Contains("LogLevel  info"), "LogLevel keeps its alignment", ht.Substring(ht.IndexOf("LogLevel"), 20));
         Check(ht.Contains("    Options FollowSymLinks") && hc.Indexes == false && hc.HtaccessAllowed == false, "directory listing and .htaccess edited in the www block only");
-        Check(ht.Contains("\nDefine WEBHUT_PHP_FCGID 1") && hc.Fcgid, "PHP mode switch uncomments the define");
-        Check(ht.Contains("ServerName dev.local:${WEBHUT_HTTP_PORT}"), "server name keeps the port variable");
+        Check(ht.Contains("\nDefine SERVNOOK_PHP_FCGID 1") && hc.Fcgid, "PHP mode switch uncomments the define");
+        Check(ht.Contains("ServerName dev.local:${SERVNOOK_HTTP_PORT}"), "server name keeps the port variable");
         var mods = hc.Modules();
         Check(mods.First(md => md.Name == "rewrite_module").Active == false && ht.Contains("#LoadModule rewrite_module"), "module turned off by commenting its line");
         Check(mods.Count(md => md.Name == "headers_module") == 1 && mods.First(md => md.Name == "headers_module").Active, "module turned back on without duplicating the line");
@@ -347,7 +379,7 @@ static class Tests
         Check(hc.ProtectDotfiles && ht.Contains(ApacheConfFile.DotfilesEnd), "dotfile protection block added");
         hc.SetProtectDotfiles(false);
         hc.SetFcgid(false);
-        Check(!hc.ProtectDotfiles && !hc.Text.Contains("protect dotfiles") && hc.Text.Contains("#Define WEBHUT_PHP_FCGID 1"), "both reversible");
+        Check(!hc.ProtectDotfiles && !hc.Text.Contains("protect dotfiles") && hc.Text.Contains("#Define SERVNOOK_PHP_FCGID 1"), "both reversible");
         Check(ApacheConfFile.FileFor("proxy_http_module") == "mod_proxy_http.so" && ApacheConfFile.ModuleForFile("mod_log_config.so") == "log_config_module", "module file naming");
         var tmpl = ApacheConfFile.Parse(Installer.Template("config/apache/httpd.conf"));
         Check(tmpl.Mpm("ThreadsPerChild") == "150" && tmpl.Text.Contains("\r\n"), "template available for restore");
@@ -370,7 +402,7 @@ static class Tests
         File.Delete(Path.Combine(K.ApacheConf, "custom", "open.conf"));
 
         // Plans: validation without touching files
-        var pcfg = WebHutConfig.Load();
+        var pcfg = ServNookConfig.Load();
         var ce = new ConfigEdits();
         ce.Maria["mysqld.max_connections"] = "5";
         ce.Maria["mysqld.collation_server"] = "latin1_swedish_ci";
@@ -401,7 +433,7 @@ static class Tests
         string dash = Path.Combine(K.Www, "index.php");
         Directory.CreateDirectory(K.Www);
         File.WriteAllText(dash, File.ReadAllText(Path.Combine(K.Root, "dashboard-old.php")).Replace("\n", "\r\n"));
-        Check(Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("webhut-dashboard: 3"), "unmodified old dashboard is replaced by the new design");
+        Check(Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("servnook-dashboard: 3"), "unmodified old dashboard is replaced by the new design");
         File.WriteAllText(dash, File.ReadAllText(Path.Combine(K.Root, "dashboard-old.php")) + "\n<!-- my change -->");
         Check(!Installer.UpgradeDashboard(dash) && File.ReadAllText(dash).Contains("my change"), "an edited dashboard is left alone");
         File.Delete(dash);
@@ -409,7 +441,7 @@ static class Tests
         // ---------------------------------------------------------------- component updates
         Console.WriteLine("Component updates");
         Updates.VcRuntimeOk = () => true;
-        var ucfg = new WebHutConfig { Php = "8.5", Node = "24" };
+        var ucfg = new ServNookConfig { Php = "8.5", Node = "24" };
         Func<string, string, string, string, Component> UC = (id, ver, url, sha) => new Component
             { Id = id, Name = id, Version = ver, Url = url, Sha256 = sha, FileName = id + ".zip", Branch = id == "php" ? "8.5" : id == "node" ? "24" : null };
         string sha64 = new string('a', 64);
@@ -450,38 +482,38 @@ static class Tests
         Directory.CreateDirectory(K.Pma);
         File.WriteAllText(Path.Combine(K.Pma, "index.php"), "old");
         File.WriteAllText(Path.Combine(K.Pma, "config.inc.php"), "<?php // mine");
-        File.WriteAllText(Path.Combine(K.Pma, ".webhut-version"), "5.2.2");
+        File.WriteAllText(Path.Combine(K.Pma, ".servnook-version"), "5.2.2");
         var pmaZip = MakeZip(uz, "pma.zip", new[] { "phpMyAdmin-5.2.3-all-languages/index.php", "phpMyAdmin-5.2.3-all-languages/libraries/x.php" });
         var pmaItem = Updates.Evaluate(new Component { Id = "phpmyadmin", Name = "phpMyAdmin", Version = "5.2.3", LocalFile = pmaZip, Sha256 = sha64 }, "5.2.2", ucfg);
         var stages = new List<UpdStage>();
         Updates.Run(new List<UpdateItem> { pmaItem }, ucfg, it => stages.Add(it.Stage), CancellationToken.None);
         Check(pmaItem.Stage == UpdStage.Done, "phpMyAdmin update completes", pmaItem.Message + " " + pmaItem.Error);
         Check(File.ReadAllText(Path.Combine(K.Pma, "config.inc.php")) == "<?php // mine" && File.ReadAllText(Path.Combine(K.Pma, "index.php")) == "x" &&
-              WebHutConfig.FullVersion(K.Pma) == "5.2.3", "new phpMyAdmin in place, config.inc.php kept");
+              ServNookConfig.FullVersion(K.Pma) == "5.2.3", "new phpMyAdmin in place, config.inc.php kept");
         Check(stages.Contains(UpdStage.Verifying) && stages.Contains(UpdStage.Installing) && stages.Contains(UpdStage.Checking), "progress reports each stage");
 
         // A package that fails verification changes nothing
         var badPma = Updates.Evaluate(new Component { Id = "phpmyadmin", Name = "phpMyAdmin", Version = "5.2.4", LocalFile = MakeZip(uz, "bad.zip", new[] { "x/readme.txt" }), Sha256 = sha64 }, "5.2.3", ucfg);
         Updates.Run(new List<UpdateItem> { badPma }, ucfg, it => { }, CancellationToken.None);
-        Check(badPma.Stage == UpdStage.Failed && WebHutConfig.FullVersion(K.Pma) == "5.2.3", "invalid package fails before anything is replaced");
+        Check(badPma.Stage == UpdStage.Failed && ServNookConfig.FullVersion(K.Pma) == "5.2.3", "invalid package fails before anything is replaced");
 
         // Node: the new version fails its health check -> previous version and npm globals restored
         string nd = K.NodeDir("24");
         Directory.CreateDirectory(Path.Combine(nd, "global", "node_modules", "typescript"));
         File.WriteAllText(Path.Combine(nd, "node.exe"), "old node");
-        File.WriteAllText(Path.Combine(nd, ".webhut-version"), "24.22.0");
+        File.WriteAllText(Path.Combine(nd, ".servnook-version"), "24.22.0");
         var nodeZip = MakeZip(uz, "node.zip", new[] { "node-v24.22.1-win-x64/node.exe", "node-v24.22.1-win-x64/npm.cmd" });
         var nodeItem = Updates.Evaluate(new Component { Id = "node", Name = "Node.js", Branch = "24", Version = "24.22.1", LocalFile = nodeZip, Sha256 = sha64 }, "24.22.0", ucfg);
         Updates.Run(new List<UpdateItem> { nodeItem }, ucfg, it => { }, CancellationToken.None);
         Check(nodeItem.Stage == UpdStage.RolledBack && !string.IsNullOrEmpty(nodeItem.Error), "failed health check rolls back", nodeItem.Stage + ": " + nodeItem.Message);
-        Check(File.ReadAllText(Path.Combine(nd, "node.exe")) == "old node" && WebHutConfig.FullVersion(nd) == "24.22.0", "previous Node.js restored");
+        Check(File.ReadAllText(Path.Combine(nd, "node.exe")) == "old node" && ServNookConfig.FullVersion(nd) == "24.22.0", "previous Node.js restored");
         Check(Directory.Exists(Path.Combine(nd, "global", "node_modules", "typescript")), "global npm packages survive the rollback");
 
         // Cancelling before an item starts changes nothing
         var cts = new CancellationTokenSource(); cts.Cancel();
         var cItem = Updates.Evaluate(new Component { Id = "phpmyadmin", Name = "phpMyAdmin", Version = "5.2.9", LocalFile = pmaZip, Sha256 = sha64 }, "5.2.3", ucfg);
         Updates.Run(new List<UpdateItem> { cItem }, ucfg, it => { }, cts.Token);
-        Check(cItem.Stage == UpdStage.Cancelled && WebHutConfig.FullVersion(K.Pma) == "5.2.3", "cancel skips pending updates");
+        Check(cItem.Stage == UpdStage.Cancelled && ServNookConfig.FullVersion(K.Pma) == "5.2.3", "cancel skips pending updates");
 
         // Carry-over of user-added files
         string oldA = Path.Combine(uz, "oldA"), newA = Path.Combine(uz, "newA");
@@ -496,12 +528,12 @@ static class Tests
         // ---------------------------------------------------------------- optional database engines
         Console.WriteLine("Optional engines");
         {
-            var pc = new WebHutConfig { MySqlPort = 3317, PgPort = 5433, MongoPort = 27018 };
+            var pc = new ServNookConfig { MySqlPort = 3317, PgPort = 5433, MongoPort = 27018 };
             pc.Save();
-            var pl = WebHutConfig.Load();
-            Check(pl.MySqlPort == 3317 && pl.PgPort == 5433 && pl.MongoPort == 27018, "engine ports round-trip in webhut.json");
+            var pl = ServNookConfig.Load();
+            Check(pl.MySqlPort == 3317 && pl.PgPort == 5433 && pl.MongoPort == 27018, "engine ports round-trip in servnook.json");
             File.Delete(K.ConfigFile);
-            var dflt = WebHutConfig.Load();
+            var dflt = ServNookConfig.Load();
             Check(dflt.MySqlPort == 3307 && dflt.PgPort == 5432 && dflt.MongoPort == 27017, "engine port defaults (MySQL 3307 beside MariaDB 3306, 5432, 27017)");
             loaded.Save();
 
@@ -549,7 +581,7 @@ static class Tests
             Check(withA.Contains("Alias /adminer") && withA.Contains("Require local") && withA.IndexOf("Alias /adminer") < withA.IndexOf("</VirtualHost>") && !withA.Replace("\r\n", "").Contains("\n"),
                   "Adminer alias added inside the default vhost, CRLF kept");
             Check(Engines.AddAdminerBlock(withA) == withA, "Adminer alias isn't added twice");
-            Check(File.ReadAllText(Path.Combine(K.ApacheConf, "default-vhost.conf")).Contains("<IfFile \"${WEBHUT_ROOT}/apps/adminer/index.php\">"), "new installs get the Adminer alias (only active when Adminer is installed)");
+            Check(File.ReadAllText(Path.Combine(K.ApacheConf, "default-vhost.conf")).Contains("<IfFile \"${SERVNOOK_ROOT}/apps/adminer/index.php\">"), "new installs get the Adminer alias (only active when Adminer is installed)");
 
             string phpd = Path.Combine(K.Root, "phptest");
             Directory.CreateDirectory(Path.Combine(phpd, "ext"));
@@ -564,7 +596,7 @@ static class Tests
             // Install from local zips: wrapped folder unpacked into place, version written, wrong package refused.
             var mz = MakeZip(K.Root, "mysql-8.4.11-winx64.zip", new[] { "mysql-8.4.11-winx64/bin/mysqld.exe", "mysql-8.4.11-winx64/bin/mysqladmin.exe", "mysql-8.4.11-winx64/bin/mysql.exe", "mysql-8.4.11-winx64/share/x.txt" });
             inst.Install(new Component { Id = "mysql", Name = "MySQL", Version = "8.4.11", LocalFile = mz }, CancellationToken.None);
-            Check(Engines.MySqlInstalled && WebHutConfig.FullVersion(K.MySql) == "8.4.11" && Services.Find("mysql") == Services.MySql && Services.All().Contains(Services.MySql),
+            Check(Engines.MySqlInstalled && ServNookConfig.FullVersion(K.MySql) == "8.4.11" && Services.Find("mysql") == Services.MySql && Services.All().Contains(Services.MySql),
                   "Install(mysql): unpacked to mysql\\, shows as a service, 'mysql' now means MySQL");
             var pz = MakeZip(K.Root, "postgresql-18.1-1-windows-x64-binaries.zip", new[] { "pgsql/bin/pg_ctl.exe", "pgsql/bin/initdb.exe", "pgsql/bin/postgres.exe", "pgsql/bin/psql.exe", "pgsql/pgAdmin 4/x.txt" });
             inst.Install(new Component { Id = "postgresql", Name = "PostgreSQL", Version = "18.1", LocalFile = pz }, CancellationToken.None);
@@ -600,7 +632,7 @@ static class Tests
             var c2 = new Component { Id = "php", Name = "PHP", Branch = "8.3", Version = "8.3.30", Url = good.Url, FileName = "payload.zip", Sha256 = good.Sha256 };
             inst.Install(c2, CancellationToken.None);
             Check(File.Exists(Path.Combine(K.PhpDir("8.3"), "php.exe")) && File.Exists(Path.Combine(K.PhpDir("8.3"), "php.ini")) &&
-                  WebHutConfig.FullVersion(K.PhpDir("8.3")) == "8.3.30", "Install(php) end to end: unpack, php.ini, version file");
+                  ServNookConfig.FullVersion(K.PhpDir("8.3")) == "8.3.30", "Install(php) end to end: unpack, php.ini, version file");
         }
 
         Console.WriteLine();

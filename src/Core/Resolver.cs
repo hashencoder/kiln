@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>A downloadable component resolved to an exact file.</summary>
     public class Component
@@ -33,7 +33,7 @@ namespace WebHut
     /// </summary>
     public static class Resolver
     {
-        const string UA = "WebHut/" + K.AppVersion + " (portable dev stack for Windows)";
+        const string UA = "ServNook/" + K.AppVersion + " (portable dev stack for Windows)";
 
         public static string Get(string url)
         {
@@ -76,7 +76,7 @@ namespace WebHut
         static bool _manifestLoaded;
         static readonly object ManifestLock = new object();
 
-        static object Manifest(WebHutConfig cfg)
+        static object Manifest(ServNookConfig cfg)
         {
             lock (ManifestLock) // resolvers run in parallel; all must see the same manifest
             {
@@ -97,7 +97,7 @@ namespace WebHut
         }
 
         /// <summary>versions.json: { "components": { "apache": { "version", "url", "sha256" }, "php-8.5": {...} } }</summary>
-        static Component FromManifest(WebHutConfig cfg, string key, Component c)
+        static Component FromManifest(ServNookConfig cfg, string key, Component c)
         {
             var entry = Json.Get(Json.Get(Manifest(cfg), "components"), key);
             if (entry == null || string.IsNullOrEmpty(Json.Str(entry, "url"))) return null;
@@ -109,7 +109,7 @@ namespace WebHut
             return c;
         }
 
-        static Component Resolve(WebHutConfig cfg, string key, Component c, Action<Component> live)
+        static Component Resolve(ServNookConfig cfg, string key, Component c, Action<Component> live)
         {
             try
             {
@@ -124,7 +124,7 @@ namespace WebHut
 
         // ---------------- Apache (Apache Lounge) ----------------
 
-        public static Component Apache(WebHutConfig cfg)
+        public static Component Apache(ServNookConfig cfg)
         {
             var c = new Component { Id = "apache", Name = "Apache httpd", Homepage = "https://www.apachelounge.com/download/" };
             return Resolve(cfg, "apache", c, x =>
@@ -137,7 +137,7 @@ namespace WebHut
         {
             var best = Regex.Matches(html, @"href=[""']([^""']*?httpd-(2\.4\.\d+)-(\d+)-[Ww]in64-VS(\d+)\.zip)[""']")
                 .Cast<Match>()
-                .OrderByDescending(m => WebHutConfig.VersionKey(m.Groups[2].Value))
+                .OrderByDescending(m => ServNookConfig.VersionKey(m.Groups[2].Value))
                 .ThenByDescending(m => int.Parse(m.Groups[4].Value))
                 .ThenByDescending(m => m.Groups[3].Value)
                 .FirstOrDefault();
@@ -157,11 +157,11 @@ namespace WebHut
         public static List<string> PhpBranches()
         {
             var o = Json.Obj(Json.Parse(Get(PhpReleases + "releases.json")));
-            return o.Keys.Where(k => Regex.IsMatch(k, @"^\d+\.\d+$")).OrderByDescending(WebHutConfig.VersionKey).ToList();
+            return o.Keys.Where(k => Regex.IsMatch(k, @"^\d+\.\d+$")).OrderByDescending(ServNookConfig.VersionKey).ToList();
         }
 
         /// <summary>branch null = newest stable branch.</summary>
-        public static Component Php(WebHutConfig cfg, string branch)
+        public static Component Php(ServNookConfig cfg, string branch)
         {
             var c = new Component { Id = "php", Name = "PHP", Branch = branch, Homepage = "https://windows.php.net/download/" };
             if (branch != null && FromManifest(cfg, "php-" + branch, c) != null) return c;
@@ -179,7 +179,7 @@ namespace WebHut
         {
             var all = Json.Obj(Json.Parse(json));
             if (all == null) return false;
-            string b = x.Branch ?? all.Keys.Where(k => Regex.IsMatch(k, @"^\d+\.\d+$")).OrderByDescending(WebHutConfig.VersionKey).FirstOrDefault();
+            string b = x.Branch ?? all.Keys.Where(k => Regex.IsMatch(k, @"^\d+\.\d+$")).OrderByDescending(ServNookConfig.VersionKey).FirstOrDefault();
             object rel;
             if (b == null || !all.TryGetValue(b, out rel) || Json.Obj(rel) == null) return false;
             // Keys look like "ts-vs17-x64" / "nts-vs17-x64". Apache's mod_php needs Thread Safe.
@@ -205,7 +205,7 @@ namespace WebHut
             string pattern = x.Branch == null ? @"\d+\.\d+" : Regex.Escape(x.Branch);
             var best = Regex.Matches(html, @"(?<![\w-])(php-(" + pattern + @")\.(\d+)-Win32-v[sc](\d+)-x64\.zip)")
                 .Cast<Match>()
-                .OrderByDescending(m => WebHutConfig.VersionKey(m.Groups[2].Value + "." + m.Groups[3].Value))
+                .OrderByDescending(m => ServNookConfig.VersionKey(m.Groups[2].Value + "." + m.Groups[3].Value))
                 .FirstOrDefault();
             if (best == null) { x.Error = "No PHP " + (x.Branch ?? "") + " x64 Thread Safe build found."; return; }
             x.Branch = best.Groups[2].Value;
@@ -216,7 +216,7 @@ namespace WebHut
 
         // ---------------- MariaDB (REST API) ----------------
 
-        public static Component MariaDb(WebHutConfig cfg)
+        public static Component MariaDb(ServNookConfig cfg)
         {
             var c = new Component { Id = "mariadb", Name = "MariaDB", Homepage = "https://mariadb.org/download/" };
             return Resolve(cfg, "mariadb", c, x =>
@@ -237,7 +237,7 @@ namespace WebHut
                          && (Json.Str(r, "release_support_type") ?? "").IndexOf("Long Term", StringComparison.OrdinalIgnoreCase) >= 0)
                 .Select(r => Json.Str(r, "release_id"))
                 .Where(id => id != null)
-                .OrderByDescending(WebHutConfig.VersionKey)
+                .OrderByDescending(ServNookConfig.VersionKey)
                 .FirstOrDefault();
         }
 
@@ -271,7 +271,7 @@ namespace WebHut
 
         // ---------------- phpMyAdmin ----------------
 
-        public static Component PhpMyAdmin(WebHutConfig cfg)
+        public static Component PhpMyAdmin(ServNookConfig cfg)
         {
             var c = new Component { Id = "phpmyadmin", Name = "phpMyAdmin", Homepage = "https://www.phpmyadmin.net/downloads/" };
             return Resolve(cfg, "phpmyadmin", c, x =>
@@ -288,7 +288,7 @@ namespace WebHut
         // ---------------- Node.js ----------------
 
         /// <summary>major null = newest LTS line.</summary>
-        public static Component Node(WebHutConfig cfg, string major)
+        public static Component Node(ServNookConfig cfg, string major)
         {
             var c = new Component { Id = "node", Name = "Node.js", Branch = major, Homepage = "https://nodejs.org/en/download" };
             return Resolve(cfg, major == null ? "node" : "node-" + major, c, x =>
@@ -322,7 +322,7 @@ namespace WebHut
 
         // ---------------- Small extras ----------------
 
-        public static Component Composer(WebHutConfig cfg)
+        public static Component Composer(ServNookConfig cfg)
         {
             var c = new Component
             {
@@ -334,7 +334,7 @@ namespace WebHut
             return c;
         }
 
-        public static Component CaCert(WebHutConfig cfg)
+        public static Component CaCert(ServNookConfig cfg)
         {
             var c = new Component
             {

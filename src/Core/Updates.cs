@@ -7,7 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 
-namespace WebHut
+namespace ServNook
 {
     public enum UpdState { UpToDate, Available, NotInstalled, Blocked, LookupFailed }
     public enum UpdStage { Idle, Waiting, Downloading, Verifying, BackingUp, Stopping, Installing, Checking, Restarting, Done, Failed, RolledBack, Cancelled }
@@ -66,11 +66,11 @@ namespace WebHut
 
         public static string InstalledVersion(string dir)
         {
-            return Directory.Exists(dir) ? WebHutConfig.FullVersion(dir) : null;
+            return Directory.Exists(dir) ? ServNookConfig.FullVersion(dir) : null;
         }
 
         /// <summary>Look up the newest version of every installed component (network).</summary>
-        public static List<UpdateItem> Check(WebHutConfig cfg)
+        public static List<UpdateItem> Check(ServNookConfig cfg)
         {
             var items = new List<UpdateItem>();
             items.Add(Evaluate(Resolver.Apache(cfg), InstalledVersion(K.Apache), cfg));
@@ -85,11 +85,11 @@ namespace WebHut
             return items;
         }
 
-        static Version Key(string v) { return WebHutConfig.VersionKey(v); }
+        static Version Key(string v) { return ServNookConfig.VersionKey(v); }
         static string Series(string v) { var k = Key(v); return k.Major + "." + k.Minor; }
 
         /// <summary>Decide whether a component can be updated, and if not, why. No network access.</summary>
-        public static UpdateItem Evaluate(Component c, string installed, WebHutConfig cfg)
+        public static UpdateItem Evaluate(Component c, string installed, ServNookConfig cfg)
         {
             var it = new UpdateItem { C = c, Installed = string.IsNullOrEmpty(installed) ? null : installed };
             it.NotesUrl = NotesUrl(c);
@@ -130,7 +130,7 @@ namespace WebHut
         }
 
         /// <summary>Why an update must not run automatically, or null when it is safe.</summary>
-        public static string BlockReason(Component c, string installed, WebHutConfig cfg)
+        public static string BlockReason(Component c, string installed, ServNookConfig cfg)
         {
             Uri u;
             if (c.LocalFile == null && (c.Url == null || !Uri.TryCreate(c.Url, UriKind.Absolute, out u) || u.Scheme != "https"))
@@ -187,7 +187,7 @@ namespace WebHut
         }
 
         /// <summary>Running services an update of this component stops and starts again. Unrelated services keep running.</summary>
-        public static List<Service> Affected(UpdateItem it, WebHutConfig cfg)
+        public static List<Service> Affected(UpdateItem it, ServNookConfig cfg)
         {
             var list = new List<Service>();
             switch (it.Id)
@@ -204,7 +204,7 @@ namespace WebHut
         }
 
         /// <summary>Plain-language description of what happens during this update (for the confirmation dialog).</summary>
-        public static List<string> Plan(UpdateItem it, WebHutConfig cfg)
+        public static List<string> Plan(UpdateItem it, ServNookConfig cfg)
         {
             var p = new List<string>();
             var running = Affected(it, cfg).Where(s => s.IsRunning).Select(s => s.Title).ToList();
@@ -232,7 +232,7 @@ namespace WebHut
         /// Install the chosen updates one by one. Each item reports its stage through <paramref name="changed"/>.
         /// A failure affects only that component: its previous version is restored and the next item runs.
         /// </summary>
-        public static void Run(List<UpdateItem> items, WebHutConfig cfg, Action<UpdateItem> changed, CancellationToken ct)
+        public static void Run(List<UpdateItem> items, ServNookConfig cfg, Action<UpdateItem> changed, CancellationToken ct)
         {
             foreach (var it in items) { it.Stage = UpdStage.Waiting; it.Pct = -1; it.Message = "Waiting…"; it.Error = null; changed(it); }
             foreach (var it in items)
@@ -249,7 +249,7 @@ namespace WebHut
             changed(it);
         }
 
-        static void RunOne(UpdateItem it, WebHutConfig cfg, Action<UpdateItem> changed, CancellationToken ct)
+        static void RunOne(UpdateItem it, ServNookConfig cfg, Action<UpdateItem> changed, CancellationToken ct)
         {
             var c = it.C;
             var inst = new Installer(cfg);
@@ -392,7 +392,7 @@ namespace WebHut
             Set(it, changed, stage, msg);
         }
 
-        public static string TargetDir(UpdateItem it, WebHutConfig cfg)
+        public static string TargetDir(UpdateItem it, ServNookConfig cfg)
         {
             switch (it.Id)
             {
@@ -426,7 +426,7 @@ namespace WebHut
         }
 
         /// <summary>Make sure the new version actually works. afterStart: services are running again.</summary>
-        public static void HealthCheck(UpdateItem it, WebHutConfig cfg, bool afterStart)
+        public static void HealthCheck(UpdateItem it, ServNookConfig cfg, bool afterStart)
         {
             string dir = TargetDir(it, cfg);
             string want = (it.C.Version ?? "").Split(' ')[0];
@@ -493,7 +493,7 @@ namespace WebHut
         }
 
         /// <summary>Apache answers over HTTP (any status below 500 counts; a PHP error page means PHP is broken).</summary>
-        public static void HttpOk(WebHutConfig cfg, string path)
+        public static void HttpOk(ServNookConfig cfg, string path)
         {
             if (!Services.Apache.IsRunning) return;
             string url = "http://127.0.0.1:" + cfg.HttpPort + path;

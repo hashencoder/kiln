@@ -1,6 +1,6 @@
 # 05 – PHP versions
 
-WebHut installs the newest stable PHP branch at setup. You can install more branches side by side and switch between them in seconds.
+ServNook installs the newest stable PHP branch at setup. You can install more branches side by side and switch between them in seconds.
 
 ## Installing another version
 
@@ -9,7 +9,7 @@ WebHut installs the newest stable PHP branch at setup. You can install more bran
 From the command line:
 
 ```cmd
-whut php 8.4
+snook php 8.4
 ```
 
 This installs 8.4 if needed, makes it active, and restarts Apache if it's running.
@@ -21,7 +21,7 @@ This installs 8.4 if needed, makes it active, and restarts Apache if it's runnin
 In the default mode, PHP runs inside Apache as a module, so **one PHP version serves every site at a time**:
 
 1. **Settings → PHP version** → choose → **Save**.
-2. WebHut restarts Apache with `-C "Define PHP_DIR <root>/php/<branch>"`, which loads that version's `php8apache2_4.dll` and `php.ini`.
+2. ServNook restarts Apache with `-C "Define PHP_DIR <root>/php/<branch>"`, which loads that version's `php8apache2_4.dll` and `php.ini`.
 
 The **Shell** and Node apps also put the active version first on `PATH`, so `php -v` in the shell matches what Apache runs.
 
@@ -37,14 +37,14 @@ Download `mod_fcgid-*-win64-VS18.zip` from the **modules** section of <https://w
 
 ### 2. Make sure each PHP version has php-cgi.exe
 
-Every Windows PHP zip contains `php-cgi.exe`. The Thread Safe builds WebHut installs work; Non Thread Safe builds are slightly faster under FastCGI if you want to install those instead. `php-cgi.exe` reads the `php.ini` in its own folder, so each version keeps its own settings.
+Every Windows PHP zip contains `php-cgi.exe`. The Thread Safe builds ServNook installs work; Non Thread Safe builds are slightly faster under FastCGI if you want to install those instead. `php-cgi.exe` reads the `php.ini` in its own folder, so each version keeps its own settings.
 
 ### 3. Turn on FastCGI mode
 
-WebHut 1.0 has no button for this yet. In `config\apache\httpd.conf`, uncomment this line near the top (remove the `#`):
+ServNook 1.0 has no button for this yet. In `config\apache\httpd.conf`, uncomment this line near the top (remove the `#`):
 
 ```apache
-Define WEBHUT_PHP_FCGID 1
+Define SERVNOOK_PHP_FCGID 1
 ```
 
 With that defined, `httpd.conf` includes `php-fcgid.conf` instead of `php-mod.conf`. Every site now runs the active PHP version (from Settings) through `php-cgi.exe`. Generated vhosts and phpMyAdmin already allow `ExecCGI`; if you write your own vhosts, include `ExecCGI` in their `Options` too, or PHP files return 403.
@@ -55,8 +55,8 @@ Create `config\apache\custom\<anything>.conf`:
 
 ```apache
 # config/apache/custom/legacy-php.conf
-<Directory "${WEBHUT_ROOT}/www/legacy">
-    FcgidWrapper "${WEBHUT_ROOT}/php/8.3/php-cgi.exe" .php
+<Directory "${SERVNOOK_ROOT}/www/legacy">
+    FcgidWrapper "${SERVNOOK_ROOT}/php/8.3/php-cgi.exe" .php
 </Directory>
 ```
 
@@ -72,7 +72,7 @@ Restart Apache and check `http://legacy.localhost/` with a `phpinfo()` page.
 | Memory | Low | One worker pool per version |
 | `phpinfo()` "Server API" | Apache 2.0 Handler | CGI/FastCGI |
 
-To go back, comment the `Define WEBHUT_PHP_FCGID 1` line out again and restart Apache.
+To go back, comment the `Define SERVNOOK_PHP_FCGID 1` line out again and restart Apache.
 
 ## Updating PHP
 
@@ -87,8 +87,8 @@ A new branch, such as 8.6 when it's released, is a separate install (**Install a
 
 ## Composer and the PHP version
 
-`composer` in the WebHut shell runs with the active PHP. To run Composer with a specific version without switching:
+`composer` in the ServNook shell runs with the active PHP. To run Composer with a specific version without switching:
 
 ```cmd
-C:\webhut\php\8.3\php.exe C:\webhut\tools\composer.phar install
+C:\servnook\php\8.3\php.exe C:\servnook\tools\composer.phar install
 ```

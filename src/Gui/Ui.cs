@@ -7,7 +7,7 @@ using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>Shared look and feel.</summary>
     public static class Ui
@@ -24,7 +24,7 @@ namespace WebHut
 
         static Color H(string hex) { return ColorTranslator.FromHtml(hex); }
 
-        /// <summary>WebHut brand palette. Brand orange #EA4B0C, Midnight Slate #151C26, Cloud White #F6F8FB.</summary>
+        /// <summary>ServNook brand palette. Brand orange #EA4B0C, Midnight Slate #151C26, Cloud White #F6F8FB.</summary>
         public static void ApplyTheme(bool dark)
         {
             IsDark = dark;
@@ -54,7 +54,7 @@ namespace WebHut
         /// <summary>Resolve the "theme" setting: system follows Windows' app light/dark mode.</summary>
         public static bool WantsDark(string theme)
         {
-            theme = WebHutConfig.NormTheme(theme);
+            theme = ServNookConfig.NormTheme(theme);
             if (theme == "dark") return true;
             if (theme == "light") return false;
             try
@@ -208,10 +208,10 @@ namespace WebHut
                 {
                     // The multi-size .ico embedded in the exe (16-256 px), read directly: Windows then picks the right size
                     // for the title bar, Alt+Tab and the taskbar at any scaling. ExtractAssociatedIcon would give a single
-                    // 32 px icon from Explorer's icon cache, which can still hold an older WebHut icon after an upgrade.
+                    // 32 px icon from Explorer's icon cache, which can still hold an older ServNook icon after an upgrade.
                     try
                     {
-                        using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo/webhut.ico"))
+                        using (var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo/servnook.ico"))
                             if (s != null) _icon = new Icon(s);
                     }
                     catch { }
@@ -225,7 +225,7 @@ namespace WebHut
         static readonly int[] LogoSizes = { 16, 24, 32, 48, 64, 128, 256 };
         static readonly Dictionary<int, Bitmap> LogoCache = new Dictionary<int, Bitmap>();
 
-        /// <summary>The WebHut mark (assets/logo/webhut-icon.svg), from the PNG renders embedded as logo/webhut-&lt;n&gt;.png:
+        /// <summary>The ServNook mark (assets/logo/servnook-icon.svg), from the PNG renders embedded as logo/servnook-&lt;n&gt;.png:
         /// the exact size when there is one (crisp at 16-32 px), otherwise the next larger one scaled down.</summary>
         public static Bitmap DrawLogo(int size)
         {
@@ -236,7 +236,7 @@ namespace WebHut
             {
                 if (!LogoCache.TryGetValue(src, out master))
                 {
-                    var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo/webhut-" + src + ".png");
+                    var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("logo/servnook-" + src + ".png");
                     master = s == null ? null : new Bitmap(s);
                     LogoCache[src] = master;
                 }
@@ -327,7 +327,7 @@ namespace WebHut
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
         public static void EnableDpi() { try { SetProcessDPIAware(); } catch { } }
 
-        /// <summary>A context menu in the WebHut theme.</summary>
+        /// <summary>A context menu in the ServNook theme.</summary>
         public static ContextMenuStrip Menu()
         {
             var m = new ContextMenuStrip { Font = Base, BackColor = Card, ForeColor = Ink, ShowImageMargin = false, Padding = new Padding(Px(4)) };
@@ -367,7 +367,7 @@ namespace WebHut
             Color c = LogInk;
             if (msg.StartsWith("ERROR:")) c = LogRed;
             else if (msg.StartsWith("WARN:")) c = LogAmber;
-            else if (msg.Contains(" is running") || msg.StartsWith("Setup complete") || msg.StartsWith("WebHut ") || msg.Contains(" stopped") || msg.StartsWith("Installed ") || msg.Contains("Backup saved")) c = LogGreen;
+            else if (msg.Contains(" is running") || msg.StartsWith("Setup complete") || msg.StartsWith("ServNook ") || msg.Contains(" stopped") || msg.StartsWith("Installed ") || msg.Contains("Backup saved")) c = LogGreen;
             box.SelectionStart = box.TextLength;
             box.SelectionLength = 0;
             if (time != null)

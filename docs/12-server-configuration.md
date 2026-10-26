@@ -21,14 +21,14 @@ Every row is labelled with the place its value lives. For each setting there is 
 
 | Setting | Owner | Stored in |
 |---|---|---|
-| Apache HTTP port, network access | WebHut settings | `webhut.json` (also shown in Settings) |
-| PHP version | WebHut runtime manager | `webhut.json` |
-| PHP mode, threads, keep-alive, log level, listing, `.htaccess`, modules | WebHut's Apache config | `config\apache\httpd.conf` |
-| Generated virtual hosts | WebHut site manager | `config\apache\generated\` (rewritten on every start) |
+| Apache HTTP port, network access | ServNook settings | `servnook.json` (also shown in Settings) |
+| PHP version | ServNook runtime manager | `servnook.json` |
+| PHP mode, threads, keep-alive, log level, listing, `.htaccess`, modules | ServNook's Apache config | `config\apache\httpd.conf` |
+| Generated virtual hosts | ServNook site manager | `config\apache\generated\` (rewritten on every start) |
 | Custom virtual hosts and directives | You | `config\apache\custom\*.conf` (never touched) |
-| MariaDB port | WebHut settings | `webhut.json`, passed as `--port` |
-| MariaDB bind address | WebHut security | always `--bind-address=127.0.0.1` |
-| MariaDB data folder, error log, PID file | WebHut runtime | `--datadir`, `--log-error`, `--pid-file` |
+| MariaDB port | ServNook settings | `servnook.json`, passed as `--port` |
+| MariaDB bind address | ServNook security | always `--bind-address=127.0.0.1` |
+| MariaDB data folder, error log, PID file | ServNook runtime | `--datadir`, `--log-error`, `--pid-file` |
 | Buffer pool, connections, durability, slow log, character set | MariaDB configuration | `config\mariadb\my.ini` `[mysqld]` |
 | Client character set | MariaDB configuration | `my.ini` `[client]` |
 | Anything else in my.ini | You | kept as written |
@@ -37,7 +37,7 @@ Every row is labelled with the place its value lives. For each setting there is 
 
 MariaDB uses the first of these that sets a value:
 
-1. WebHut's startup arguments.
+1. ServNook's startup arguments.
 2. Changes made while the server runs (`SET GLOBAL`), until the next restart.
 3. `my.ini`, where the last occurrence in any server group wins (`[mysqld]`, `[server]`, `[mariadb]`, `[mariadb-11.4]` …).
 4. MariaDB's built-in defaults.
@@ -82,9 +82,9 @@ Success is reported only after verification, never just because a file was saved
 
 ## Root password
 
-The root password is never written to `my.ini` or the logs. WebHut keeps it in `webhut.json` encrypted with Windows DPAPI for your Windows account (`mysqlRootPasswordProtected`). A plain-text password from an older version is encrypted the first time this version starts.
+The root password is never written to `my.ini` or the logs. ServNook keeps it in `servnook.json` encrypted with Windows DPAPI for your Windows account (`mysqlRootPasswordProtected`). A plain-text password from an older version is encrypted the first time this version starts.
 
-A `webhut.json` copied to another PC or Windows account can't decrypt the password. WebHut says so; enter the password again under MariaDB › Security.
+A `servnook.json` copied to another PC or Windows account can't decrypt the password. ServNook says so; enter the password again under MariaDB › Security.
 
 Changing the password uses `ALTER USER` for `root@localhost`, `root@127.0.0.1` and `root@::1`. The SQL is sent on the client's standard input, not on its command line.
 

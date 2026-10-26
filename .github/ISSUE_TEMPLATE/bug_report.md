@@ -1,18 +1,18 @@
 ---
 name: Bug report
-about: Something in WebHut doesn't work
+about: Something in ServNook doesn't work
 labels: bug
 ---
 
 **What happened**
 <!-- What you clicked or ran, what you expected, what you got instead -->
 
-**whut status**
+**snook status**
 ```
-paste output of: whut status
+paste output of: snook status
 ```
 
-**Last lines of logs\webhut.log**
+**Last lines of logs\servnook.log**
 ```
 paste here (remove passwords)
 ```
@@ -23,7 +23,7 @@ paste here
 ```
 
 **Environment**
-- WebHut version (`whut version`):
+- ServNook version (`snook version`):
 - Windows version (`winver`):
-- WebHut folder path:
+- ServNook folder path:
 - Antivirus / proxy software, if any:

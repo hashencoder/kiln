@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>
     /// Component update manager: compares installed and latest versions, lets the user pick eligible
@@ -31,12 +31,12 @@ namespace WebHut
         bool _checking, _running;
         CancellationTokenSource _cts;
 
-        WebHutConfig Cfg { get { return Services.Cfg; } }
+        ServNookConfig Cfg { get { return Services.Cfg; } }
 
         /// <summary>The version lookup (replaceable for previews and tests).</summary>
-        public static Func<WebHutConfig, List<UpdateItem>> CheckFunc = Updates.Check;
+        public static Func<ServNookConfig, List<UpdateItem>> CheckFunc = Updates.Check;
         /// <summary>The installer run (replaceable for previews and tests).</summary>
-        public static Action<List<UpdateItem>, WebHutConfig, Action<UpdateItem>, CancellationToken> RunFunc = Updates.Run;
+        public static Action<List<UpdateItem>, ServNookConfig, Action<UpdateItem>, CancellationToken> RunFunc = Updates.Run;
 
         public UpdatesForm()
         {
@@ -81,7 +81,7 @@ namespace WebHut
             var sumBar = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, BackColor = Ui.Bg, Padding = new Padding(Px(24), 0, Px(24), Px(8)), WrapContents = true };
             _summary = new Label { Text = "", Font = Ui.Small, ForeColor = Ui.Muted, AutoSize = true, Margin = new Padding(0, 0, Px(10), 0) };
             _openLog = new LinkLabel { Text = "Open log", Font = Ui.Small, AutoSize = true, Visible = false, LinkColor = Ui.AccentInk, ActiveLinkColor = Ui.AccentHover, LinkBehavior = LinkBehavior.HoverUnderline, Margin = new Padding(0) };
-            _openLog.LinkClicked += (s, e) => Sys.OpenInEditor(System.IO.Path.Combine(K.Logs, "webhut.log"));
+            _openLog.LinkClicked += (s, e) => Sys.OpenInEditor(System.IO.Path.Combine(K.Logs, "servnook.log"));
             sumBar.Controls.Add(_summary);
             sumBar.Controls.Add(_openLog);
             sumBar.SizeChanged += (s, e) => _summary.MaximumSize = new Size(Math.Max(Px(200), sumBar.Width - Px(140)), 0);
@@ -251,7 +251,7 @@ namespace WebHut
 
             _running = true;
             _cts = new CancellationTokenSource();
-            _summary.Text = "Updating " + chosen.Count + (chosen.Count == 1 ? " component" : " components") + "… You can keep using WebHut.";
+            _summary.Text = "Updating " + chosen.Count + (chosen.Count == 1 ? " component" : " components") + "… You can keep using ServNook.";
             _openLog.Visible = false;
             UpdateFooter();
             var cfg = Cfg;
@@ -472,7 +472,7 @@ namespace WebHut
     {
         static int Px(float v) { return Ui.Px(v); }
 
-        public UpdateConfirmForm(List<UpdateItem> items, WebHutConfig cfg)
+        public UpdateConfirmForm(List<UpdateItem> items, ServNookConfig cfg)
         {
             Ui.Style(this);
             AutoScaleMode = AutoScaleMode.None;
@@ -496,7 +496,7 @@ namespace WebHut
             var unverified = items.Where(i => !i.Verified).Select(i => i.Name).ToList();
             if (unverified.Count > 0)
                 body.Controls.Add(new Callout(CalloutKind.Warning, string.Join(", ", unverified) + (unverified.Count == 1 ? " has" : " have") +
-                    " no published checksum. WebHut downloads it only over HTTPS from the official site and checks the package contents before installing.", inner) { Margin = new Padding(0, Px(12), 0, 0) });
+                    " no published checksum. ServNook downloads it only over HTTPS from the official site and checks the package contents before installing.", inner) { Margin = new Padding(0, Px(12), 0, 0) });
             if (items.Any(i => i.Id == "mariadb"))
                 body.Controls.Add(new Callout(CalloutKind.Info, "Your databases are backed up to data\\backups before MariaDB is replaced.", inner) { Margin = new Padding(0, Px(8), 0, 0) });
 

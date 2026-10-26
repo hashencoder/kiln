@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace WebHut
+namespace ServNook
 {
     public class PopupItem
     {
@@ -17,7 +17,7 @@ namespace WebHut
     }
 
     /// <summary>
-    /// WebHut's own context menu: rounded, bordered, shadowed, with icons and optional descriptions.
+    /// ServNook's own context menu: rounded, bordered, shadowed, with icons and optional descriptions.
     /// Closes on Escape or an outside click; Up/Down/Enter work; it keeps itself on screen.
     /// </summary>
     public class PopupMenu : Form

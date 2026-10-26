@@ -1,28 +1,35 @@
 # Changelog
 
-All notable changes to WebHut are listed here. The format follows
+All notable changes to ServNook (called WebHut up to 1.6.5) are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [1.7.0] - 2026-10-23
+## [1.7.0] - 2026-10-27
+
+### Changed
+- **WebHut is now ServNook.** Another company already uses the name WebHut, so the project has a new name before its public launch. Nothing else about how it works changes.
+  - The panel is `ServNook.exe` and the command line is `snook` (it was `whut`): `snook start`, `snook php 8.4`, `snook status`.
+  - The repository moved to [github.com/hashencoder/servnook](https://github.com/hashencoder/servnook); old links redirect.
+  - **Upgrading keeps everything.** The installer upgrades a WebHut folder in place (same folder, e.g. `C:\WebHut`) and replaces the old shortcuts. On first start ServNook moves `webhut.json` to `servnook.json` and `logs\webhut.log` to `logs\servnook.log`, and changes `WEBHUT_ROOT` and the other Apache variables in `config\apache` to `SERVNOOK_…` (each changed file keeps a `.webhut.bak` copy). Your sites, databases, backups and saved MariaDB password are untouched.
+  - If you pinned WebHut to the taskbar, unpin it and pin ServNook. Scripts that call `whut` need `snook` instead.
 
 ### Added
 - **Optional MySQL, PostgreSQL and MongoDB** next to MariaDB, each from its official Windows download:
   - MySQL 8.4 LTS on port 3307 (MariaDB keeps 3306), PostgreSQL (newest supported release) on 5432, MongoDB Community Server on 27017, plus mongosh.
-  - Off by default. Tick them in the setup window, add them later under **Databases → More database engines**, or run `whut install mysql postgresql mongodb adminer`.
+  - Off by default. Tick them in the setup window, add them later under **Databases → More database engines**, or run `snook install mysql postgresql mongodb adminer`.
   - Each gets a Dashboard row with Start/Stop, log and data folder, and is included in Start all. A clean stop is used for every engine, also when Windows shuts down.
   - Data lives in `data\mysql`, `data\postgresql` and `data\mongodb`; the first start creates it (passwordless `root` / `postgres` user, this PC only).
-  - Ports for each engine in **Settings → Services**; WebHut refuses two servers on one port.
-  - `whut start|stop|restart mysql|postgresql|mongodb`. `mysql` still means MariaDB until MySQL is installed.
+  - Ports for each engine in **Settings → Services**; ServNook refuses two servers on one port.
+  - `snook start|stop|restart mysql|postgresql|mongodb`. `mysql` still means MariaDB until MySQL is installed.
 - **Adminer** at `http://localhost/adminer` (this PC only) for MySQL, PostgreSQL and MariaDB. The Open button on a MySQL or PostgreSQL row fills in the server. PHP's `pgsql` and `pdo_pgsql` drivers are switched on when PostgreSQL or Adminer is added.
-- `psql`, `mongosh` and MySQL's tools are on PATH in WebHut's Shell; `PGHOST`, `PGPORT` and `PGUSER` are set.
+- `psql`, `mongosh` and MySQL's tools are on PATH in ServNook's Shell; `PGHOST`, `PGPORT` and `PGUSER` are set.
 - Links to pgAdmin and MongoDB Compass on the Databases page.
 - New guide: [docs/13 – MySQL, PostgreSQL and MongoDB](docs/13-more-databases.md). Backups and the update manager still cover the core components and MariaDB only.
 
 ### Fixed
-- `whut start` no longer hangs when its output is piped or captured by a script (PowerShell, CI): servers are now started fully detached, with no inherited handles, no console and their own process group. This applies to Apache, MariaDB, the new engines and Node apps.
-- The installer now tells Windows to refresh its icon cache, so a taskbar pin made before an upgrade shows the current WebHut icon.
-- WebHut's windows now use the full multi-size icon embedded in the app (16-256 px) instead of asking Explorer for it, so the taskbar and Alt+Tab show the right icon at every display scaling and never an old cached one.
+- `snook start` no longer hangs when its output is piped or captured by a script (PowerShell, CI): servers are now started fully detached, with no inherited handles, no console and their own process group. This applies to Apache, MariaDB, the new engines and Node apps.
+- The installer now tells Windows to refresh its icon cache, so a taskbar pin made before an upgrade shows the current ServNook icon.
+- ServNook's windows now use the full multi-size icon embedded in the app (16-256 px) instead of asking Explorer for it, so the taskbar and Alt+Tab show the right icon at every display scaling and never an old cached one.
 
 ## [1.6.5] - 2026-10-23
 

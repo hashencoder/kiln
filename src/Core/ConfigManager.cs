@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>Pending changes from the configuration manager. Only what the user changed is set.</summary>
     public class ConfigEdits
@@ -21,7 +21,7 @@ namespace WebHut
         public readonly Dictionary<string, bool> Modules = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         /// <summary>my.ini values by setting id ("mysqld.max_connections", "client.default_character_set").</summary>
         public readonly Dictionary<string, string> Maria = new Dictionary<string, string>();
-        /// <summary>my.ini lines to comment out (options overridden by WebHut's startup arguments).</summary>
+        /// <summary>my.ini lines to comment out (options overridden by ServNook's startup arguments).</summary>
         public readonly List<int> CommentOut = new List<int>();
         public bool ResetHttpd;
 
@@ -35,7 +35,7 @@ namespace WebHut
     {
         public string HttpdText, MyIniText;      // null = unchanged
         public byte[] MyIniBytes;                // my.ini in its original encoding
-        public WebHutConfig NewCfg;              // the settings after the change (always set)
+        public ServNookConfig NewCfg;              // the settings after the change (always set)
         public bool CfgChanged, ApacheAffected, MariaAffected, MariaRestart;
         public readonly List<KeyValuePair<string, string>> Live = new List<KeyValuePair<string, string>>();
         public readonly Dictionary<string, string> Expect = new Dictionary<string, string>();
@@ -69,7 +69,7 @@ namespace WebHut
 
         public static readonly string[] LogLevels = { "emerg", "alert", "crit", "error", "warn", "notice", "info", "debug" };
 
-        /// <summary>Modules WebHut's own configuration needs.</summary>
+        /// <summary>Modules ServNook's own configuration needs.</summary>
         public static readonly string[] RequiredModules = { "alias_module", "authz_core_module", "authz_host_module", "dir_module", "env_module", "mime_module", "log_config_module" };
 
         public static readonly Dictionary<string, string[]> ModuleDeps = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
@@ -103,17 +103,17 @@ namespace WebHut
 
         // ================================================================== plan
 
-        public static ConfigPlan Plan(ConfigEdits e, WebHutConfig cfg, MariaInfo mi, ApacheInfo ai)
+        public static ConfigPlan Plan(ConfigEdits e, ServNookConfig cfg, MariaInfo mi, ApacheInfo ai)
         {
             var p = new ConfigPlan();
             var errs = new List<string>();
             var n = cfg.Clone();
             p.NewCfg = n;
 
-            // ---- WebHut settings that Apache / MariaDB start with
+            // ---- ServNook settings that Apache / MariaDB start with
             if (e.Php != null && e.Php != cfg.Php)
             {
-                if (!WebHutConfig.InstalledPhp().Contains(e.Php)) errs.Add("PHP " + e.Php + " is not installed.");
+                if (!ServNookConfig.InstalledPhp().Contains(e.Php)) errs.Add("PHP " + e.Php + " is not installed.");
                 else if (!File.Exists(Path.Combine(K.PhpDir(e.Php), "php8apache2_4.dll"))) errs.Add("PHP " + e.Php + " has no php8apache2_4.dll; Apache needs the x64 Thread Safe build.");
                 n.Php = e.Php; p.Changes.Add("PHP version: " + cfg.Php + " → " + e.Php);
             }
@@ -128,7 +128,7 @@ namespace WebHut
             {
                 string original = File.Exists(K.HttpdConf) ? File.ReadAllText(K.HttpdConf, new UTF8Encoding(false)) : "";
                 var conf = e.ResetHttpd ? ApacheConfFile.Parse(Installer.Template("config/apache/httpd.conf")) : ApacheConfFile.Parse(original);
-                if (e.ResetHttpd) p.Changes.Add("httpd.conf replaced with WebHut's template (custom/*.conf untouched)");
+                if (e.ResetHttpd) p.Changes.Add("httpd.conf replaced with ServNook's template (custom/*.conf untouched)");
                 PlanApache(e, conf, ai, p, errs);
                 if (conf.Text != original) p.HttpdText = conf.Text;
             }
@@ -149,7 +149,7 @@ namespace WebHut
             return p;
         }
 
-        static void CheckPorts(WebHutConfig cfg, WebHutConfig n, List<string> errs)
+        static void CheckPorts(ServNookConfig cfg, ServNookConfig n, List<string> errs)
         {
             if (n.HttpPort < 1 || n.HttpPort > 65535 || n.MysqlPort < 1 || n.MysqlPort > 65535) errs.Add("Ports must be between 1 and 65535.");
             if (n.HttpPort == n.MysqlPort) errs.Add("The HTTP and MariaDB ports must differ.");
@@ -225,7 +225,7 @@ namespace WebHut
             var elsewhere = ai == null ? new List<string>() : ai.Loaded.Where(m => !conf.Modules().Any(x => x.Name.Equals(m, StringComparison.OrdinalIgnoreCase))).ToList();
             foreach (var kv in e.Modules)
             {
-                if (!kv.Value && required.Contains(kv.Key)) { errs.Add(kv.Key + " is required by WebHut's configuration and can't be turned off."); continue; }
+                if (!kv.Value && required.Contains(kv.Key)) { errs.Add(kv.Key + " is required by ServNook's configuration and can't be turned off."); continue; }
                 if (kv.Value && ai != null && ai.Available.Count > 0 && !ai.Available.Contains(kv.Key) && !elsewhere.Contains(kv.Key))
                 { errs.Add(kv.Key + " isn't in apache\\modules (" + ApacheConfFile.FileFor(kv.Key) + ")."); continue; }
                 conf.SetModule(kv.Key, kv.Value);
@@ -262,8 +262,8 @@ namespace WebHut
             foreach (int line in e.CommentOut.Distinct().OrderByDescending(x => x))
             {
                 var en = entries.FirstOrDefault(x => x.Line == line);
-                if (en == null || !MariaCatalog.StartupArgs.Contains(en.Key)) { errs.Add("my.ini line " + (line + 1) + " isn't a setting WebHut overrides."); continue; }
-                ini.CommentOut(line, "overridden by WebHut's --" + en.Key.Replace('_', '-') + " startup argument");
+                if (en == null || !MariaCatalog.StartupArgs.Contains(en.Key)) { errs.Add("my.ini line " + (line + 1) + " isn't a setting ServNook overrides."); continue; }
+                ini.CommentOut(line, "overridden by ServNook's --" + en.Key.Replace('_', '-') + " startup argument");
                 p.Changes.Add("my.ini: commented out " + en.RawKey + " (line " + (line + 1) + ")");
             }
 
@@ -353,7 +353,7 @@ namespace WebHut
 
         static void Report(Action<string> progress, string msg) { if (progress != null) progress(msg); Log.Info(msg); }
 
-        public static ApplyResult Apply(ConfigPlan p, WebHutConfig cfg, MariaInfo mi, Action<string> progress)
+        public static ApplyResult Apply(ConfigPlan p, ServNookConfig cfg, MariaInfo mi, Action<string> progress)
         {
             var res = new ApplyResult();
             res.Notes.AddRange(p.Notes);
@@ -537,7 +537,7 @@ namespace WebHut
             return r;
         }
 
-        static List<string> Databases(WebHutConfig cfg)
+        static List<string> Databases(ServNookConfig cfg)
         {
             string err;
             try { return Services.MariaDb.Query("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA;", cfg.MysqlRootPassword, out err).Select(r => r[0]).ToList(); }
@@ -545,7 +545,7 @@ namespace WebHut
         }
 
         /// <summary>Compare live values with what was asked for. Restart: mismatches are errors (the file didn't take effect).</summary>
-        static void VerifyVars(ConfigPlan p, WebHutConfig cfg, ApplyResult res, int waitMs, bool strict)
+        static void VerifyVars(ConfigPlan p, ServNookConfig cfg, ApplyResult res, int waitMs, bool strict)
         {
             if (p.Expect.Count == 0) return;
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -571,15 +571,15 @@ namespace WebHut
             }
         }
 
-        static void CopyCfg(WebHutConfig from, WebHutConfig to)
+        static void CopyCfg(ServNookConfig from, ServNookConfig to)
         {
             to.Php = from.Php; to.HttpPort = from.HttpPort; to.MysqlPort = from.MysqlPort; to.LanAccess = from.LanAccess;
         }
 
         static void WriteFile(string path, byte[] bytes)
         {
-            // Write next to the file, then copy over it: the original is never missing, even if WebHut stops halfway.
-            string tmp = path + ".webhut-new";
+            // Write next to the file, then copy over it: the original is never missing, even if ServNook stops halfway.
+            string tmp = path + ".servnook-new";
             File.WriteAllBytes(tmp, bytes);
             File.Copy(tmp, path, true);
             File.Delete(tmp);
@@ -593,7 +593,7 @@ namespace WebHut
             string dir = Path.Combine(BackupRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture));
             Directory.CreateDirectory(dir);
             var manifest = new StringBuilder();
-            manifest.AppendLine("WebHut configuration backup, " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+            manifest.AppendLine("ServNook configuration backup, " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
             manifest.AppendLine("Change: " + reason);
             foreach (var f in files)
             {
@@ -613,7 +613,7 @@ namespace WebHut
         }
 
         /// <summary>Put backed-up files back and restore the in-memory settings.</summary>
-        static void RestoreFiles(string backupDir, WebHutConfig cfg, WebHutConfig old)
+        static void RestoreFiles(string backupDir, ServNookConfig cfg, ServNookConfig old)
         {
             if (backupDir == null) return;
             var manifest = File.ReadAllLines(Path.Combine(backupDir, "backup.txt"));
@@ -621,13 +621,13 @@ namespace WebHut
             {
                 if (!l.StartsWith("file: ")) continue;
                 string rel = l.Substring(6);
-                if (rel.Equals("webhut.json", StringComparison.OrdinalIgnoreCase)) continue;
+                if (rel.Equals("servnook.json", StringComparison.OrdinalIgnoreCase)) continue;
                 try { File.Copy(Path.Combine(backupDir, rel), Path.Combine(K.Root, rel), true); }
                 catch (Exception e) { Log.Error("Couldn't restore " + rel + ": " + e.Message); }
             }
             bool portBack = cfg.MysqlPort != old.MysqlPort;
             CopyCfg(old, cfg);
-            try { cfg.Save(); } catch (Exception e) { Log.Error("Couldn't restore webhut.json: " + e.Message); }
+            try { cfg.Save(); } catch (Exception e) { Log.Error("Couldn't restore servnook.json: " + e.Message); }
             if (portBack) try { new Installer(cfg).UpdatePmaConfig(); } catch { }
         }
 

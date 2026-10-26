@@ -1,5 +1,5 @@
 {
-  "_comment": "Optional version pins. WebHut reads this file from the URL in K.DefaultManifestUrl (src/Core/Util.cs) or the manifestUrl setting in webhut.json. Any component listed here with a url is downloaded from that url (and checked against sha256 when given) instead of being looked up live. Remove an entry to go back to automatic lookup. Keys: apache, php-<branch>, mariadb, phpmyadmin, node, node-<major>.",
+  "_comment": "Optional version pins. ServNook reads this file from the URL in K.DefaultManifestUrl (src/Core/Util.cs) or the manifestUrl setting in servnook.json. Any component listed here with a url is downloaded from that url (and checked against sha256 when given) instead of being looked up live. Remove an entry to go back to automatic lookup. Keys: apache, php-<branch>, mariadb, phpmyadmin, node, node-<major>.",
   "updated": "2026-10-21",
   "components": {
     "mariadb": {

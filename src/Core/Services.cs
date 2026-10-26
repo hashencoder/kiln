@@ -6,11 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-namespace WebHut
+namespace ServNook
 {
     public enum SvcState { Stopped, Starting, Running, Stopping }
 
-    /// <summary>A server WebHut can start and stop: Apache, MariaDB or one Node app.</summary>
+    /// <summary>A server ServNook can start and stop: Apache, MariaDB or one Node app.</summary>
     public abstract class Service
     {
         public abstract string Key { get; }          // apache, mariadb, node:<name>
@@ -28,7 +28,7 @@ namespace WebHut
 
         public bool IsRunning { get { return Pid() > 0; } }
 
-        protected WebHutConfig Cfg { get { return Services.Cfg; } }
+        protected ServNookConfig Cfg { get { return Services.Cfg; } }
 
         protected void EnsurePortFree(int port, string what)
         {
@@ -51,7 +51,7 @@ namespace WebHut
 
     public static class Services
     {
-        public static WebHutConfig Cfg = WebHutConfig.Load();
+        public static ServNookConfig Cfg = ServNookConfig.Load();
         public static readonly ApacheService Apache = new ApacheService();
         public static readonly MariaDbService MariaDb = new MariaDbService();
         public static readonly MySqlService MySql = new MySqlService();
@@ -79,7 +79,7 @@ namespace WebHut
             return All().FirstOrDefault(s => s.Key == "node:" + key);
         }
 
-        /// <summary>Environment for every child process: tools on PATH, npm kept inside WebHut.</summary>
+        /// <summary>Environment for every child process: tools on PATH, npm kept inside ServNook.</summary>
         public static Dictionary<string, string> Env()
         {
             var path = new List<string>();
@@ -94,7 +94,7 @@ namespace WebHut
             path.Add(Path.Combine(K.Apache, "bin"));
             var env = new Dictionary<string, string>
             {
-                {"WEBHUT_ROOT", K.RootFwd},
+                {"SERVNOOK_ROOT", K.RootFwd},
                 {"PATH", string.Join(";", path.Where(Directory.Exists)) + ";" + Environment.GetEnvironmentVariable("PATH")},
                 {"NPM_CONFIG_CACHE", Path.Combine(K.Tmp, "npm-cache")},
                 {"COMPOSER_HOME", Path.Combine(K.Tmp, "composer")},
@@ -130,7 +130,7 @@ namespace WebHut
         {
             if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) { dir = K.Www; Directory.CreateDirectory(K.Www); }
             var psi = new ProcessStartInfo("cmd.exe",
-                "/k \"title WebHut shell && echo WebHut shell - php, node, npm, npx, composer and mariadb are on PATH" + ShellExtras() + ". && echo.\"")
+                "/k \"title ServNook shell && echo ServNook shell - php, node, npm, npx, composer and mariadb are on PATH" + ShellExtras() + ". && echo.\"")
             {
                 UseShellExecute = false,
                 CreateNoWindow = false,
@@ -151,8 +151,8 @@ namespace WebHut
         {
             get
             {
-                string php = string.IsNullOrEmpty(Cfg.Php) ? "no PHP" : "PHP " + WebHutConfig.FullVersion(Cfg.PhpDir);
-                return WebHutConfig.FullVersion(K.Apache).Split(' ')[0] + " · " + php;
+                string php = string.IsNullOrEmpty(Cfg.Php) ? "no PHP" : "PHP " + ServNookConfig.FullVersion(Cfg.PhpDir);
+                return ServNookConfig.FullVersion(K.Apache).Split(' ')[0] + " · " + php;
             }
         }
         public override int Port { get { return Cfg.HttpPort; } }
@@ -165,19 +165,19 @@ namespace WebHut
 
         /// <summary>The exact command line Apache starts with, for <paramref name="c"/>'s settings and the given httpd.conf
         /// (the configuration manager validates candidate files with it).</summary>
-        public string Args(WebHutConfig c, string conf)
+        public string Args(ServNookConfig c, string conf)
         {
             var sb = new StringBuilder();
             sb.Append("-d \"").Append(K.Fwd(K.Apache)).Append("\" -f \"").Append(K.Fwd(conf)).Append('"');
-            sb.Append(" -C \"Define WEBHUT_ROOT ").Append(K.RootFwd).Append('"');
+            sb.Append(" -C \"Define SERVNOOK_ROOT ").Append(K.RootFwd).Append('"');
             sb.Append(" -C \"Define PHP_DIR ").Append(K.Fwd(c.PhpDir)).Append('"');
-            sb.Append(" -C \"Define WEBHUT_HTTP_PORT ").Append(c.HttpPort).Append('"');
-            sb.Append(" -C \"Define WEBHUT_MYSQL_PORT ").Append(c.MysqlPort).Append('"');
+            sb.Append(" -C \"Define SERVNOOK_HTTP_PORT ").Append(c.HttpPort).Append('"');
+            sb.Append(" -C \"Define SERVNOOK_MYSQL_PORT ").Append(c.MysqlPort).Append('"');
             if (c.LanAccess)
             {
                 var ips = Sys.LanAddresses();
-                sb.Append(" -C \"Define WEBHUT_LAN 1\"");
-                sb.Append(" -C \"Define WEBHUT_LAN_IPS ").Append(ips.Count == 0 ? "none" : string.Join(",", ips)).Append('"');
+                sb.Append(" -C \"Define SERVNOOK_LAN 1\"");
+                sb.Append(" -C \"Define SERVNOOK_LAN_IPS ").Append(ips.Count == 0 ? "none" : string.Join(",", ips)).Append('"');
             }
             return sb.ToString();
         }
@@ -296,7 +296,7 @@ namespace WebHut
     {
         public override string Key { get { return "mariadb"; } }
         public override string Title { get { return "MariaDB"; } }
-        public override string Detail { get { return WebHutConfig.FullVersion(K.MariaDb); } }
+        public override string Detail { get { return ServNookConfig.FullVersion(K.MariaDb); } }
         public override int Port { get { return Cfg.MysqlPort; } }
         public override string LogFile { get { return Path.Combine(K.Logs, "mariadb.err"); } }
         public override string ConfigFile { get { return K.MyIni; } }
@@ -477,7 +477,7 @@ namespace WebHut
             Directory.CreateDirectory(K.Pids);
 
             File.AppendAllText(LogFile, Environment.NewLine + "==== " + DateTime.Now + "  " + App.Command + " (PORT=" + App.Port + ") ====" + Environment.NewLine);
-            // cmd.exe owns the redirection, so the app keeps running (and logging) after WebHut closes.
+            // cmd.exe owns the redirection, so the app keeps running (and logging) after ServNook closes.
             // Parentheses so "npm install && npm run dev" logs both commands.
             var psi = new ProcessStartInfo("cmd.exe", "/d /s /c \"(" + App.Command + ") >> \"" + LogFile + "\" 2>&1\"")
             {

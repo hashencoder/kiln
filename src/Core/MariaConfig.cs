@@ -9,7 +9,7 @@ using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace WebHut
+namespace ServNook
 {
     /// <summary>A my.ini setting the configuration manager edits.</summary>
     public class MariaSetting
@@ -57,18 +57,18 @@ namespace WebHut
 
         public static MariaSetting Get(string id) { return All.FirstOrDefault(s => s.Id == id || s.Key == id); }
 
-        /// <summary>Options WebHut passes on mariadbd's command line; they override my.ini.</summary>
+        /// <summary>Options ServNook passes on mariadbd's command line; they override my.ini.</summary>
         public static readonly string[] StartupArgs = { "port", "bind_address", "datadir", "log_error", "pid_file" };
 
         public static string StartupOwner(string key)
         {
             switch (key)
             {
-                case "port": return "MariaDB port is managed by WebHut and passed when the server starts. Changing it in my.ini doesn't affect the port in use; change it in the General section.";
-                case "bind_address": return "WebHut always starts MariaDB with --bind-address=127.0.0.1 so the database stays private to this PC. A bind-address in my.ini has no effect.";
-                case "datadir": return "The data folder is passed by WebHut (--datadir). A datadir line in my.ini has no effect.";
-                case "log_error": return "The error log path is passed by WebHut (--log-error=logs/mariadb.err). A log-error line in my.ini has no effect.";
-                case "pid_file": return "The PID file is managed by WebHut (--pid-file). A pid-file line in my.ini has no effect.";
+                case "port": return "MariaDB port is managed by ServNook and passed when the server starts. Changing it in my.ini doesn't affect the port in use; change it in the General section.";
+                case "bind_address": return "ServNook always starts MariaDB with --bind-address=127.0.0.1 so the database stays private to this PC. A bind-address in my.ini has no effect.";
+                case "datadir": return "The data folder is passed by ServNook (--datadir). A datadir line in my.ini has no effect.";
+                case "log_error": return "The error log path is passed by ServNook (--log-error=logs/mariadb.err). A log-error line in my.ini has no effect.";
+                case "pid_file": return "The PID file is managed by ServNook (--pid-file). A pid-file line in my.ini has no effect.";
             }
             return null;
         }
@@ -147,7 +147,7 @@ namespace WebHut
     {
         public bool Installed, Running, Connected;
         public string Version = "", ConnectError;
-        public MariaCheck NextStart;                                 // my.ini + WebHut's startup arguments, as mariadbd reads them
+        public MariaCheck NextStart;                                 // my.ini + ServNook's startup arguments, as mariadbd reads them
         public Dictionary<string, SysVar> Live = new Dictionary<string, SysVar>();
         public Dictionary<string, string> Status = new Dictionary<string, string>();
         public SortedDictionary<string, List<string>> Collations = new SortedDictionary<string, List<string>>();
@@ -156,7 +156,7 @@ namespace WebHut
 
         public static string Server { get { return Installer.MariaExe("mariadbd.exe", "mysqld.exe"); } }
 
-        public static MariaInfo Probe(WebHutConfig cfg)
+        public static MariaInfo Probe(ServNookConfig cfg)
         {
             var m = new MariaInfo();
             string exe = Server;
@@ -175,7 +175,7 @@ namespace WebHut
             return m;
         }
 
-        public void LoadLive(WebHutConfig cfg)
+        public void LoadLive(ServNookConfig cfg)
         {
             string err;
             List<string[]> rows;
@@ -258,11 +258,11 @@ namespace WebHut
         static readonly Regex Noise = new Regex(@"max_open_files|mysql\.plugin|Some options may be missing|Could not increase number of", RegexOptions.IgnoreCase);
 
         /// <summary>
-        /// Ask mariadbd how it reads <paramref name="ini"/> with WebHut's startup arguments (--help --verbose). It
+        /// Ask mariadbd how it reads <paramref name="ini"/> with ServNook's startup arguments (--help --verbose). It
         /// prints every variable and rejects unknown options or bad values. It runs against an empty scratch data
         /// folder, so the real data folder is never opened.
         /// </summary>
-        public static MariaCheck Check(string ini, WebHutConfig cfg)
+        public static MariaCheck Check(string ini, ServNookConfig cfg)
         {
             var res = new MariaCheck();
             string exe = Server;
@@ -307,7 +307,7 @@ namespace WebHut
         /// wait until it is ready, then stop it. Catches what option parsing can't: memory that can't be allocated,
         /// InnoDB settings that fail at startup. Never touches the real data folder. Returns null on success.
         /// </summary>
-        public static string ScratchStart(string ini, WebHutConfig cfg)
+        public static string ScratchStart(string ini, ServNookConfig cfg)
         {
             string exe = Server;
             if (exe == null) return "mariadbd.exe was not found.";
@@ -319,7 +319,7 @@ namespace WebHut
             l.Start(); port = ((IPEndPoint)l.LocalEndpoint).Port; l.Stop();
             string args = "--defaults-file=\"" + K.Fwd(ini) + "\" --datadir=\"" + K.Fwd(data) + "\" --port=" + port +
                           " --bind-address=127.0.0.1 --skip-grant-tables --log-error=\"" + K.Fwd(log) + "\" --pid-file=\"" + K.Fwd(Path.Combine(dir, "s.pid")) +
-                          "\" --socket=\"" + (Sys.IsWindows ? "webhut-check-" + port : "/tmp/webhut-check-" + port + ".sock") + "\"" +
+                          "\" --socket=\"" + (Sys.IsWindows ? "servnook-check-" + port : "/tmp/servnook-check-" + port + ".sock") + "\"" +
                           " --slow-query-log-file=\"" + K.Fwd(Path.Combine(dir, "slow.log")) + "\" --general-log-file=\"" + K.Fwd(Path.Combine(dir, "general.log")) + "\"";
             Process p = null;
             try

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Runs WebHut's logic tests under Mono in a throwaway folder.
+# Runs ServNook's logic tests under Mono in a throwaway folder.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-WORK="${TMPDIR:-/tmp}/webhut-test-$$"
+WORK="${TMPDIR:-/tmp}/servnook-test-$$"
 mkdir -p "$WORK/served"
-cp dist/whut.exe "$WORK/"
+cp dist/snook.exe "$WORK/"
 cp tests/fixtures/dashboard-old.php "$WORK/"
-mcs -langversion:7.2 -target:exe -out:"$WORK/Tests.exe" -r:"$WORK/whut.exe" \
+mcs -langversion:7.2 -target:exe -out:"$WORK/Tests.exe" -r:"$WORK/snook.exe" \
     -r:System.IO.Compression.dll -r:System.IO.Compression.FileSystem.dll tests/Tests.cs
 
 # A fake PHP zip served over HTTP for the download tests
@@ -19,7 +19,7 @@ SERVER=$!
 trap 'kill $SERVER 2>/dev/null; rm -rf "$WORK"' EXIT
 sleep 1
 
-echo "== whut smoke test"
-( cd "$WORK" && mono whut.exe version && mono whut.exe help | head -3 )
+echo "== snook smoke test"
+( cd "$WORK" && mono snook.exe version && mono snook.exe help | head -3 )
 echo "== logic tests"
 NO_PROXY=127.0.0.1 no_proxy=127.0.0.1 mono "$WORK/Tests.exe" "$PORT"
