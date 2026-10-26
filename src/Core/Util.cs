@@ -16,7 +16,7 @@ namespace ServNook
     public static class K
     {
         public const string AppName = "ServNook";
-        public const string AppVersion = "1.7.0";
+        public const string AppVersion = "1.7.1";
 
         // Maintainers: set this to the raw URL of versions.json in your GitHub
         // repo so every ServNook install can pick up pinned versions you publish,
