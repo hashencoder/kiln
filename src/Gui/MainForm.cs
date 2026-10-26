@@ -1078,6 +1078,7 @@ namespace ServNook
         {
             Log.Info("ServNook " + K.AppVersion + " · " + K.Root);
             try { new Installer(Cfg).RelocateIfMoved(); } catch (Exception ex) { Log.Error(ex.Message); }
+            try { new Installer(Cfg).UpdatePmaConfig(); } catch (Exception ex) { Log.Warn("Couldn't update phpMyAdmin's sign-in: " + ex.Message); }
             UpdateSubtitle();
             BuildRows();
             Relayout();

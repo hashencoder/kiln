@@ -90,6 +90,17 @@ static class Tests
         inst.UpdatePmaConfig();
         pma = File.ReadAllText(Path.Combine(K.Pma, "config.inc.php"));
         Check(pma.Contains("'3310'") && pma.Contains("AllowNoPassword'] = false"), "UpdatePmaConfig rewrites port and AllowNoPassword");
+        Check(pma.Contains("auth_type'] = 'config'") && pma.Contains("['user']      = 'root'") && pma.IndexOf("auth_type'] = 'config'") > pma.IndexOf("auth_type']       = 'cookie'"),
+              "phpMyAdmin signs in as root automatically (the ServNook block comes after the template's cookie line)", pma);
+        var pmac = new ServNookConfig { MysqlRootPassword = "it's a \\ pass", PmaAutoLogin = true };
+        string tpl = "<?php\r\n$cfg['Servers'][$i]['AllowNoPassword'] = false;\r\n$cfg['TempDir'] = 'x';\r\n";
+        string once = Installer.ApplyPmaLogin(tpl, pmac);
+        Check(once.Contains("['password']  = 'it\\'s a \\\\ pass';") && Installer.ApplyPmaLogin(once, pmac) == once && !once.Replace("\r\n", "").Contains("\n"),
+              "sign-in block: password escaped for PHP, applying twice changes nothing, CRLF kept", once);
+        pmac.PmaAutoLogin = false;
+        string off = Installer.ApplyPmaLogin(once, pmac);
+        Check(off.Contains("auth_type'] = 'cookie'") && !off.Contains("['password']") && System.Text.RegularExpressions.Regex.Matches(off, "BEGIN ServNook sign-in").Count == 1,
+              "turning auto sign-in off restores the login page and removes the password", off);
 
         // ---------------------------------------------------------------- vhosts
         Console.WriteLine("Virtual hosts");

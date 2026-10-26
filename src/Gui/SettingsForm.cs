@@ -20,7 +20,7 @@ namespace ServNook
         NumberField _http, _mysql, _mysqlSrv, _pg, _mongo;
         /// <summary>Optional engines (MySQL, PostgreSQL, MongoDB) whose port changed; MainForm restarts the running ones.</summary>
         public readonly List<Service> RestartEngines = new List<Service>();
-        Switch _startOnLaunch, _tray, _lan;
+        Switch _startOnLaunch, _tray, _lan, _pmaAuto;
         Label _status, _pwState, _vcState, _dirty, _lanDetails;
         Callout _pwNote, _lanNote;
         IconButton _addPhp, _addNode, _updates, _vc, _pwBtn, _save, _lanMore;
@@ -61,6 +61,7 @@ namespace ServNook
             _startOnLaunch = new Switch();
             _tray = new Switch();
             _lan = new Switch();
+            _pmaAuto = new Switch();
             _status = Text2("", Ui.Small, Ui.Muted, Px(Inner));
             _pwState = Text2("", Ui.Bold, Ui.Ink, Px(200));
             _vcState = Text2("", Ui.Bold, Ui.Ink, Px(240));
@@ -98,6 +99,7 @@ namespace ServNook
             Row(db, "Root password", "User root, used by phpMyAdmin and your apps.", Line(_pwState, _pwBtn));
             _pwNote = new Callout(CalloutKind.Warning, "", Px(Inner - 40));
             Full(db, _pwNote);
+            Toggle(db, _pmaAuto, "Sign in to phpMyAdmin automatically", "phpMyAdmin opens signed in as root, with the password above. It is only reachable from this PC. Turn off to see the login page.");
 
             var securityPage = Page("Security", "Who can reach your sites.");
             var network = Section(securityPage, "globe", "Network access", "Off by default: only this PC can open your sites.");
@@ -167,7 +169,7 @@ namespace ServNook
             EventHandler changed = (s, e) => OnChanged();
             _php.SelectedIndexChanged += changed; _node.SelectedIndexChanged += changed; _theme.SelectedIndexChanged += changed;
             _http.ValueChanged += changed; _mysql.ValueChanged += changed;
-            _startOnLaunch.CheckedChanged += changed; _tray.CheckedChanged += changed; _lan.CheckedChanged += changed;
+            _startOnLaunch.CheckedChanged += changed; _tray.CheckedChanged += changed; _lan.CheckedChanged += changed; _pmaAuto.CheckedChanged += changed;
             Load += (s, e) => Populate();
         }
 
@@ -304,6 +306,7 @@ namespace ServNook
             _startOnLaunch.Checked = Cfg.StartOnLaunch;
             _tray.Checked = Cfg.MinimizeToTray;
             _lan.Checked = Cfg.LanAccess;
+            _pmaAuto.Checked = Cfg.PmaAutoLogin;
             bool vc = Installer.VcRedistOk();
             _vcState.Text = vc ? "Installed" : "Missing or outdated";
             _vcState.ForeColor = vc ? Ui.Green : Ui.Amber;
@@ -319,7 +322,8 @@ namespace ServNook
                 || ThemeIds[Math.Max(0, _theme.SelectedIndex)] != ServNookConfig.NormTheme(Cfg.Theme)
                 || _http.Value != Cfg.HttpPort || _mysql.Value != Cfg.MysqlPort
                 || _mysqlSrv.Value != Cfg.MySqlPort || _pg.Value != Cfg.PgPort || _mongo.Value != Cfg.MongoPort
-                || _startOnLaunch.Checked != Cfg.StartOnLaunch || _tray.Checked != Cfg.MinimizeToTray || _lan.Checked != Cfg.LanAccess;
+                || _startOnLaunch.Checked != Cfg.StartOnLaunch || _tray.Checked != Cfg.MinimizeToTray || _lan.Checked != Cfg.LanAccess
+                || _pmaAuto.Checked != Cfg.PmaAutoLogin;
         }
 
         void OnChanged()
@@ -385,9 +389,11 @@ namespace ServNook
             Cfg.StartOnLaunch = _startOnLaunch.Checked;
             Cfg.MinimizeToTray = _tray.Checked;
             Cfg.LanAccess = _lan.Checked;
+            bool pmaChanged = _pmaAuto.Checked != Cfg.PmaAutoLogin;
+            Cfg.PmaAutoLogin = _pmaAuto.Checked;
             Cfg.Theme = ThemeIds[Math.Max(0, _theme.SelectedIndex)];
             Cfg.Save();
-            if (mysqlChanged)
+            if (mysqlChanged || pmaChanged)
             {
                 try { new Installer(Cfg).UpdatePmaConfig(); } catch (Exception e) { Log.Error(e.Message); }
             }

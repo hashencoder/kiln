@@ -385,10 +385,48 @@ namespace ServNook
                 .Replace("{{BLOWFISH_SECRET}}", Sys.RandomToken(32))
                 .Replace("{{MYSQL_PORT}}", Cfg.MysqlPort.ToString())
                 .Replace("{{ALLOW_NO_PASSWORD}}", string.IsNullOrEmpty(Cfg.MysqlRootPassword) ? "true" : "false");
-            WriteText(Path.Combine(K.Pma, "config.inc.php"), conf);
+            WriteText(Path.Combine(K.Pma, "config.inc.php"), ApplyPmaLogin(conf, Cfg));
         }
 
-        /// <summary>Update port / AllowNoPassword in an existing phpMyAdmin config.</summary>
+        const string PmaLoginBegin = "// BEGIN ServNook sign-in", PmaLoginEnd = "// END ServNook sign-in";
+
+        static string PhpString(string s) { return "'" + (s ?? "").Replace("\\", "\\\\").Replace("'", "\\'") + "'"; }
+
+        /// <summary>The block ServNook keeps in phpMyAdmin's config.inc.php: sign in as root automatically
+        /// (auth_type config, with the root password saved in ServNook), or show the normal login page.</summary>
+        public static string PmaLoginBlock(ServNookConfig cfg)
+        {
+            var b = new StringBuilder();
+            b.AppendLine(PmaLoginBegin + " (written by ServNook; change it in Settings > Services)");
+            if (cfg.PmaAutoLogin)
+            {
+                b.AppendLine("// phpMyAdmin is only reachable from this PC, so it signs in as root without asking.");
+                b.AppendLine("$cfg['Servers'][$i]['auth_type'] = 'config';");
+                b.AppendLine("$cfg['Servers'][$i]['user']      = 'root';");
+                b.AppendLine("$cfg['Servers'][$i]['password']  = " + PhpString(cfg.MysqlRootPassword) + ";");
+            }
+            else
+                b.AppendLine("$cfg['Servers'][$i]['auth_type'] = 'cookie';");
+            b.Append(PmaLoginEnd);
+            return b.ToString();
+        }
+
+        /// <summary>Put the current sign-in block into a config.inc.php text (replacing an older block, or adding one after the server settings).</summary>
+        public static string ApplyPmaLogin(string text, ServNookConfig cfg)
+        {
+            string nl = text.Contains("\r\n") ? "\r\n" : "\n";
+            string block = PmaLoginBlock(cfg).Replace("\r\n", "\n").Replace("\n", nl);
+            int b = text.IndexOf(PmaLoginBegin, StringComparison.Ordinal);
+            int e = b < 0 ? -1 : text.IndexOf(PmaLoginEnd, b, StringComparison.Ordinal);
+            if (b >= 0 && e > b) return text.Substring(0, b) + block + text.Substring(e + PmaLoginEnd.Length);
+            var m = System.Text.RegularExpressions.Regex.Match(text, @"^.*\['AllowNoPassword'\].*$", System.Text.RegularExpressions.RegexOptions.Multiline);
+            if (!m.Success) return text.TrimEnd() + nl + nl + block + nl;
+            int at = m.Index + m.Length;
+            if (at > 0 && text[at - 1] == '\r') at--;               // insert before the line break, keeping CRLF intact
+            return text.Substring(0, at) + nl + block + text.Substring(at);
+        }
+
+        /// <summary>Update port, AllowNoPassword and the sign-in block in an existing phpMyAdmin config.</summary>
         public void UpdatePmaConfig()
         {
             var f = Path.Combine(K.Pma, "config.inc.php");
@@ -397,7 +435,8 @@ namespace ServNook
             s = System.Text.RegularExpressions.Regex.Replace(s, @"(\['port'\]\s*=\s*')\d*(')", "${1}" + Cfg.MysqlPort + "$2");
             s = System.Text.RegularExpressions.Regex.Replace(s, @"(\['AllowNoPassword'\]\s*=\s*)(true|false)",
                 "${1}" + (string.IsNullOrEmpty(Cfg.MysqlRootPassword) ? "true" : "false"));
-            File.WriteAllText(f, s);
+            s = ApplyPmaLogin(s, Cfg);
+            if (s != File.ReadAllText(f)) File.WriteAllText(f, s);
         }
 
         // ------------------------------------------------------------------ MariaDB
