@@ -170,6 +170,9 @@ static class Tests
         inst.RelocateIfMoved();
         Check(File.ReadAllText(Path.Combine(phpDir, "php.ini")).Contains(K.RootFwd + "/php/8.5/ext"), "relocation works from an old WebHut php.ini marker");
 
+        Check(Updates.ReportedVersion("8.5.12-1") == "8.5.12" && Updates.ReportedVersion("2.4.69 (VS18)") == "2.4.69" &&
+              Updates.ReportedVersion("12.3.3") == "12.3.3" && Updates.ReportedVersion("24.11.0 LTS") == "24.11.0", "health check ignores package suffixes (PHP 8.5.12-1 is php.exe 8.5.12)");
+
         // ---------------------------------------------------------------- WebHut -> ServNook rename
         Console.WriteLine("Upgrading a WebHut folder");
         string oldConf = "Define WEBHUT_PHP_FCGID 1\nServerName localhost:${WEBHUT_HTTP_PORT}\n<IfDefine WEBHUT_LAN>\n  Require ip ${WEBHUT_LAN_IPS}\n</IfDefine>\n" +

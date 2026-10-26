@@ -4,6 +4,12 @@ All notable changes to ServNook (called WebHut up to 1.6.5) are listed here. The
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.7.2] - 2026-10-27
+
+### Fixed
+- **PHP updates no longer roll back on a re-released build.** windows.php.net published PHP 8.5.12 as "8.5.12-1"; the update manager compared that with what `php.exe` prints ("8.5.12"), decided the version was wrong and restored the previous PHP. Package suffixes like `-1` are now ignored in that check.
+- **A `public\` folder is only used as the site root when it has an `index.php` or `index.html`.** Apps that keep their `index.php` in the project folder and only assets in `public\` were served from `public\` at `name.localhost`, which bypassed the app and could answer "400 Bad Request". Click **Refresh sites** after updating.
+
 ## [1.7.1] - 2026-10-27
 
 ### Changed
