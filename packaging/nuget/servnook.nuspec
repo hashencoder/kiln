@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ServNook as a NuGet package on GitHub Packages (https://github.com/hashencoder/servnook/pkgs/nuget/ServNook).
+     Built by .github/workflows/github-packages.yml from the release's portable zip; the app is in tools\ServNook. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>ServNook</id>
+    <version>$version$</version>
+    <title>ServNook</title>
+    <authors>Prafful Sharma</authors>
+    <owners>hashencoder</owners>
+    <description>ServNook is a free, open-source local web stack for Windows: Apache, the latest PHP, MariaDB, phpMyAdmin and Node.js in one portable folder, with one control panel. This package contains the portable app (tools\ServNook). Most people should use the installer from https://github.com/hashencoder/servnook/releases/latest, winget or Scoop instead.</description>
+    <summary>Free, open-source XAMPP alternative for Windows (portable app).</summary>
+    <projectUrl>https://github.com/hashencoder/servnook</projectUrl>
+    <repository type="git" url="https://github.com/hashencoder/servnook.git" />
+    <license type="expression">MIT</license>
+    <icon>icon.png</icon>
+    <readme>README.md</readme>
+    <releaseNotes>https://github.com/hashencoder/servnook/releases/tag/v$version$</releaseNotes>
+    <tags>php apache mariadb mysql phpmyadmin nodejs xampp xampp-alternative local-development windows</tags>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+  </metadata>
+  <files>
+    <file src="app\**" target="tools\ServNook" />
+    <file src="icon.png" target="" />
+    <file src="README.md" target="" />
+  </files>
+</package>

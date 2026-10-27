@@ -1,0 +1,65 @@
+# Publishes each ServNook release to GitHub Packages as a NuGet package (the "Packages" box on the repo page).
+# Runs when a release is published, after the release build has attached the portable zip; can also be run by
+# hand for an existing release (Actions > GitHub Packages > Run workflow, tag e.g. v1.7.3).
+name: GitHub Packages
+
+on:
+  workflow_run:
+    workflows: ["Build and release"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v1.7.3)"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  nuget:
+    # After a release build: only when it succeeded and was for a published release.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the release tag
+        id: tag
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          if (-not $tag) { $tag = "${{ github.event.workflow_run.head_branch }}" }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw "Not a release tag: '$tag'" }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$($tag.Substring(1))" >> $env:GITHUB_OUTPUT
+
+      - name: Download the portable zip from the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = "${{ steps.tag.outputs.version }}"
+          New-Item -ItemType Directory -Force pkg | Out-Null
+          gh release download "${{ steps.tag.outputs.tag }}" -R "${{ github.repository }}" -p "ServNook-$v-win64.zip" -p "ServNook-$v-win64.zip.sha256" -D pkg
+          $want = (Get-Content "pkg/ServNook-$v-win64.zip.sha256" -Raw).Split(' ')[0].Trim().ToLower()
+          $got = (Get-FileHash "pkg/ServNook-$v-win64.zip" -Algorithm SHA256).Hash.ToLower()
+          if ($want -ne $got) { throw "Checksum mismatch: $got, expected $want" }
+          Expand-Archive "pkg/ServNook-$v-win64.zip" -DestinationPath pkg/unzipped
+          Move-Item pkg/unzipped/ServNook pkg/app
+          Copy-Item packaging/nuget/servnook.nuspec, packaging/nuget/README.md pkg/
+          Copy-Item assets/logo/servnook-128.png pkg/icon.png
+
+      - name: Pack
+        shell: pwsh
+        run: |
+          nuget pack pkg/servnook.nuspec -Version "${{ steps.tag.outputs.version }}" -Properties "version=${{ steps.tag.outputs.version }}" -BasePath pkg -OutputDirectory out -NoDefaultExcludes -NoPackageAnalysis
+          Get-ChildItem out
+
+      - name: Publish to GitHub Packages
+        shell: pwsh
+        run: |
+          dotnet nuget push "out/ServNook.${{ steps.tag.outputs.version }}.nupkg" --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key "${{ github.token }}" --skip-duplicate
