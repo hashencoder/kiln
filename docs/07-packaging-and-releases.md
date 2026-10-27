@@ -154,7 +154,12 @@ On first launch, ServNook sees `apache\` and `php\` already present and skips se
 
 ## Distribution channels (optional)
 
-Once releases are stable, you can submit ServNook to **winget** (a manifest PR to `microsoft/winget-pkgs` pointing at the release zip) and **Scoop** (an `extras` bucket manifest). Both need a stable download URL and a SHA-256, which the release workflow already produces.
+### Package managers
+
+Both live in this repository, so there's nothing else to maintain:
+
+- **Scoop:** this repo is the bucket. `bucket/servnook.json` points at the release zip and its SHA-256, and Scoop's `checkver`/`autoupdate` fields describe how to find the next version. Users run `scoop bucket add servnook https://github.com/hashencoder/servnook` and `scoop install servnook`. After each release, update the version, URL and hash in `bucket/servnook.json`.
+- **winget:** `packaging/winget/manifests/...` holds the manifests submitted to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) (identifier `ServNook.ServNook`, the per-user Inno installer). For a new version, copy the folder to the new version number, update `PackageVersion`, `InstallerUrl`, `InstallerSha256` (upper case) and `ReleaseDate`, and open a pull request to winget-pkgs from a fork.
 
 
 ## Installer

@@ -87,6 +87,7 @@ Requirements: Windows 10 or 11 (x64), and the **Microsoft Visual C++ Redistribut
 
 1. Download **`ServNook-Setup-<version>.exe`** from [Releases](../../releases/latest) and run it. It installs to `C:\ServNook` by default (no admin rights needed) and adds Start-menu and desktop shortcuts.
    Prefer a portable copy? Download `ServNook-<version>-win64.zip` instead and extract it to a short path **without spaces**, such as `C:\servnook`.
+   Using [Scoop](https://scoop.sh)? `scoop bucket add servnook https://github.com/hashencoder/servnook`, then `scoop install servnook`.
 2. ServNook opens with its setup window, which finds the latest Apache, PHP, MariaDB, phpMyAdmin and Node.js. Click **Install**.
 3. Click **Start all**, then **Open localhost**.
 
