@@ -125,6 +125,21 @@ jobs:
             dist/ServNook-Setup-*.exe
             dist/ServNook-Setup-*.exe.sha256
 
+      # Fixed-name copies, so https://github.com/hashencoder/servnook/releases/latest/download/ServNook-Setup.exe
+      # (the website's Download button) always fetches the newest installer.
+      - name: Fixed-name copies for "latest" download links
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist/ServNook-Setup-*.exe | Select-Object -First 1
+          $zip = Get-ChildItem dist/ServNook-*-win64.zip | Select-Object -First 1
+          Copy-Item $setup.FullName dist/ServNook-Setup.exe
+          Copy-Item $zip.FullName dist/ServNook-win64.zip
+          foreach ($f in "ServNook-Setup.exe","ServNook-win64.zip") {
+            $h = (Get-FileHash "dist/$f" -Algorithm SHA256).Hash.ToLower()
+            "$h  $f" | Set-Content -NoNewline -Encoding ascii "dist/$f.sha256"
+          }
+
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -134,4 +149,8 @@ jobs:
             dist/ServNook-Setup-*.exe.sha256
             dist/ServNook-*-win64.zip
             dist/ServNook-*-win64.zip.sha256
+            dist/ServNook-Setup.exe
+            dist/ServNook-Setup.exe.sha256
+            dist/ServNook-win64.zip
+            dist/ServNook-win64.zip.sha256
           generate_release_notes: true
