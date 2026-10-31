@@ -2,10 +2,19 @@
 
 <h1 align="center">ServNook</h1>
 
+<p align="center">
+  <a href="https://github.com/hashencoder/servnook/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/hashencoder/servnook?label=release&color=ea4b0c"></a>
+  <a href="https://github.com/hashencoder/servnook/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/hashencoder/servnook/total?color=ea4b0c"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/github/license/hashencoder/servnook?color=555"></a>
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-555">
+  <img alt="PHP 8.5" src="https://img.shields.io/badge/PHP-8.5-777bb4">
+  <a href="https://github.com/hashencoder/servnook/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/hashencoder/servnook?style=social"></a>
+</p>
+
 <p align="center"><b>A portable, XAMPP-style local development stack for Windows:<br>Apache, the latest PHP, MariaDB, phpMyAdmin and Node.js in one folder, with one control panel.<br>Optional: MySQL, PostgreSQL and MongoDB.</b></p>
 
 <p align="center">
-  <a href="../../releases/latest"><b>⬇ Download for Windows</b></a> ·
+  <a href="https://github.com/hashencoder/servnook/releases/latest/download/ServNook-Setup.exe"><b>⬇ Download for Windows</b></a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#servnook-xampp-and-laragon">Compare</a> ·
   <a href="docs/">Docs</a> ·
