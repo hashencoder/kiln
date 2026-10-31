@@ -127,7 +127,7 @@ Unsigned new executables trigger Windows SmartScreen ("Windows protected your PC
 
 1. **Do nothing**, and document "More info → Run anyway" (already in the README and `README.txt`). Reputation builds slowly as people download.
 2. **Submit each release to Microsoft** for analysis at <https://www.microsoft.com/wdsi/filesubmission> as a software developer. This helps with Defender false positives.
-3. **Free signing for open source.** [SignPath Foundation](https://signpath.org/) signs releases for qualifying OSS projects through a GitHub Actions integration.
+3. **Free signing for open source.** [SignPath Foundation](https://signpath.org/) signs releases for qualifying OSS projects through a GitHub Actions integration. ServNook applied in October 2026 and was declined for now: the Foundation wants public signals first (stars, forks, contributors, articles, discussions). Reapply once those exist.
 4. **A paid certificate** or Microsoft's cloud code-signing service (Trusted Signing), then add a `signtool sign` step to the workflow after the build step.
 
 Signing `ServNook.exe` and `snook.exe` (not just the zip) is what matters.

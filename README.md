@@ -170,15 +170,12 @@ ServNook is for **local development only**. Everything listens on `127.0.0.1`, a
 
 Issues and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Code signing policy
+## Code signing
 
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+ServNook's releases are **not code-signed yet**, so Windows SmartScreen may show "Windows protected your PC" the first time you run the installer: click **More info → Run anyway**. Every download has a `.sha256` file next to it so you can check it is the file GitHub Actions built.
 
-- Release builds are made from this repository by [GitHub Actions](.github/workflows/release.yml); nothing is built or signed on a personal machine.
-- Every signing request is approved by hand before a release is signed.
-- Team roles:
-  - Committers and reviewers: [@hashencoder](https://github.com/hashencoder)
-  - Approvers: [@hashencoder](https://github.com/hashencoder)
+- Release builds are made from this repository by [GitHub Actions](.github/workflows/release.yml); nothing is built on a personal machine.
+- Maintainer: [@hashencoder](https://github.com/hashencoder).
 
 ### Privacy
 
